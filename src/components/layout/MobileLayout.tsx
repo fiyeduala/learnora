@@ -1,0 +1,54 @@
+import { Home, BookOpen, MessageCircle, Calendar, User, TrendingUp, CreditCard, Bell } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+
+export type MobileNavItem = { icon: LucideIcon; label: string; page: string }
+
+export const studentMobileNav: MobileNavItem[] = [
+  { icon: Home,          label: 'Home',     page: 'm/home' },
+  { icon: BookOpen,      label: 'Learn',    page: 'm/learn' },
+  { icon: MessageCircle, label: 'Chat',     page: 'm/messages' },
+  { icon: Calendar,      label: 'Calendar', page: 'm/calendar' },
+  { icon: User,          label: 'Profile',  page: 'm/profile' },
+]
+
+export const parentMobileNav: MobileNavItem[] = [
+  { icon: Home,          label: 'Home',     page: 'parent/home'         },
+  { icon: TrendingUp,    label: 'Progress', page: 'parent/progress'     },
+  { icon: CreditCard,    label: 'Fees',     page: 'parent/fees'         },
+  { icon: Bell,          label: 'Updates',  page: 'parent/announcements'},
+  { icon: User,          label: 'Profile',  page: 'parent/profile'      },
+]
+
+type Props = {
+  children: React.ReactNode
+  activePage: string
+  onNavigate: (page: string) => void
+  nav: MobileNavItem[]
+}
+
+export default function MobileLayout({ children, activePage, onNavigate, nav }: Props) {
+  return (
+    <div className="h-screen bg-white flex flex-col max-w-[430px] mx-auto">
+      <main className="flex-1 overflow-y-auto">{children}</main>
+      <nav className="shrink-0 bg-white border-t border-black/8 px-2 py-1.5">
+        <div className="flex items-end justify-around">
+          {nav.map(item => {
+            const Icon = item.icon
+            const active = activePage === item.page
+            return (
+              <button
+                key={item.page}
+                type="button"
+                onClick={() => onNavigate(item.page)}
+                className="flex flex-col items-center gap-0.5 px-3 py-1"
+              >
+                <Icon size={22} strokeWidth={active ? 2.5 : 1.5} className={active ? 'text-primary' : 'text-muted/40'} />
+                <span className={`text-[10px] font-medium ${active ? 'text-primary' : 'text-muted/40'}`}>{item.label}</span>
+              </button>
+            )
+          })}
+        </div>
+      </nav>
+    </div>
+  )
+}

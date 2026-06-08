@@ -1,0 +1,99 @@
+import { useState } from 'react'
+import { Camera, ChevronLeft, CheckCircle2 } from 'lucide-react'
+import DashboardLayout from '../components/layout/DashboardLayout'
+
+type Props = { onNavigate: (page: string) => void }
+
+export default function ProfileSettingsPage({ onNavigate }: Props) {
+  const [firstName, setFirstName] = useState('Olive')
+  const [lastName,  setLastName]  = useState('Johnson')
+  const [phone,     setPhone]     = useState('+234 800 000 0000')
+  const [bio,       setBio]       = useState('SS1A student at Greenfield Academy passionate about Physics and Mathematics.')
+  const [saved,     setSaved]     = useState(false)
+
+  function save(e: React.FormEvent) {
+    e.preventDefault()
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2500)
+  }
+
+  return (
+    <DashboardLayout
+      activePage="settings"
+      onNavigate={onNavigate}
+      title="Profile Settings"
+      subtitle="Update your personal information"
+    >
+      <div className="max-w-[640px] flex flex-col gap-6">
+
+        <button onClick={() => onNavigate('settings')} className="flex items-center gap-2 text-sm text-muted hover:text-foreground w-fit">
+          <ChevronLeft size={16} /> Back to Settings
+        </button>
+
+        <form onSubmit={save} className="flex flex-col gap-6">
+
+          {/* Avatar */}
+          <div className="bg-surface rounded-card shadow-sm p-6 flex items-center gap-5">
+            <div className="relative">
+              <div className="size-20 rounded-full bg-primary text-white text-3xl font-bold flex items-center justify-center">O</div>
+              <button type="button" className="absolute bottom-0 right-0 size-7 rounded-full bg-primary text-white flex items-center justify-center border-2 border-white hover:bg-primary-deep transition-colors">
+                <Camera size={12} />
+              </button>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">Profile Photo</p>
+              <p className="text-xs text-muted mt-0.5">JPG or PNG. Max 2MB.</p>
+              <button type="button" className="text-xs text-primary font-semibold mt-1 hover:underline">Upload photo</button>
+            </div>
+          </div>
+
+          {/* Personal info */}
+          <div className="bg-surface rounded-card shadow-sm p-6 flex flex-col gap-5">
+            <h2 className="text-base font-bold text-foreground">Personal Information</h2>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-foreground">First Name</label>
+                <input value={firstName} onChange={e => setFirstName(e.target.value)}
+                  className="h-12 px-4 border border-black/20 rounded-input text-sm text-foreground outline-none focus:border-primary" />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-foreground">Last Name</label>
+                <input value={lastName} onChange={e => setLastName(e.target.value)}
+                  className="h-12 px-4 border border-black/20 rounded-input text-sm text-foreground outline-none focus:border-primary" />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-foreground">Email Address</label>
+              <input type="email" disabled value="olive.johnson@greenfield.edu"
+                className="h-12 px-4 border border-black/10 rounded-input text-sm text-muted bg-canvas cursor-not-allowed" />
+              <p className="text-xs text-muted">Email is managed by your school. Contact admin to change.</p>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-foreground">Phone Number</label>
+              <input value={phone} onChange={e => setPhone(e.target.value)}
+                className="h-12 px-4 border border-black/20 rounded-input text-sm text-foreground outline-none focus:border-primary" />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-foreground">Bio</label>
+              <textarea value={bio} onChange={e => setBio(e.target.value)} rows={3}
+                className="px-4 py-3 border border-black/20 rounded-card text-sm text-foreground outline-none focus:border-primary resize-none" />
+            </div>
+          </div>
+
+          <button type="submit"
+            className={`flex items-center gap-2 h-12 px-6 rounded-pill text-sm font-semibold transition-colors self-start ${
+              saved ? 'bg-green-500 text-white' : 'bg-primary text-white hover:bg-primary-deep shadow-primary'
+            }`}>
+            {saved && <CheckCircle2 size={15} />}
+            {saved ? 'Saved!' : 'Save Changes'}
+          </button>
+
+        </form>
+      </div>
+    </DashboardLayout>
+  )
+}
