@@ -3,18 +3,7 @@
 -- Paste this entire file into the Supabase SQL Editor and Run
 -- ============================================================
 
--- ─── Helper Functions ─────────────────────────────────────────
-CREATE OR REPLACE FUNCTION public.get_my_school_id()
-RETURNS UUID LANGUAGE SQL SECURITY DEFINER STABLE AS $$
-  SELECT school_id FROM public.profiles WHERE id = auth.uid()
-$$;
-
-CREATE OR REPLACE FUNCTION public.is_super_admin()
-RETURNS BOOLEAN LANGUAGE SQL SECURITY DEFINER STABLE AS $$
-  SELECT COALESCE((SELECT role = 'super_admin' FROM public.profiles WHERE id = auth.uid()), FALSE)
-$$;
-
--- ─── SCHOOLS ──────────────────────────────────────────────────
+-- ─── SCHOOLS (no dependencies) ────────────────────────────────
 CREATE TABLE public.schools (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name                TEXT NOT NULL,
@@ -30,12 +19,7 @@ CREATE TABLE public.schools (
   created_at          TIMESTAMPTZ DEFAULT NOW()
 );
 
-ALTER TABLE public.schools ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "schools_read"   ON public.schools FOR SELECT USING (is_super_admin() OR id = get_my_school_id());
-CREATE POLICY "schools_insert" ON public.schools FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
-CREATE POLICY "schools_update" ON public.schools FOR UPDATE USING (is_super_admin() OR id = get_my_school_id());
-
--- ─── PROFILES ─────────────────────────────────────────────────
+-- ─── PROFILES (depends on schools) ───────────────────────────
 CREATE TABLE public.profiles (
   id          UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   school_id   UUID REFERENCES public.schools(id) ON DELETE SET NULL,
@@ -49,12 +33,18 @@ CREATE TABLE public.profiles (
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "profiles_read"       ON public.profiles FOR SELECT USING (is_super_admin() OR school_id = get_my_school_id() OR id = auth.uid());
-CREATE POLICY "profiles_insert_own" ON public.profiles FOR INSERT WITH CHECK (id = auth.uid());
-CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE USING (id = auth.uid());
+-- ─── HELPER FUNCTIONS (profiles must exist first) ─────────────
+CREATE OR REPLACE FUNCTION public.get_my_school_id()
+RETURNS UUID LANGUAGE SQL SECURITY DEFINER STABLE AS $$
+  SELECT school_id FROM public.profiles WHERE id = auth.uid()
+$$;
 
--- Auto-create profile when a user signs up
+CREATE OR REPLACE FUNCTION public.is_super_admin()
+RETURNS BOOLEAN LANGUAGE SQL SECURITY DEFINER STABLE AS $$
+  SELECT COALESCE((SELECT role = 'super_admin' FROM public.profiles WHERE id = auth.uid()), FALSE)
+$$;
+
+-- ─── AUTO-CREATE PROFILE TRIGGER ──────────────────────────────
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER LANGUAGE PLPGSQL SECURITY DEFINER AS $$
 BEGIN
@@ -69,6 +59,18 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
+-- ─── RLS: SCHOOLS ─────────────────────────────────────────────
+ALTER TABLE public.schools ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "schools_read"   ON public.schools FOR SELECT USING (is_super_admin() OR id = get_my_school_id());
+CREATE POLICY "schools_insert" ON public.schools FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "schools_update" ON public.schools FOR UPDATE USING (is_super_admin() OR id = get_my_school_id());
+
+-- ─── RLS: PROFILES ────────────────────────────────────────────
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "profiles_read"       ON public.profiles FOR SELECT USING (is_super_admin() OR school_id = get_my_school_id() OR id = auth.uid());
+CREATE POLICY "profiles_insert_own" ON public.profiles FOR INSERT WITH CHECK (id = auth.uid());
+CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE USING (id = auth.uid());
+
 -- ─── PARENT-STUDENT LINKS ─────────────────────────────────────
 CREATE TABLE public.parent_student_links (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -78,10 +80,6 @@ CREATE TABLE public.parent_student_links (
   created_at  TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE (parent_id, student_id)
 );
-
-ALTER TABLE public.parent_student_links ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "psl_isolation" ON public.parent_student_links FOR ALL
-  USING (is_super_admin() OR school_id = get_my_school_id());
 
 -- ─── TERMS ────────────────────────────────────────────────────
 CREATE TABLE public.terms (
@@ -460,7 +458,7 @@ CREATE TABLE public.ai_messages (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ─── PLATFORM SCHOOLS (Super Admin only) ──────────────────────
+-- ─── PLATFORM SCHOOLS (Super Admin view) ──────────────────────
 CREATE TABLE public.platform_schools (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id       UUID UNIQUE REFERENCES public.schools(id),
@@ -512,17 +510,17 @@ CREATE INDEX ON public.notifications (user_id, read);
 CREATE INDEX ON public.invoices (student_id, status);
 CREATE INDEX ON public.grade_summaries (student_id, term_id);
 
--- ─── GENERIC SCHOOL-ISOLATION RLS (all remaining tables) ──────
+-- ─── SCHOOL-ISOLATION RLS (all remaining tables) ──────────────
 DO $$
 DECLARE t TEXT;
 BEGIN
   FOREACH t IN ARRAY ARRAY[
-    'terms','subjects','classes','class_subjects','class_enrollments',
-    'teacher_assignments','courses','modules','lessons','lesson_progress',
-    'course_resources','assignments','assignment_submissions','grades',
-    'attendance_records','live_sessions','session_recordings','live_attendance',
-    'conversations','conversation_members','messages','fee_structures',
-    'invoices','payments','grade_summaries','report_cards',
+    'parent_student_links','terms','subjects','classes','class_subjects',
+    'class_enrollments','teacher_assignments','courses','modules','lessons',
+    'lesson_progress','course_resources','assignments','assignment_submissions',
+    'grades','attendance_records','live_sessions','session_recordings',
+    'live_attendance','conversations','conversation_members','messages',
+    'fee_structures','invoices','payments','grade_summaries','report_cards',
     'calendar_events','notifications','announcements',
     'ai_sessions','ai_messages','feature_flags','support_tickets'
   ] LOOP
