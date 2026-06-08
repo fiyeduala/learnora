@@ -101,6 +101,9 @@ import OnboardingCarouselPage    from './pages/OnboardingCarouselPage'
 import DiscussionForumPage       from './pages/DiscussionForumPage'
 import QuizBuilderPage           from './pages/QuizBuilderPage'
 
+// ── Landing ───────────────────────────────────────────────────────────────────
+import LandingPage            from './pages/LandingPage'
+
 // ── Auth ─────────────────────────────────────────────────────────────────────
 import LoginPage              from './pages/LoginPage'
 import SignUpPage             from './pages/SignUpPage'
@@ -216,6 +219,7 @@ function ResetPwRoute()         { const n = useNav(); return <ResetPasswordPage 
 function SchoolSelectRoute()    { const n = useNav(); return <SchoolSelectorPage     onNavigate={n} /> }
 function InviteRoute()          { const n = useNav(); return <InviteAcceptancePage   onNavigate={n} /> }
 function SchoolSignUpRoute()    { const n = useNav(); return <SchoolSignUpPage        onNavigate={n} /> }
+function LandingRoute()         { const n = useNav(); return <LandingPage             onNavigate={n} /> }
 
 // ── Desktop student wrappers ──────────────────────────────────────────────────
 function DashboardRoute()       { const n = useNav(); return <OverviewDashboardPage  onNavigate={n} /> }
@@ -590,9 +594,11 @@ export default function App() {
       <Route path="/parent/report-cards"     element={<ReportCardsRoute />} />
       <Route path="/parent/message-teacher"  element={<ParentMsgTeacherRoute />} />
 
+      {/* Landing */}
+      <Route path="/"                    element={<LandingRoute />} />
+
       {/* Redirects */}
       <Route path="/logout"              element={<Navigate to="/login" replace />} />
-      <Route path="/"                    element={<Navigate to="/login" replace />} />
       <Route path="*"                    element={<Navigate to="/404"   replace />} />
     </Routes>
   )
