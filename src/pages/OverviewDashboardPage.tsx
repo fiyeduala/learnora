@@ -147,40 +147,6 @@ function AssignmentsTable({ onNavigate }: { onNavigate: (p: string) => void }) {
   )
 }
 
-function LiveClassCard({ subject, teacher, time, live }: {
-  subject: string; teacher: string; time: string; live?: boolean
-}) {
-  return (
-    <div className="flex items-center gap-4 py-4 border-b border-black/4 last:border-0">
-      <div className={`size-10 rounded-card flex items-center justify-center shrink-0 ${live ? 'bg-red-50' : 'bg-primary/8'}`}>
-        <Play size={14} className={live ? 'text-red-500 fill-red-500' : 'text-primary fill-primary'} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-foreground">{subject}</p>
-        <p className="text-xs text-muted">{teacher} · {time}</p>
-      </div>
-      {live && (
-        <span className="text-xs font-bold text-white bg-red-500 px-2 py-0.5 rounded-xs">LIVE</span>
-      )}
-      {!live && (
-        <button className="text-xs text-primary font-semibold hover:underline shrink-0">Join</button>
-      )}
-    </div>
-  )
-}
-
-function PerformanceBar({ subject, score }: { subject: string; score: number }) {
-  return (
-    <div className="flex items-center gap-3">
-      <p className="text-sm text-foreground w-24 shrink-0">{subject}</p>
-      <div className="flex-1 h-2 bg-black/8 rounded-full overflow-hidden">
-        <div className="h-full bg-primary rounded-full" style={{ width: `${score}%` }} />
-      </div>
-      <p className="text-sm font-semibold text-foreground w-10 text-right">{score}%</p>
-    </div>
-  )
-}
-
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function OverviewDashboardPage({ onNavigate }: Props) {
