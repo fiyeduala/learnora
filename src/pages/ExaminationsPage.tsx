@@ -4,14 +4,9 @@ import { teacherNav } from '../components/layout/Sidebar'
 
 type Props = { onNavigate: (page: string) => void }
 
-const exams = [
-  { title: 'Algebra Quiz',    class: 'SS1A', deadline: 'Tomorrow',   submissions: '28/32', status: 'Active',    action: 'Review'  },
-  { title: 'Physics Report',  class: 'SS1A', deadline: 'May 30',     submissions: '18/20', status: 'Pending',   action: 'Grade'   },
-  { title: 'Chemistry Notes', class: 'SS3A', deadline: 'Today',      submissions: '32/32', status: 'Completed', action: 'View'    },
-  { title: 'Biology Test',    class: 'SS2B', deadline: 'June 15',    submissions: '0/28',  status: 'Upcoming',  action: 'Preview' },
-  { title: 'History Essay',   class: 'SS2A', deadline: 'June 20',    submissions: '0/25',  status: 'Upcoming',  action: 'Preview' },
-  { title: 'Government MCQ',  class: 'SS3B', deadline: 'June 25',    submissions: '0/30',  status: 'Upcoming',  action: 'Preview' },
-]
+type Exam = { title: string; class: string; deadline: string; submissions: string; status: string; action: string }
+
+const exams: Exam[] = []
 
 const statusStyle: Record<string, string> = {
   Active:    'bg-primary/10 text-primary',
@@ -58,9 +53,9 @@ export default function ExaminationsPage({ onNavigate }: Props) {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-5">
             {[
               { label: 'Total',     value: `${exams.length}`, color: 'text-foreground' },
-              { label: 'Active',    value: '1',               color: 'text-primary' },
-              { label: 'Pending',   value: '1',               color: 'text-amber-600' },
-              { label: 'Completed', value: '1',               color: 'text-green-600' },
+              { label: 'Active',    value: `${exams.filter(e => e.status === 'Active').length}`,    color: 'text-primary' },
+              { label: 'Pending',   value: `${exams.filter(e => e.status === 'Pending').length}`,   color: 'text-amber-600' },
+              { label: 'Completed', value: `${exams.filter(e => e.status === 'Completed').length}`, color: 'text-green-600' },
             ].map(s => (
               <div key={s.label} className="bg-canvas rounded-card p-4">
                 <p className="text-xs text-muted">{s.label}</p>
@@ -94,26 +89,29 @@ export default function ExaminationsPage({ onNavigate }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {exams.map((exam, i) => (
-                  <tr key={i} className="border-b border-black/4 last:border-0 hover:bg-canvas/40 transition-colors">
-                    <td className="px-6 py-4 font-medium text-foreground">{exam.title}</td>
-                    <td className="px-6 py-4 text-muted">{exam.class}</td>
-                    <td className="px-6 py-4 text-muted">{exam.deadline}</td>
-                    <td className="px-6 py-4 text-foreground">{exam.submissions}</td>
-                    <td className="px-6 py-4">
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-xs ${statusStyle[exam.status]}`}>
-                        {exam.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <button
-                        className={`text-xs font-semibold px-3 py-1.5 rounded-xs transition-colors ${actionStyle[exam.action]}`}
-                      >
-                        {exam.action}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {exams.length === 0
+                  ? <tr><td colSpan={6} className="px-6 py-10 text-center text-sm text-muted">No data yet.</td></tr>
+                  : exams.map((exam, i) => (
+                    <tr key={i} className="border-b border-black/4 last:border-0 hover:bg-canvas/40 transition-colors">
+                      <td className="px-6 py-4 font-medium text-foreground">{exam.title}</td>
+                      <td className="px-6 py-4 text-muted">{exam.class}</td>
+                      <td className="px-6 py-4 text-muted">{exam.deadline}</td>
+                      <td className="px-6 py-4 text-foreground">{exam.submissions}</td>
+                      <td className="px-6 py-4">
+                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-xs ${statusStyle[exam.status]}`}>
+                          {exam.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <button
+                          className={`text-xs font-semibold px-3 py-1.5 rounded-xs transition-colors ${actionStyle[exam.action]}`}
+                        >
+                          {exam.action}
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                }
               </tbody>
             </table>
           </div>

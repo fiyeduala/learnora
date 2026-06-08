@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { ChevronRight, Eye, EyeOff, CheckCircle2, Copy, Building2 } from 'lucide-react'
 import AuthHeroPanel from '../components/auth/AuthHeroPanel'
+import { supabase } from '../lib/supabase'
+import { generateSchoolCode } from '../lib/auth'
 
 type Props = { onNavigate: (page: string) => void }
 type Step = 'school' | 'admin' | 'done'
@@ -20,10 +22,12 @@ const nigerianStates = [
 ]
 
 export default function SchoolSignUpPage({ onNavigate }: Props) {
-  const [step, setStep]           = useState<Step>('school')
-  const [showPw, setShowPw]       = useState(false)
-  const [showCPw, setShowCPw]     = useState(false)
-  const [copied, setCopied]       = useState(false)
+  const [step, setStep]       = useState<Step>('school')
+  const [showPw, setShowPw]   = useState(false)
+  const [showCPw, setShowCPw] = useState(false)
+  const [copied, setCopied]   = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError]     = useState('')
 
   // School fields
   const [schoolName,    setSchoolName]    = useState('')
@@ -39,10 +43,8 @@ export default function SchoolSignUpPage({ onNavigate }: Props) {
   const [password,   setPassword]   = useState('')
   const [confirmPw,  setConfirmPw]  = useState('')
 
-  // Generated school code (in production, backend returns this)
-  const schoolCode = schoolName
-    ? schoolName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3) + '-' + Math.floor(1000 + Math.random() * 9000)
-    : 'GFA-4821'
+  // Stored after successful registration
+  const [schoolCode, setSchoolCode] = useState('')
 
   const stepIndex = steps.findIndex(s => s.key === step)
 
@@ -50,6 +52,73 @@ export default function SchoolSignUpPage({ onNavigate }: Props) {
     navigator.clipboard.writeText(schoolCode).catch(() => {})
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  async function handleRegister(e: React.FormEvent) {
+    e.preventDefault()
+    setError('')
+
+    if (password !== confirmPw) {
+      setError('Passwords do not match.')
+      return
+    }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.')
+      return
+    }
+
+    setLoading(true)
+    try {
+      // 1. Create auth user
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email: adminEmail,
+        password,
+        options: { data: { full_name: adminName } },
+      })
+      if (signUpError) throw signUpError
+      if (!authData.user) throw new Error('Sign up failed — no user returned.')
+
+      const userId = authData.user.id
+
+      // 2. Generate school code and create school record
+      const code = generateSchoolCode(schoolName)
+      const { data: school, error: schoolError } = await supabase
+        .from('schools')
+        .insert({
+          name:    schoolName,
+          code,
+          email:   schoolEmail,
+          phone:   schoolPhone,
+          address: schoolAddress,
+          state:   schoolState,
+        })
+        .select('id, code')
+        .single()
+
+      if (schoolError) throw schoolError
+
+      // 3. Update profile with school_id, role, name, phone
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          school_id: school.id,
+          role:      'admin',
+          full_name: adminName,
+          email:     adminEmail,
+          phone:     adminPhone,
+        })
+        .eq('id', userId)
+
+      if (profileError) throw profileError
+
+      setSchoolCode(school.code)
+      setStep('done')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Registration failed. Please try again.'
+      setError(msg)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -67,16 +136,14 @@ export default function SchoolSignUpPage({ onNavigate }: Props) {
           {step !== 'done' && (
             <div className="flex items-center gap-2 mb-8">
               {steps.filter(s => s.key !== 'done').map((s, i) => {
-                const idx = steps.findIndex(x => x.key === s.key)
+                const idx     = steps.findIndex(x => x.key === s.key)
                 const past    = stepIndex > idx
                 const current = stepIndex === idx
                 return (
                   <div key={s.key} className="flex items-center gap-2 flex-1 last:flex-none">
                     <div className={`flex items-center gap-2 ${current || past ? 'text-primary' : 'text-muted'}`}>
                       <div className={`size-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                        past    ? 'bg-primary text-white' :
-                        current ? 'bg-primary text-white' :
-                        'bg-canvas text-muted border border-black/15'
+                        past || current ? 'bg-primary text-white' : 'bg-canvas text-muted border border-black/15'
                       }`}>
                         {past ? '✓' : i + 1}
                       </div>
@@ -102,10 +169,7 @@ export default function SchoolSignUpPage({ onNavigate }: Props) {
                 </div>
               </div>
 
-              <form
-                className="flex flex-col gap-4"
-                onSubmit={e => { e.preventDefault(); setStep('admin') }}
-              >
+              <form className="flex flex-col gap-4" onSubmit={e => { e.preventDefault(); setStep('admin') }}>
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-bold text-foreground">School Name <span className="text-red-500">*</span></label>
                   <input
@@ -162,7 +226,7 @@ export default function SchoolSignUpPage({ onNavigate }: Props) {
               </form>
 
               <p className="text-sm text-center text-foreground mt-5">
-                Already have a school account?{' '}
+                Already have an account?{' '}
                 <button onClick={() => onNavigate('login')} className="font-semibold text-primary hover:underline">
                   Sign in
                 </button>
@@ -175,13 +239,16 @@ export default function SchoolSignUpPage({ onNavigate }: Props) {
             <>
               <div className="mb-6">
                 <h1 className="text-2xl font-semibold text-foreground leading-tight mb-1">Admin Account</h1>
-                <p className="text-sm text-muted">Step 2 of 2 — This will be the primary administrator account for {schoolName || 'your school'}.</p>
+                <p className="text-sm text-muted">Step 2 of 2 — Primary administrator for {schoolName || 'your school'}.</p>
               </div>
 
-              <form
-                className="flex flex-col gap-4"
-                onSubmit={e => { e.preventDefault(); setStep('done') }}
-              >
+              {error && (
+                <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+                  {error}
+                </div>
+              )}
+
+              <form className="flex flex-col gap-4" onSubmit={handleRegister}>
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-bold text-foreground">Full Name <span className="text-red-500">*</span></label>
                   <input
@@ -242,16 +309,17 @@ export default function SchoolSignUpPage({ onNavigate }: Props) {
                 <div className="flex gap-3 mt-2">
                   <button
                     type="button"
-                    onClick={() => setStep('school')}
+                    onClick={() => { setStep('school'); setError('') }}
                     className="h-12 px-5 border border-black/20 text-foreground text-sm font-semibold rounded-pill hover:border-primary hover:text-primary transition-colors"
                   >
                     Back
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 h-12 bg-primary text-white text-sm font-bold rounded-pill hover:bg-primary-deep transition-colors shadow-primary flex items-center justify-center gap-2"
+                    disabled={loading}
+                    className="flex-1 h-12 bg-primary text-white text-sm font-bold rounded-pill hover:bg-primary-deep transition-colors shadow-primary flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    Register School <ChevronRight size={15} />
+                    {loading ? 'Registering…' : <><span>Register School</span><ChevronRight size={15} /></>}
                   </button>
                 </div>
               </form>
@@ -267,8 +335,7 @@ export default function SchoolSignUpPage({ onNavigate }: Props) {
 
               <h1 className="text-3xl font-semibold text-foreground mb-2">You're registered!</h1>
               <p className="text-sm text-muted mb-8 max-w-[380px] mx-auto">
-                Your school <strong>{schoolName || 'Greenfield Academy'}</strong> has been submitted for review.
-                You'll receive a confirmation email at <strong>{adminEmail || 'admin@school.edu'}</strong> within 24 hours.
+                <strong>{schoolName}</strong> has been created. Check your inbox at <strong>{adminEmail}</strong> to confirm your email, then log in.
               </p>
 
               {/* School code box */}
@@ -285,7 +352,7 @@ export default function SchoolSignUpPage({ onNavigate }: Props) {
                   </button>
                 </div>
                 <p className="text-xs text-muted mt-3 leading-relaxed">
-                  Share this code with your students, teachers, and parents so they can find your school at the login screen. Your dedicated login link is also available once your account is approved.
+                  Share this code with students, teachers, and parents so they can find your school at login.
                 </p>
               </div>
 
@@ -294,9 +361,9 @@ export default function SchoolSignUpPage({ onNavigate }: Props) {
                 <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">What happens next</p>
                 <div className="flex flex-col gap-3">
                   {[
-                    { n: '1', text: 'We review your registration — usually within 24 hours.' },
-                    { n: '2', text: 'You receive an email with your admin login link and full access.' },
-                    { n: '3', text: 'Add your students, teachers, and parents — they get login credentials by email or SMS automatically.' },
+                    { n: '1', text: 'Confirm your email address by clicking the link we sent.' },
+                    { n: '2', text: 'Log in with your admin email and password.' },
+                    { n: '3', text: 'Add students, teachers, and parents — they receive login credentials automatically.' },
                   ].map(item => (
                     <div key={item.n} className="flex items-start gap-3">
                       <div className="size-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">

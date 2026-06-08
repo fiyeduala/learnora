@@ -1,36 +1,36 @@
 import { useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import AuthHeroPanel from '../components/auth/AuthHeroPanel'
+import { signIn } from '../lib/auth'
 
 type Props = { onNavigate: (page: string) => void }
 
-type Role = 'student' | 'teacher' | 'admin' | 'parent' | 'superadmin'
-
-const roles: { id: Role; label: string; dest: string }[] = [
-  { id: 'student',    label: 'Student',     dest: 'dashboard'       },
-  { id: 'teacher',    label: 'Teacher',     dest: 'teacher-dashboard' },
-  { id: 'admin',      label: 'Admin',       dest: 'admin-dashboard' },
-  { id: 'parent',     label: 'Parent',      dest: 'parent/home'     },
-  { id: 'superadmin', label: 'Super Admin', dest: 'super-dashboard' },
-]
-
 export default function LoginPage({ onNavigate }: Props) {
-  const [email, setEmail] = useState('')
+  const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
-  const [showPw, setShowPw] = useState(false)
+  const [showPw,   setShowPw]   = useState(false)
   const [remember, setRemember] = useState(false)
-  const [role, setRole] = useState<Role>('student')
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({})
+  const [loading,  setLoading]  = useState(false)
+  const [errors,   setErrors]   = useState<{ email?: string; password?: string; general?: string }>({})
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     const errs: typeof errors = {}
     if (!email)    errs.email    = 'Email is required'
     if (!password) errs.password = 'Password is required'
     if (Object.keys(errs).length) { setErrors(errs); return }
+
     setErrors({})
-    const dest = roles.find(r => r.id === role)?.dest ?? 'dashboard'
-    onNavigate(dest)
+    setLoading(true)
+    try {
+      const { destination } = await signIn(email, password)
+      onNavigate(destination)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Login failed. Please try again.'
+      setErrors({ general: msg })
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -47,32 +47,17 @@ export default function LoginPage({ onNavigate }: Props) {
           <h1 className="text-4xl font-semibold text-foreground mb-2 leading-tight">
             Welcome Back!
           </h1>
-          <p className="text-base font-normal text-foreground mb-5">
-            Log in to pre existing account
+          <p className="text-base font-normal text-foreground mb-8">
+            Log in to your existing account
           </p>
 
-          {/* Role selector — dev/QA helper */}
-          <div className="flex gap-1.5 flex-wrap mb-6 p-1 bg-canvas rounded-xl">
-            {roles.map(r => (
-              <button
-                key={r.id}
-                type="button"
-                onClick={() => setRole(r.id)}
-                className={`flex-1 h-8 px-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
-                  role === r.id
-                    ? 'bg-primary text-white shadow-sm'
-                    : 'text-muted hover:text-foreground'
-                }`}
-              >
-                {r.label}
-              </button>
-            ))}
-          </div>
+          {errors.general && (
+            <div className="mb-5 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+              {errors.general}
+            </div>
+          )}
 
-          <form
-            className="flex flex-col gap-5"
-            onSubmit={handleSubmit}
-          >
+          <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
             {/* Email */}
             <div className="flex flex-col gap-2">
               <label htmlFor="email" className="text-base font-bold text-foreground">
@@ -140,21 +125,12 @@ export default function LoginPage({ onNavigate }: Props) {
                   className={`
                     size-[22px] shrink-0 rounded-xs border flex items-center justify-center
                     transition-colors cursor-pointer
-                    ${remember
-                      ? 'bg-primary border-primary'
-                      : 'bg-surface border-foreground'}
+                    ${remember ? 'bg-primary border-primary' : 'bg-surface border-foreground'}
                   `}
                 >
                   {remember && (
-                    <svg
-                      width="12" height="12" viewBox="0 0 12 12"
-                      fill="none" aria-hidden="true"
-                    >
-                      <path
-                        d="M2 6l3 3 5-5"
-                        stroke="white" strokeWidth="1.5"
-                        strokeLinecap="round" strokeLinejoin="round"
-                      />
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                      <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   )}
                 </span>
@@ -172,24 +148,23 @@ export default function LoginPage({ onNavigate }: Props) {
             {/* Primary CTA */}
             <button
               type="submit"
+              disabled={loading}
               className="
                 w-full h-14 bg-primary text-white text-base font-bold
                 rounded-pill border border-white
                 hover:bg-primary-deep transition-colors shadow-primary
                 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary
+                disabled:opacity-60 disabled:cursor-not-allowed
               "
             >
-              Log in
+              {loading ? 'Signing in…' : 'Log in'}
             </button>
 
             {/* Create account */}
             <button
               type="button"
               onClick={() => onNavigate('signup')}
-              className="
-                text-base font-semibold text-foreground text-center
-                hover:text-primary transition-colors
-              "
+              className="text-base font-semibold text-foreground text-center hover:text-primary transition-colors"
             >
               Create new account
             </button>
@@ -197,9 +172,7 @@ export default function LoginPage({ onNavigate }: Props) {
             {/* Divider */}
             <div className="flex items-center gap-4">
               <div className="flex-1 h-px bg-muted/30" />
-              <span className="text-sm font-normal text-muted shrink-0">
-                Or continue with
-              </span>
+              <span className="text-sm font-normal text-muted shrink-0">Or continue with</span>
               <div className="flex-1 h-px bg-muted/30" />
             </div>
 
@@ -239,22 +212,10 @@ export default function LoginPage({ onNavigate }: Props) {
 function GoogleIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-        fill="#4285F4"
-      />
-      <path
-        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-        fill="#34A853"
-      />
-      <path
-        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
-        fill="#FBBC05"
-      />
-      <path
-        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-        fill="#EA4335"
-      />
+      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
+      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
     </svg>
   )
 }

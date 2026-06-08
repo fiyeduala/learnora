@@ -5,21 +5,15 @@ import { teacherNav } from '../components/layout/Sidebar'
 type Props = { onNavigate: (page: string) => void }
 
 const stats = [
-  { label: 'Total Students',   value: '35',  icon: Users,         color: 'text-primary'    },
-  { label: 'Avg. Attendance',  value: '100', icon: BookOpen,      color: 'text-green-600'  },
-  { label: 'Top Performers',   value: '20',  icon: ClipboardList, color: 'text-foreground' },
-  { label: 'At-Risk Students', value: '90%', icon: TrendingUp,    color: 'text-red-600'    },
+  { label: 'Total Students',   value: '—', icon: Users,         color: 'text-primary'    },
+  { label: 'Avg. Attendance',  value: '—', icon: BookOpen,      color: 'text-green-600'  },
+  { label: 'Top Performers',   value: '—', icon: ClipboardList, color: 'text-foreground' },
+  { label: 'At-Risk Students', value: '—', icon: TrendingUp,    color: 'text-red-600'    },
 ]
 
 type Status = 'Active' | 'Pending' | 'Completed'
 
-const assignments = [
-  { title: 'Algebra Quiz',     class: 'SS1A', deadline: 'Tomorrow', submissions: '28/32', status: 'Active'    as Status, action: 'Review' },
-  { title: 'Physics Report',   class: 'SS1A', deadline: 'May 30',   submissions: '18/20', status: 'Pending'   as Status, action: 'Grade'  },
-  { title: 'Chemistry Notes',  class: 'SS3A', deadline: 'Today',    submissions: '32/32', status: 'Completed' as Status, action: 'View'   },
-  { title: 'Biology Essay',    class: 'SS2B', deadline: 'Jun 5',    submissions: '20/28', status: 'Active'    as Status, action: 'Review' },
-  { title: 'Government MCQ',   class: 'SS1A', deadline: 'Jun 10',   submissions: '10/32', status: 'Pending'   as Status, action: 'Grade'  },
-]
+const assignments: { title: string; class: string; deadline: string; submissions: string; status: Status; action: string }[] = []
 
 const statusBadge: Record<Status, string> = {
   Active:    'bg-primary/10 text-primary',
@@ -100,7 +94,9 @@ export default function TeacherAssignmentsPage({ onNavigate }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {assignments.map((a, i) => (
+                {assignments.length === 0 ? (
+                  <tr><td colSpan={6} className="px-6 py-10 text-center text-sm text-muted">No assignments yet. Create one to get started.</td></tr>
+                ) : assignments.map((a, i) => (
                   <tr key={i} className="border-b border-black/4 last:border-0 hover:bg-canvas/40 transition-colors">
                     <td className="px-6 py-4 font-medium text-foreground">{a.title}</td>
                     <td className="px-6 py-4 text-muted">{a.class}</td>

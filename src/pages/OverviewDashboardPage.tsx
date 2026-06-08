@@ -1,22 +1,13 @@
-import { Play, ArrowRight, CheckCircle2, Clock, ChevronRight } from 'lucide-react'
+import { Play, ArrowRight, CheckCircle2, Clock, ChevronRight, BookOpen } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 
 type Props = { onNavigate: (page: string) => void }
 
-// ── Data (matches Figma text nodes) ─────────────────────────────────────────
+type Course     = { id: number; subject: string; teacher: string; progress: number; color: string }
+type Assignment = { subject: string; deadline: string; status: string }
 
-const courses = [
-  { id: 1, subject: 'Physics 101',  teacher: 'Mr. Daniel Johnson',  progress: 74, color: 'bg-accent-cyan' },
-  { id: 2, subject: 'English',      teacher: 'Mrs Monica Johnson',  progress: 52, color: 'bg-accent-mint' },
-  { id: 3, subject: 'Mathematics',  teacher: 'Mrs Nnduka Kisha',    progress: 38, color: 'bg-primary' },
-  { id: 4, subject: 'Government',   teacher: 'Mr Boris Johnson',    progress: 61, color: 'bg-primary-deep' },
-]
-
-const assignments = [
-  { subject: 'Mathematics', deadline: 'Tomorrow',   status: 'Pending' },
-  { subject: 'English',     deadline: '07/07/2026', status: 'Completed' },
-  { subject: 'Mathematics', deadline: 'Tomorrow',   status: 'Pending' },
-]
+const courses:     Course[]     = []
+const assignments: Assignment[] = []
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
@@ -128,7 +119,9 @@ function AssignmentsTable({ onNavigate }: { onNavigate: (p: string) => void }) {
             </tr>
           </thead>
           <tbody>
-            {assignments.map((a, i) => (
+            {assignments.length === 0 ? (
+              <tr><td colSpan={4} className="px-6 py-10 text-center text-sm text-muted">No assignments yet.</td></tr>
+            ) : assignments.map((a, i) => (
               <tr key={i} className="border-b border-black/4 last:border-0 hover:bg-canvas/50 transition-colors">
                 <td className="px-6 py-4 font-medium text-foreground">{a.subject}</td>
                 <td className="px-6 py-4 text-muted">{a.deadline}</td>
@@ -206,9 +199,16 @@ export default function OverviewDashboardPage({ onNavigate }: Props) {
         {/* Continue Learning */}
         <section>
           <SectionHeader title="Continue Learning" onViewAll={() => onNavigate('courses')} />
-          <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-            {courses.map(c => <CourseCard key={c.id} {...c} />)}
-          </div>
+          {courses.length === 0 ? (
+            <div className="bg-surface rounded-card shadow-sm p-10 text-center text-muted">
+              <BookOpen size={32} className="mx-auto mb-3 opacity-30" />
+              <p className="text-sm">No courses yet. Your enrolled courses will appear here.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+              {courses.map(c => <CourseCard key={c.id} {...c} />)}
+            </div>
+          )}
         </section>
 
         {/* Assignments table */}
@@ -220,23 +220,16 @@ export default function OverviewDashboardPage({ onNavigate }: Props) {
           {/* Live Classes */}
           <div className="bg-surface rounded-card shadow-sm p-6">
             <SectionHeader title="Live Classes" onViewAll={() => onNavigate('live-classes')} />
-            <LiveClassCard subject="Physics 101"  teacher="Mr. Daniel Johnson" time="10:00 AM" live />
-            <LiveClassCard subject="Mathematics"  teacher="Mrs Nnduka Kisha"   time="12:30 PM" />
-            <LiveClassCard subject="English"      teacher="Mrs Monica Johnson" time="2:00 PM" />
+            <div className="py-8 text-center text-muted text-sm">No live classes scheduled.</div>
           </div>
 
           {/* Performance Overview */}
           <div className="bg-surface rounded-card shadow-sm p-6 lg:w-80">
             <SectionHeader title="Performance Overview" onViewAll={() => onNavigate('analysis')} />
-            <div className="flex flex-col gap-4">
-              <PerformanceBar subject="Physics"    score={82} />
-              <PerformanceBar subject="English"    score={76} />
-              <PerformanceBar subject="Maths"      score={68} />
-              <PerformanceBar subject="Government" score={91} />
-            </div>
+            <div className="py-8 text-center text-muted text-sm">No performance data yet.</div>
             <button
               onClick={() => onNavigate('analysis')}
-              className="mt-6 w-full h-10 border border-primary text-primary text-sm font-semibold rounded-pill hover:bg-primary hover:text-white transition-colors flex items-center justify-center gap-1"
+              className="mt-2 w-full h-10 border border-primary text-primary text-sm font-semibold rounded-pill hover:bg-primary hover:text-white transition-colors flex items-center justify-center gap-1"
             >
               Full Report <ArrowRight size={14} />
             </button>

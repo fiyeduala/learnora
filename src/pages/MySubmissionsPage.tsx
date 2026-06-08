@@ -18,16 +18,7 @@ interface Submission {
   late:       boolean
 }
 
-const submissions: Submission[] = [
-  { id: 1,  title: 'Quadratic Equations Problem Set',    subject: 'Mathematics',      submittedOn: 'Jun 5, 2026',  dueDate: 'Jun 5, 2026',  status: 'Graded',    score: 88,  maxScore: 100, feedback: 'Great work on factorisation. Review completing the square.',       late: false },
-  { id: 2,  title: 'English Essay — My Hero',            subject: 'English Language', submittedOn: 'Jun 3, 2026',  dueDate: 'Jun 3, 2026',  status: 'Graded',    score: 74,  maxScore: 100, feedback: 'Good structure but needs stronger vocabulary in paragraphs 2–3.',   late: false },
-  { id: 3,  title: 'Newton Laws Practical Report',       subject: 'Physics',          submittedOn: 'May 28, 2026', dueDate: 'May 27, 2026', status: 'Graded',    score: 81,  maxScore: 100, feedback: 'Solid analysis. Slight error in the friction calculation.',          late: true  },
-  { id: 4,  title: 'Titration Lab Report',               subject: 'Chemistry',        submittedOn: 'May 20, 2026', dueDate: 'May 20, 2026', status: 'Graded',    score: 92,  maxScore: 100, feedback: 'Excellent precision and clear methodology.',                        late: false },
-  { id: 5,  title: 'Cell Division Diagram',              subject: 'Biology',          submittedOn: 'Jun 6, 2026',  dueDate: 'Jun 7, 2026',  status: 'Submitted', late: false },
-  { id: 6,  title: 'Demand & Supply Essay',              subject: 'Economics',        submittedOn: 'Jun 4, 2026',  dueDate: 'Jun 3, 2026',  status: 'Late',      late: true  },
-  { id: 7,  title: 'Algebra Test Paper',                 subject: 'Mathematics',      submittedOn: 'May 10, 2026', dueDate: 'May 10, 2026', status: 'Returned',  score: 65,  maxScore: 100, feedback: 'Returned for revision — please redo questions 4, 7, and 9.',       late: false },
-  { id: 8,  title: 'Reading Comprehension — Passage B',  subject: 'English Language', submittedOn: 'May 2, 2026',  dueDate: 'May 2, 2026',  status: 'Graded',    score: 79,  maxScore: 100, feedback: 'Good inference skills. Work on your concluding statements.',        late: false },
-]
+const submissions: Submission[] = []
 
 const statusConfig: Record<string, { color: string; icon: typeof FileText; label: string }> = {
   Graded:    { color: 'bg-green-50 text-green-700',  icon: CheckCircle2, label: 'Graded'    },

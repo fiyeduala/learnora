@@ -12,22 +12,22 @@ const calendarDays: CalDay[] = [
   { date: 30, month: 'prev',    events: [] },
   { date: 31, month: 'prev',    events: [] },
   { date: 1,  month: 'current', events: [] },
-  { date: 2,  month: 'current', events: [{ label: 'Physics Quiz',     color: 'bg-red-400' }] },
+  { date: 2,  month: 'current', events: [] },
   { date: 3,  month: 'current', events: [] },
   { date: 4,  month: 'current', events: [] },
 
   { date: 5,  month: 'current', events: [] },
   { date: 6,  month: 'current', events: [] },
   { date: 7,  month: 'current', events: [] },
-  { date: 8,  month: 'current', events: [{ label: 'Math Test',        color: 'bg-primary' }] },
+  { date: 8,  month: 'current', events: [] },
   { date: 9,  month: 'current', events: [] },
-  { date: 10, month: 'current', events: [{ label: 'English Due',      color: 'bg-accent-mint' }] },
+  { date: 10, month: 'current', events: [] },
   { date: 11, month: 'current', events: [] },
 
   { date: 12, month: 'current', events: [] },
   { date: 13, month: 'current', events: [] },
   { date: 14, month: 'current', events: [] },
-  { date: 15, month: 'current', events: [{ label: 'Parent Meeting',   color: 'bg-green-500' }] },
+  { date: 15, month: 'current', events: [] },
   { date: 16, month: 'current', events: [] },
   { date: 17, month: 'current', events: [] },
   { date: 18, month: 'current', events: [] },
@@ -35,7 +35,7 @@ const calendarDays: CalDay[] = [
   { date: 19, month: 'current', events: [] },
   { date: 20, month: 'current', events: [] },
   { date: 21, month: 'current', events: [] },
-  { date: 22, month: 'current', events: [{ label: 'Chemistry Exam',   color: 'bg-red-400' }] },
+  { date: 22, month: 'current', events: [] },
   { date: 23, month: 'current', events: [] },
   { date: 24, month: 'current', events: [] },
   { date: 25, month: 'current', events: [] },
@@ -49,29 +49,9 @@ const calendarDays: CalDay[] = [
   { date: 2,  month: 'next',    events: [] },
 ]
 
-const upcomingEvents = [
-  {
-    title: 'Physics Quiz',
-    date: 'Apr 2, 2026',
-    time: '10:00 AM – 11:30 AM',
-    card: 'bg-red-50 border border-red-100',
-    dot: 'bg-red-400',
-  },
-  {
-    title: 'Mathematics Test',
-    date: 'Apr 8, 2026',
-    time: '9:00 AM – 11:00 AM',
-    card: 'bg-primary/5 border border-primary/15',
-    dot: 'bg-primary',
-  },
-  {
-    title: 'English Assignment Due',
-    date: 'Apr 10, 2026',
-    time: '11:59 PM',
-    card: 'bg-accent-mint/8 border border-accent-mint/20',
-    dot: 'bg-accent-mint',
-  },
-]
+type UpcomingEvent = { title: string; date: string; time: string; card: string; dot: string }
+
+const upcomingEvents: UpcomingEvent[] = []
 
 const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -158,16 +138,19 @@ export default function CalendarPage({ onNavigate }: Props) {
           <div className="bg-surface rounded-card shadow-sm p-5">
             <h3 className="text-base font-bold text-foreground mb-4">Upcoming Events</h3>
             <div className="flex flex-col gap-3">
-              {upcomingEvents.map((ev, i) => (
-                <div key={i} className={`p-4 rounded-card ${ev.card} flex flex-col gap-1`}>
-                  <div className="flex items-center gap-2">
-                    <span className={`size-2 rounded-full ${ev.dot} shrink-0`} />
-                    <p className="text-sm font-semibold text-foreground">{ev.title}</p>
+              {upcomingEvents.length === 0
+                ? <div className="py-8 text-center text-sm text-muted">No data yet.</div>
+                : upcomingEvents.map((ev, i) => (
+                  <div key={i} className={`p-4 rounded-card ${ev.card} flex flex-col gap-1`}>
+                    <div className="flex items-center gap-2">
+                      <span className={`size-2 rounded-full ${ev.dot} shrink-0`} />
+                      <p className="text-sm font-semibold text-foreground">{ev.title}</p>
+                    </div>
+                    <p className="text-xs text-muted pl-4">{ev.date}</p>
+                    <p className="text-xs text-muted pl-4">{ev.time}</p>
                   </div>
-                  <p className="text-xs text-muted pl-4">{ev.date}</p>
-                  <p className="text-xs text-muted pl-4">{ev.time}</p>
-                </div>
-              ))}
+                ))
+              }
             </div>
           </div>
 

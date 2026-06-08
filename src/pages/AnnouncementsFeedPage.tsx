@@ -4,28 +4,12 @@ import DashboardLayout from '../components/layout/DashboardLayout'
 
 type Props = { onNavigate: (page: string) => void }
 
-const announcements = [
-  {
-    id: 1, pinned: true, title: 'Inter-House Sports Day',
-    body: 'The annual inter-house sports competition is scheduled for June 15, 2026. All students must participate in at least one event. Sports kits should be worn on the day.',
-    author: 'Principal Adebayo', role: 'Principal', date: 'Jun 1, 2026', category: 'Event',
-  },
-  {
-    id: 2, pinned: false, title: 'Second Term Examination Timetable Released',
-    body: 'The examination timetable for the second term has been published. Students are advised to collect their timetables from the school office or download from the portal.',
-    author: 'Admin Office', role: 'Administration', date: 'May 28, 2026', category: 'Academic',
-  },
-  {
-    id: 3, pinned: false, title: 'School Fees Deadline Reminder',
-    body: 'This is a reminder that second-term school fees are due by June 10, 2026. Parents who have not completed payment should visit the finance office or use the online portal.',
-    author: 'Finance Office', role: 'Finance', date: 'May 25, 2026', category: 'Finance',
-  },
-  {
-    id: 4, pinned: false, title: 'Library Hours Extended',
-    body: 'The school library will now be open until 7:00 PM on weekdays to support students preparing for examinations.',
-    author: 'Mrs Okonkwo', role: 'Head Librarian', date: 'May 20, 2026', category: 'Resource',
-  },
-]
+type Announcement = {
+  id: number; pinned: boolean; title: string; body: string;
+  author: string; role: string; date: string; category: string;
+}
+
+const announcements: Announcement[] = []
 
 const categoryColor: Record<string, string> = {
   Event:    'bg-primary/10 text-primary',

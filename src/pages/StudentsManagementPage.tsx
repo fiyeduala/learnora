@@ -5,22 +5,15 @@ import { teacherNav } from '../components/layout/Sidebar'
 type Props = { onNavigate: (page: string) => void }
 
 const stats = [
-  { label: 'Total Students',    value: '35',  icon: Users,         color: 'text-primary'    },
-  { label: 'Avg. Attendance',   value: '100', icon: BookOpen,      color: 'text-green-600'  },
-  { label: 'Top Performers',    value: '20',  icon: ClipboardList, color: 'text-foreground' },
-  { label: 'At-Risk Students',  value: '90%', icon: TrendingUp,    color: 'text-red-600'    },
+  { label: 'Total Students',   value: '—', icon: Users,         color: 'text-primary'    },
+  { label: 'Avg. Attendance',  value: '—', icon: BookOpen,      color: 'text-green-600'  },
+  { label: 'Top Performers',   value: '—', icon: ClipboardList, color: 'text-foreground' },
+  { label: 'At-Risk Students', value: '—', icon: TrendingUp,    color: 'text-red-600'    },
 ]
 
 type StatusKey = 'Excellent' | 'Average' | 'At Risk' | 'Good'
 
-const students = [
-  { name: 'Samuel Williams', class: 'SS2A', attendance: '85%', avgScore: '76%', status: 'Average'   as StatusKey },
-  { name: 'Grace Emmanuel',  class: 'SS2A', attendance: '97%', avgScore: '94%', status: 'Excellent' as StatusKey },
-  { name: 'Esther Michael',  class: 'SS2A', attendance: '92%', avgScore: '88%', status: 'Excellent' as StatusKey },
-  { name: 'Daniel Johnson',  class: 'SS2A', attendance: '92%', avgScore: '88%', status: 'Excellent' as StatusKey },
-  { name: 'Amara Okafor',    class: 'SS1B', attendance: '60%', avgScore: '58%', status: 'At Risk'   as StatusKey },
-  { name: 'Kofi Asante',     class: 'SS3A', attendance: '78%', avgScore: '72%', status: 'Good'      as StatusKey },
-]
+const students: { name: string; class: string; attendance: string; avgScore: string; status: StatusKey }[] = []
 
 const statusBadge: Record<StatusKey, string> = {
   Excellent: 'bg-green-50 text-green-700',
@@ -99,7 +92,9 @@ export default function StudentsManagementPage({ onNavigate }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {students.map((s, i) => (
+                {students.length === 0 ? (
+                  <tr><td colSpan={6} className="px-6 py-10 text-center text-sm text-muted">No students yet.</td></tr>
+                ) : students.map((s, i) => (
                   <tr key={i} className="border-b border-black/4 last:border-0 hover:bg-canvas/40 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">

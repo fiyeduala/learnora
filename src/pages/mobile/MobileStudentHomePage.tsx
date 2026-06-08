@@ -3,16 +3,12 @@ import MobileLayout, { studentMobileNav } from '../../components/layout/MobileLa
 
 type Props = { onNavigate: (page: string) => void }
 
-const todaysClasses = [
-  { name: 'Mr John Bosco',    subject: 'Mathematics', time: '9:00 AM', color: 'bg-blue-100' },
-  { name: 'Mrs Gloria Ewar.', subject: 'Mathematics', time: '9:00 AM', color: 'bg-purple-100' },
-  { name: 'Mr Jo…',           subject: 'Mathematics', time: '9:00 AM', color: 'bg-green-100' },
-]
+type ClassItem = { name: string; subject: string; time: string; color: string }
+type CourseItem = { title: string; sub: string; teacher: string; color: string }
 
-const continueLearning = [
-  { title: 'Physis', sub: 'Algebra Basics', teacher: 'Mr John Bosco',     color: 'bg-slate-700' },
-  { title: 'Math',   sub: 'Quadratics',     teacher: 'Mrs Elena Osho.',    color: 'bg-purple-700' },
-]
+const todaysClasses: ClassItem[] = []
+
+const continueLearning: CourseItem[] = []
 
 export default function MobileStudentHomePage({ onNavigate }: Props) {
   return (
@@ -36,9 +32,9 @@ export default function MobileStudentHomePage({ onNavigate }: Props) {
         {/* Stats row */}
         <div className="flex gap-3 mb-5">
           {[
-            { label: 'GPA',        value: '4.25', trend: '↑' },
-            { label: 'Class Rank', value: '5th',  trend: '↑' },
-            { label: 'Class',      value: 'SS2A',  trend: '' },
+            { label: 'GPA',        value: '—', trend: '' },
+            { label: 'Class Rank', value: '—', trend: '' },
+            { label: 'Class',      value: '—', trend: '' },
           ].map(stat => (
             <div key={stat.label} className="flex-1 bg-canvas rounded-2xl px-3 py-2.5">
               <p className="text-[10px] text-muted mb-0.5">{stat.label}</p>
@@ -68,20 +64,23 @@ export default function MobileStudentHomePage({ onNavigate }: Props) {
           <button className="text-xs text-primary font-medium">View all</button>
         </div>
         <div className="flex gap-3 overflow-x-auto pb-1 mb-6 scrollbar-none">
-          {todaysClasses.map((cls, i) => (
-            <div key={i} className="shrink-0 w-36 rounded-2xl overflow-hidden border border-black/6">
-              <div className={`h-20 ${cls.color} flex items-center justify-center`}>
-                <div className="size-10 rounded-full bg-white/50 flex items-center justify-center text-xs font-bold text-foreground">
-                  {cls.name.charAt(0)}{cls.name.split(' ')[1]?.charAt(0)}
+          {todaysClasses.length === 0
+            ? <div className="py-4 text-sm text-muted">No data yet.</div>
+            : todaysClasses.map((cls, i) => (
+              <div key={i} className="shrink-0 w-36 rounded-2xl overflow-hidden border border-black/6">
+                <div className={`h-20 ${cls.color} flex items-center justify-center`}>
+                  <div className="size-10 rounded-full bg-white/50 flex items-center justify-center text-xs font-bold text-foreground">
+                    {cls.name.charAt(0)}{cls.name.split(' ')[1]?.charAt(0)}
+                  </div>
+                </div>
+                <div className="p-2.5">
+                  <p className="text-xs font-semibold text-foreground truncate">{cls.name}</p>
+                  <p className="text-[10px] text-muted">{cls.subject}</p>
+                  <p className="text-[10px] text-muted">{cls.time}</p>
                 </div>
               </div>
-              <div className="p-2.5">
-                <p className="text-xs font-semibold text-foreground truncate">{cls.name}</p>
-                <p className="text-[10px] text-muted">{cls.subject}</p>
-                <p className="text-[10px] text-muted">{cls.time}</p>
-              </div>
-            </div>
-          ))}
+            ))
+          }
         </div>
 
         {/* Continue Learning */}
@@ -90,27 +89,30 @@ export default function MobileStudentHomePage({ onNavigate }: Props) {
           <button className="text-xs text-primary font-medium">View all</button>
         </div>
         <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
-          {continueLearning.map((course, i) => (
-            <button
-              key={i}
-              onClick={() => onNavigate('m/lesson')}
-              className="shrink-0 w-40 rounded-2xl overflow-hidden border border-black/6 text-left"
-            >
-              <div className={`h-24 ${course.color} flex items-center justify-center`}>
-                <p className="text-white font-bold text-lg">{course.title}</p>
-              </div>
-              <div className="p-2.5">
-                <p className="text-xs font-semibold text-foreground">{course.sub}</p>
-                <p className="text-[10px] text-muted mt-0.5 truncate">{course.teacher}</p>
-              </div>
-              <div className="px-2.5 pb-2.5">
-                <div className="flex items-center gap-1 bg-primary rounded-full px-3 py-1 w-fit">
-                  <span className="text-[10px] text-white font-medium">Resume</span>
-                  <ChevronRight size={10} className="text-white" />
+          {continueLearning.length === 0
+            ? <div className="py-4 text-sm text-muted">No data yet.</div>
+            : continueLearning.map((course, i) => (
+              <button
+                key={i}
+                onClick={() => onNavigate('m/lesson')}
+                className="shrink-0 w-40 rounded-2xl overflow-hidden border border-black/6 text-left"
+              >
+                <div className={`h-24 ${course.color} flex items-center justify-center`}>
+                  <p className="text-white font-bold text-lg">{course.title}</p>
                 </div>
-              </div>
-            </button>
-          ))}
+                <div className="p-2.5">
+                  <p className="text-xs font-semibold text-foreground">{course.sub}</p>
+                  <p className="text-[10px] text-muted mt-0.5 truncate">{course.teacher}</p>
+                </div>
+                <div className="px-2.5 pb-2.5">
+                  <div className="flex items-center gap-1 bg-primary rounded-full px-3 py-1 w-fit">
+                    <span className="text-[10px] text-white font-medium">Resume</span>
+                    <ChevronRight size={10} className="text-white" />
+                  </div>
+                </div>
+              </button>
+            ))
+          }
         </div>
 
       </div>

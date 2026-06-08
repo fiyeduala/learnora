@@ -3,18 +3,10 @@ import DashboardLayout from '../components/layout/DashboardLayout'
 
 type Props = { onNavigate: (page: string) => void }
 
-const courses = [
-  { id: 1,  subject: 'Introduction to Physics 101', teacher: 'Mr. Daniel Johnson',  progress: 74, color: 'from-accent-cyan to-primary',      lessons: 24, enrolled: true  },
-  { id: 2,  subject: 'Mathematics',                  teacher: 'Mrs. Nnduka Kisha',   progress: 38, color: 'from-primary to-accent-cyan',       lessons: 18, enrolled: true  },
-  { id: 3,  subject: 'Understanding English',        teacher: 'Mrs. Monica Johnson', progress: 52, color: 'from-accent-mint to-primary-deep',   lessons: 20, enrolled: true  },
-  { id: 4,  subject: 'History',                      teacher: 'Mr. Boris Johnson',   progress: 61, color: 'from-primary-deep to-accent-mint',   lessons: 15, enrolled: true  },
-  { id: 5,  subject: 'Biology',                      teacher: 'Ms. Sarah Okonkwo',   progress: 45, color: 'from-green-400 to-accent-mint',      lessons: 22, enrolled: true  },
-  { id: 6,  subject: 'Chemistry',                    teacher: 'Mr. James Eze',        progress: 29, color: 'from-orange-400 to-red-400',         lessons: 28, enrolled: true  },
-  { id: 7,  subject: 'Economics',                    teacher: 'Mrs. Aisha Bello',     progress: 0,  color: 'from-violet-400 to-primary',         lessons: 16, enrolled: false },
-  { id: 8,  subject: 'Government',                   teacher: 'Mr. Boris Johnson',   progress: 0,  color: 'from-rose-400 to-orange-400',        lessons: 19, enrolled: false },
-]
+type CourseType = { id: number; subject: string; teacher: string; progress: number; color: string; lessons: number; enrolled: boolean }
+const courses: CourseType[] = []
 
-type CourseCardProps = typeof courses[0] & { onNavigate: (p: string) => void }
+type CourseCardProps = CourseType & { onNavigate: (p: string) => void }
 
 function CourseCard({ subject, teacher, progress, color, lessons, enrolled, onNavigate }: CourseCardProps) {
   return (
@@ -97,10 +89,10 @@ export default function MyCoursesPage({ onNavigate }: Props) {
         {/* Stats strip */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { label: 'Enrolled',     value: 6,   color: 'text-primary'    },
-            { label: 'In Progress',  value: 6,   color: 'text-amber-600'  },
-            { label: 'Completed',    value: 0,   color: 'text-green-600'  },
-            { label: 'Available',    value: 2,   color: 'text-foreground' },
+            { label: 'Enrolled',    value: courses.filter(c => c.enrolled).length,  color: 'text-primary'    },
+            { label: 'In Progress', value: courses.filter(c => c.enrolled && c.progress > 0 && c.progress < 100).length, color: 'text-amber-600' },
+            { label: 'Completed',   value: courses.filter(c => c.progress === 100).length, color: 'text-green-600'  },
+            { label: 'Available',   value: courses.filter(c => !c.enrolled).length, color: 'text-foreground' },
           ].map(s => (
             <div key={s.label} className="bg-surface rounded-card shadow-sm p-4">
               <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
@@ -112,11 +104,18 @@ export default function MyCoursesPage({ onNavigate }: Props) {
         {/* Course grid */}
         <section>
           <h3 className="text-lg font-bold text-foreground mb-4">All Courses</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {courses.map(c => (
-              <CourseCard key={c.id} {...c} onNavigate={onNavigate} />
-            ))}
-          </div>
+          {courses.length === 0 ? (
+            <div className="bg-surface rounded-card shadow-sm p-12 text-center text-muted">
+              <BookOpen size={36} className="mx-auto mb-3 opacity-30" />
+              <p className="text-sm">No courses yet. Courses assigned to your class will appear here.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              {courses.map(c => (
+                <CourseCard key={c.id} {...c} onNavigate={onNavigate} />
+              ))}
+            </div>
+          )}
         </section>
 
       </div>

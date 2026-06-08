@@ -7,20 +7,12 @@ type Props = { onNavigate: (page: string) => void }
 
 type Tab = 'roster' | 'content' | 'analytics'
 
-const roster = [
-  { name: 'Olive Princely',    id: 'GFA-001', avg: 88, attendance: '95%', status: 'Active'   },
-  { name: 'Yetunde Adesanya',  id: 'GFA-002', avg: 79, attendance: '88%', status: 'Active'   },
-  { name: 'Fatima Al-Rashid',  id: 'GFA-003', avg: 94, attendance: '98%', status: 'Active'   },
-  { name: 'Kofi Asante',       id: 'GFA-004', avg: 65, attendance: '72%', status: 'At Risk'  },
-  { name: 'James Owusu',       id: 'GFA-005', avg: 71, attendance: '80%', status: 'Active'   },
-]
+type RosterEntry  = { name: string; id: string; avg: number; attendance: string; status: string }
+type ContentEntry = { title: string; lessons: number; done: boolean }
 
-const content = [
-  { title: 'Module 1: Introduction',      lessons: 4, done: true  },
-  { title: 'Module 2: Mechanics',         lessons: 5, done: false },
-  { title: 'Module 3: Energy & Work',     lessons: 4, done: false },
-  { title: 'Module 4: Waves & Sound',     lessons: 6, done: false },
-]
+const roster: RosterEntry[] = []
+
+const content: ContentEntry[] = []
 
 export default function ClassDetailsPage({ onNavigate }: Props) {
   const [tab, setTab] = useState<Tab>('roster')
@@ -94,29 +86,32 @@ export default function ClassDetailsPage({ onNavigate }: Props) {
                   </tr>
                 </thead>
                 <tbody>
-                  {roster.map((s, i) => (
-                    <tr key={i} className="border-b border-black/4 last:border-0 hover:bg-canvas/40 transition-colors">
-                      <td className="px-6 py-3.5">
-                        <div className="flex items-center gap-3">
-                          <div className="size-8 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">{s.name.charAt(0)}</div>
-                          <span className="font-medium text-foreground">{s.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-3.5 text-muted">{s.id}</td>
-                      <td className="px-6 py-3.5">
-                        <span className={`font-semibold ${s.avg >= 80 ? 'text-green-600' : s.avg >= 65 ? 'text-amber-600' : 'text-red-500'}`}>{s.avg}%</span>
-                      </td>
-                      <td className="px-6 py-3.5 text-muted">{s.attendance}</td>
-                      <td className="px-6 py-3.5">
-                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-xs ${
-                          s.status === 'Active' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'
-                        }`}>{s.status}</span>
-                      </td>
-                      <td className="px-6 py-3.5">
-                        <button onClick={() => onNavigate('student-profile')} className="text-xs text-primary font-semibold hover:underline">View Profile</button>
-                      </td>
-                    </tr>
-                  ))}
+                  {roster.length === 0
+                    ? <tr><td colSpan={6} className="px-6 py-10 text-center text-sm text-muted">No data yet.</td></tr>
+                    : roster.map((s, i) => (
+                      <tr key={i} className="border-b border-black/4 last:border-0 hover:bg-canvas/40 transition-colors">
+                        <td className="px-6 py-3.5">
+                          <div className="flex items-center gap-3">
+                            <div className="size-8 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">{s.name.charAt(0)}</div>
+                            <span className="font-medium text-foreground">{s.name}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-3.5 text-muted">{s.id}</td>
+                        <td className="px-6 py-3.5">
+                          <span className={`font-semibold ${s.avg >= 80 ? 'text-green-600' : s.avg >= 65 ? 'text-amber-600' : 'text-red-500'}`}>{s.avg}%</span>
+                        </td>
+                        <td className="px-6 py-3.5 text-muted">{s.attendance}</td>
+                        <td className="px-6 py-3.5">
+                          <span className={`text-xs font-semibold px-2.5 py-1 rounded-xs ${
+                            s.status === 'Active' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'
+                          }`}>{s.status}</span>
+                        </td>
+                        <td className="px-6 py-3.5">
+                          <button onClick={() => onNavigate('student-profile')} className="text-xs text-primary font-semibold hover:underline">View Profile</button>
+                        </td>
+                      </tr>
+                    ))
+                  }
                 </tbody>
               </table>
             </div>
@@ -125,25 +120,28 @@ export default function ClassDetailsPage({ onNavigate }: Props) {
 
         {tab === 'content' && (
           <div className="flex flex-col gap-3">
-            {content.map((mod, i) => (
-              <div key={i} className="bg-surface rounded-card shadow-sm p-5 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className={`size-9 rounded-card flex items-center justify-center ${mod.done ? 'bg-green-50' : 'bg-primary/10'}`}>
-                    <BookOpen size={16} className={mod.done ? 'text-green-600' : 'text-primary'} />
+            {content.length === 0
+              ? <div className="py-8 text-center text-sm text-muted">No data yet.</div>
+              : content.map((mod, i) => (
+                <div key={i} className="bg-surface rounded-card shadow-sm p-5 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className={`size-9 rounded-card flex items-center justify-center ${mod.done ? 'bg-green-50' : 'bg-primary/10'}`}>
+                      <BookOpen size={16} className={mod.done ? 'text-green-600' : 'text-primary'} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{mod.title}</p>
+                      <p className="text-xs text-muted">{mod.lessons} lessons</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">{mod.title}</p>
-                    <p className="text-xs text-muted">{mod.lessons} lessons</p>
+                  <div className="flex items-center gap-3">
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-xs ${mod.done ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
+                      {mod.done ? 'Published' : 'Draft'}
+                    </span>
+                    <button className="text-xs text-primary font-semibold hover:underline">Edit</button>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-xs ${mod.done ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
-                    {mod.done ? 'Published' : 'Draft'}
-                  </span>
-                  <button className="text-xs text-primary font-semibold hover:underline">Edit</button>
-                </div>
-              </div>
-            ))}
+              ))
+            }
             <button onClick={() => onNavigate('course-builder')} className="flex items-center gap-2 h-11 px-5 border-2 border-dashed border-black/20 rounded-card text-sm font-semibold text-muted hover:border-primary hover:text-primary transition-colors w-fit">
               <Plus size={14} /> Add Module
             </button>
@@ -153,10 +151,10 @@ export default function ClassDetailsPage({ onNavigate }: Props) {
         {tab === 'analytics' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {[
-              { label: 'Class Average',   value: '74%', sub: '+3% from last term',    color: 'text-primary'   },
-              { label: 'Highest Score',   value: '97%', sub: 'Fatima Al-Rashid',      color: 'text-green-600' },
-              { label: 'Lowest Score',    value: '48%', sub: 'Kofi Asante',           color: 'text-red-500'   },
-              { label: 'Attendance Rate', value: '87%', sub: '3 students at risk',    color: 'text-amber-600' },
+              { label: 'Class Average',   value: '—', sub: 'No data yet.', color: 'text-primary'   },
+              { label: 'Highest Score',   value: '—', sub: 'No data yet.', color: 'text-green-600' },
+              { label: 'Lowest Score',    value: '—', sub: 'No data yet.', color: 'text-red-500'   },
+              { label: 'Attendance Rate', value: '—', sub: 'No data yet.', color: 'text-amber-600' },
             ].map(s => (
               <div key={s.label} className="bg-surface rounded-card shadow-sm p-6">
                 <p className={`text-4xl font-bold ${s.color}`}>{s.value}</p>

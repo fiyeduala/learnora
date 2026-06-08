@@ -4,14 +4,8 @@ import { teacherNav } from '../components/layout/Sidebar'
 
 type Props = { onNavigate: (page: string) => void }
 
-const classes = [
-  { id: 1, name: 'Physics 101',  code: 'SS1A', students: 32, progress: 68, color: 'bg-primary',      avgScore: 74 },
-  { id: 2, name: 'Mathematics',  code: 'SS2B', students: 28, progress: 45, color: 'bg-accent-cyan',  avgScore: 68 },
-  { id: 3, name: 'Physics 101',  code: 'SS3A', students: 30, progress: 82, color: 'bg-accent-mint',  avgScore: 81 },
-  { id: 4, name: 'Mathematics',  code: 'SS1A', students: 27, progress: 31, color: 'bg-primary-deep', avgScore: 62 },
-  { id: 5, name: 'Physics 102',  code: 'SS2A', students: 29, progress: 55, color: 'bg-primary',      avgScore: 70 },
-  { id: 6, name: 'Mathematics',  code: 'SS3B', students: 31, progress: 73, color: 'bg-accent-cyan',  avgScore: 77 },
-]
+type ClassType = { id: number; name: string; code: string; students: number; progress: number; color: string; avgScore: number }
+const classes: ClassType[] = []
 
 export default function MyClassesPage({ onNavigate }: Props) {
   return (
@@ -28,10 +22,10 @@ export default function MyClassesPage({ onNavigate }: Props) {
         {/* Summary stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Total Classes',   value: '6',    color: 'text-primary'    },
-            { label: 'Total Students',  value: '177',  color: 'text-foreground' },
-            { label: 'Avg Completion',  value: '59%',  color: 'text-amber-600'  },
-            { label: 'Avg Score',       value: '72%',  color: 'text-green-600'  },
+            { label: 'Total Classes',   value: classes.length,         color: 'text-primary'    },
+            { label: 'Total Students',  value: classes.reduce((s, c) => s + c.students, 0), color: 'text-foreground' },
+            { label: 'Avg Completion',  value: classes.length ? Math.round(classes.reduce((s, c) => s + c.progress, 0) / classes.length) + '%' : '—', color: 'text-amber-600' },
+            { label: 'Avg Score',       value: classes.length ? Math.round(classes.reduce((s, c) => s + c.avgScore, 0) / classes.length) + '%' : '—', color: 'text-green-600' },
           ].map(s => (
             <div key={s.label} className="bg-surface rounded-card shadow-sm p-5">
               <p className={`text-3xl font-bold ${s.color}`}>{s.value}</p>
@@ -52,6 +46,12 @@ export default function MyClassesPage({ onNavigate }: Props) {
         </div>
 
         {/* Classes grid */}
+        {classes.length === 0 && (
+          <div className="bg-surface rounded-card shadow-sm p-12 text-center text-muted">
+            <BookOpen size={36} className="mx-auto mb-3 opacity-30" />
+            <p className="text-sm">No classes yet. Create your first class to get started.</p>
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {classes.map(c => (
             <div key={c.id} className="bg-surface rounded-card shadow-sm overflow-hidden flex flex-col">
@@ -119,22 +119,7 @@ export default function MyClassesPage({ onNavigate }: Props) {
             </button>
           </div>
           <div className="divide-y divide-black/4">
-            {[
-              { class: 'Physics 101 · SS1A', action: '28/32 students submitted Algebra Quiz',   time: '10 min ago' },
-              { class: 'Mathematics · SS2B', action: 'New assignment posted: Calculus Basics',  time: '1 hr ago'   },
-              { class: 'Physics 101 · SS3A', action: 'Live class starts in 30 minutes',         time: '2 hr ago'   },
-            ].map((a, i) => (
-              <div key={i} className="flex items-start gap-4 px-6 py-4">
-                <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                  <BookOpen size={13} className="text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-primary mb-0.5">{a.class}</p>
-                  <p className="text-sm text-foreground">{a.action}</p>
-                </div>
-                <span className="text-xs text-muted shrink-0">{a.time}</span>
-              </div>
-            ))}
+            <div className="px-6 py-8 text-center text-sm text-muted">No recent activity.</div>
           </div>
         </div>
 
