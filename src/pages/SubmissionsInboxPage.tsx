@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Search, Download, CheckCircle2, Clock, AlertCircle, ChevronDown } from 'lucide-react'
+import { Search, Download } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
 

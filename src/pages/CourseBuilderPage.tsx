@@ -83,7 +83,7 @@ export default function CourseBuilderPage({ onNavigate }: Props) {
             </button>
           </div>
 
-          {modules.map((mod, mi) => (
+          {modules.map((mod) => (
             <div key={mod.id} className="bg-surface rounded-card shadow-sm overflow-hidden">
               {/* Module header */}
               <div className="flex items-center gap-3 px-5 py-4 bg-canvas/60 border-b border-black/6">

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Video, Plus, Play, Clock, Users, Calendar, Mic, MicOff, CheckCircle2 } from 'lucide-react'
+import { Video, Plus, Play, Clock, Users, Calendar, Mic, MicOff } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
 

@@ -34,7 +34,7 @@ const submission = {
 export default function GradingScreenPage({ onNavigate }: Props) {
   const [feedback, setFeedback] = useState('')
   const [marks, setMarks] = useState<(boolean | null)[]>(submission.questions.map(q => q.correct))
-  const [done, setDone] = useState(false)
+  const [, setDone] = useState(false)
 
   const earnedPoints = marks.reduce<number>((acc, m, i) => acc + (m ? submission.questions[i].points : 0), 0)
   const totalPoints  = submission.questions.reduce((acc, q) => acc + q.points, 0)

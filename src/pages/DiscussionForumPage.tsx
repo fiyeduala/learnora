@@ -57,12 +57,6 @@ const threads: Thread[] = [
   },
 ]
 
-const subjectColors: Record<string, string> = {
-  Physics:     'bg-amber-50 text-amber-700',
-  Mathematics: 'bg-primary/10 text-primary',
-  Economics:   'bg-teal-50 text-teal-700',
-  General:     'bg-canvas text-muted',
-}
 
 export default function DiscussionForumPage({ onNavigate }: Props) {
   const [expanded, setExpanded] = useState<number | null>(1)

@@ -27,7 +27,6 @@ import {
   LayoutGrid,
   ToggleLeft,
   Mail,
-  Flag,
   Award,
   X,
   type LucideIcon,
