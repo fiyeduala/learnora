@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MessageSquare, HelpCircle, FileText, ChevronRight, Send, X, CheckCircle2 } from 'lucide-react'
+import { MessageSquare, HelpCircle, FileText, ChevronRight, Send, CheckCircle2 } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
 

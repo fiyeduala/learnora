@@ -11,7 +11,6 @@ type Tab = 'structure' | 'bank' | 'paystack'
 
 // ── fee structure ────────────────────────────────────────────────────────────
 type FeeItem = { id: number; label: string; amount: string; mandatory: boolean }
-type ClassFee = { level: string; term: string; items: FeeItem[] }
 
 const LEVELS = ['JSS1', 'JSS2', 'JSS3', 'SS1', 'SS2', 'SS3']
 const TERMS  = ['First Term', 'Second Term', 'Third Term']

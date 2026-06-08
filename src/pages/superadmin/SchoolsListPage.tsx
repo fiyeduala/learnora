@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Search, Plus, Filter, ChevronRight } from 'lucide-react'
+import { Search, Plus, ChevronRight } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { superAdminNav } from '../../components/layout/Sidebar'
 

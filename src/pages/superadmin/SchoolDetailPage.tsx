@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   Building2, Users, ArrowLeft, Mail, Globe, Phone, MapPin,
-  Calendar, AlertCircle, CheckCircle2, TrendingUp, Activity,
+  Calendar, AlertCircle, CheckCircle2, Activity,
   BookOpen, MessageSquare, Settings, Download, Send, X,
   Shield, Power, RefreshCw, Eye, ChevronDown,
   CreditCard, BarChart2, Layers, Clock, ArrowRight,

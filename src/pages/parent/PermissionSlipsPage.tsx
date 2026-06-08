@@ -1,15 +1,8 @@
 import { useState } from 'react'
 import { FileText, Check, X, Clock, ChevronDown, ChevronUp } from 'lucide-react'
-import MobileLayout from '../../components/layout/MobileLayout'
+import MobileLayout, { parentMobileNav } from '../../components/layout/MobileLayout'
 
 type Props = { onNavigate: (page: string) => void }
-
-const parentMobileNav = [
-  { label: 'Home',     page: 'parent/dashboard' },
-  { label: 'Progress', page: 'parent/progress'  },
-  { label: 'Payments', page: 'parent/payments'  },
-  { label: 'Messages', page: 'parent/chat'      },
-]
 
 interface Slip {
   id:          string

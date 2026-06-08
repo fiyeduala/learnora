@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, CreditCard, Landmark, Banknote, Copy, CheckCircle2, AlertCircle } from 'lucide-react'
+import { ChevronLeft, CreditCard, Landmark, Banknote, Copy, CheckCircle2, AlertCircle } from 'lucide-react'
 import MobileLayout, { parentMobileNav } from '../../components/layout/MobileLayout'
 
 type Props = { onNavigate: (page: string) => void }

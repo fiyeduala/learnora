@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Users, BookOpen, TrendingUp, AlertCircle, ChevronRight, Plus, X, CheckCircle2, Circle } from 'lucide-react'
+import { BookOpen, TrendingUp, AlertCircle, ChevronRight, Plus, X, CheckCircle2, Circle } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
 

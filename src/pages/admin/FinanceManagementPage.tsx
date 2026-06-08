@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { TrendingUp, Download, Filter, ChevronRight, AlertCircle } from 'lucide-react'
+import { Download, ChevronRight, AlertCircle } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
 

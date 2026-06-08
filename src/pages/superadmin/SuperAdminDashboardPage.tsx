@@ -1,4 +1,4 @@
-import { TrendingUp, Users, BookOpen, AlertCircle, ChevronRight, Plus } from 'lucide-react'
+import { AlertCircle, ChevronRight, Plus } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { superAdminNav } from '../../components/layout/Sidebar'
 

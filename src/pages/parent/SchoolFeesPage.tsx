@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   ChevronLeft, Download, Copy, CheckCircle2,
-  AlertCircle, CreditCard, Landmark, Banknote,
+  AlertCircle, CreditCard, Banknote,
 } from 'lucide-react'
 import MobileLayout, { parentMobileNav } from '../../components/layout/MobileLayout'
 

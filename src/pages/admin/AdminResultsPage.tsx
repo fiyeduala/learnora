@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Award, CheckCircle2, Clock, AlertCircle, Eye, Globe, X, ChevronRight } from 'lucide-react'
+import { Award, CheckCircle2, Clock, AlertCircle, Eye, Globe, X } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
 

@@ -27,7 +27,6 @@ const subjectColor: Record<string, string> = {
 
 export default function TeacherLiveClassesPage({ onNavigate }: Props) {
   const [tab, setTab] = useState<'upcoming' | 'recordings'>('upcoming')
-  const [scheduledId, setScheduledId] = useState<number | null>(null)
 
   const liveClass = myClasses.find(c => c.status === 'live')
   const upcoming  = myClasses.filter(c => c.status === 'upcoming')
@@ -125,12 +124,7 @@ export default function TeacherLiveClassesPage({ onNavigate }: Props) {
                     </div>
                   </div>
                   <div className="flex gap-2 shrink-0">
-                    {scheduledId === cls.id ? (
-                      <span className="flex items-center gap-1.5 text-green-600 text-sm font-semibold">
-                        <CheckCircle2 size={14} /> Scheduled
-                      </span>
-                    ) : (
-                      <>
+                    <>
                         <button
                           onClick={() => onNavigate('schedule-class')}
                           className="h-9 px-4 border border-black/15 text-sm font-semibold text-foreground rounded-pill hover:border-primary hover:text-primary transition-colors"
@@ -144,7 +138,6 @@ export default function TeacherLiveClassesPage({ onNavigate }: Props) {
                           <Play size={13} /> Start
                         </button>
                       </>
-                    )}
                   </div>
                 </div>
               </div>
