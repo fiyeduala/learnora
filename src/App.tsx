@@ -171,9 +171,10 @@ import FinanceManagementPage  from './pages/admin/FinanceManagementPage'
 import SubscriptionBillingPage from './pages/admin/SubscriptionBillingPage'
 
 // ── Super Admin ───────────────────────────────────────────────────────────────
-import SuperAdminDashboardPage from './pages/superadmin/SuperAdminDashboardPage'
-import SchoolsListPage        from './pages/superadmin/SchoolsListPage'
-import OnboardSchoolPage      from './pages/superadmin/OnboardSchoolPage'
+import SuperAdminDashboardPage    from './pages/superadmin/SuperAdminDashboardPage'
+import SchoolsListPage            from './pages/superadmin/SchoolsListPage'
+import OnboardSchoolPage          from './pages/superadmin/OnboardSchoolPage'
+import SuperAdminNotificationsPage from './pages/superadmin/SuperAdminNotificationsPage'
 
 // ── Mobile student ────────────────────────────────────────────────────────────
 import MobileOnboardingPage      from './pages/mobile/MobileOnboardingPage'
@@ -361,9 +362,10 @@ function FinanceRoute()         { const n = useNav(); return <FinanceManagementP
 function SubscriptionRoute()    { const n = useNav(); return <SubscriptionBillingPage onNavigate={n} /> }
 
 // ── Super Admin wrappers ──────────────────────────────────────────────────────
-function SuperDashRoute()       { const n = useNav(); return <SuperAdminDashboardPage onNavigate={n} /> }
-function SchoolsListRoute()     { const n = useNav(); return <SchoolsListPage         onNavigate={n} /> }
-function OnboardSchoolRoute()   { const n = useNav(); return <OnboardSchoolPage       onNavigate={n} /> }
+function SuperDashRoute()          { const n = useNav(); return <SuperAdminDashboardPage     onNavigate={n} /> }
+function SchoolsListRoute()        { const n = useNav(); return <SchoolsListPage             onNavigate={n} /> }
+function OnboardSchoolRoute()      { const n = useNav(); return <OnboardSchoolPage           onNavigate={n} /> }
+function SuperNotifsRoute()        { const n = useNav(); return <SuperAdminNotificationsPage onNavigate={n} /> }
 
 // ── Mobile student wrappers ───────────────────────────────────────────────────
 function OnboardingRoute()      { const n = useNav(); return <MobileOnboardingPage       onNavigate={n} /> }
@@ -557,9 +559,10 @@ export default function App() {
       <Route path="/admin-results"       element={<AdminResultsRoute />} />
 
       {/* Super Admin */}
-      <Route path="/super-dashboard"     element={<SuperDashRoute />} />
-      <Route path="/schools-list"        element={<SchoolsListRoute />} />
-      <Route path="/onboard-school"      element={<OnboardSchoolRoute />} />
+      <Route path="/super-dashboard"        element={<SuperDashRoute />} />
+      <Route path="/schools-list"           element={<SchoolsListRoute />} />
+      <Route path="/onboard-school"         element={<OnboardSchoolRoute />} />
+      <Route path="/super-notifications"    element={<SuperNotifsRoute />} />
       <Route path="/platform-billing"    element={<PlatformBillingRoute />} />
       <Route path="/plans-pricing"       element={<PlansAndPricingRoute />} />
       <Route path="/platform-analytics"  element={<PlatformAnalyticsRoute />} />

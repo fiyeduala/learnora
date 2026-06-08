@@ -17,15 +17,7 @@ interface Ticket {
   lastReply: string
 }
 
-const tickets: Ticket[] = [
-  { id: '#1042', school: 'Unity High School',     subject: 'Students cannot log in after password reset',       priority: 'high',   status: 'open',        date: 'Jun 6, 2026',  lastReply: '2h ago'   },
-  { id: '#1041', school: 'Greenfield Academy',    subject: 'Finance module showing incorrect fee totals',        priority: 'high',   status: 'in-progress', date: 'Jun 5, 2026',  lastReply: '5h ago'   },
-  { id: '#1040', school: 'Bright Minds School',   subject: 'Assignment submission not saving on mobile',         priority: 'medium', status: 'in-progress', date: 'Jun 4, 2026',  lastReply: '1d ago'   },
-  { id: '#1039', school: 'Apex Academy',          subject: 'Request to increase student limit to 400',          priority: 'low',    status: 'open',        date: 'Jun 3, 2026',  lastReply: '2d ago'   },
-  { id: '#1038', school: 'Hillside College',       subject: 'Bulk CSV import failing for new students',          priority: 'medium', status: 'resolved',    date: 'Jun 1, 2026',  lastReply: '3d ago'   },
-  { id: '#1037', school: 'Scholars Hub',          subject: 'Gradebook export not generating PDF correctly',     priority: 'low',    status: 'resolved',    date: 'May 30, 2026', lastReply: '5d ago'   },
-  { id: '#1036', school: 'Royal Crown Academy',   subject: 'AI Tutor feature not available despite Enterprise', priority: 'high',   status: 'resolved',    date: 'May 28, 2026', lastReply: '1w ago'   },
-]
+const tickets: Ticket[] = []
 
 const priorityStyle: Record<Priority, string> = {
   high:   'bg-red-50 text-red-600',

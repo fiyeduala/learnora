@@ -46,7 +46,7 @@ export default function TopBar({ title, subtitle, onMenuClick, onNavigate, user 
       {/* Action icons */}
       <div className="flex items-center gap-1 md:gap-2">
         <button
-          onClick={() => nav('notifications')}
+          onClick={() => nav(user?.role === 'Super Admin' ? 'super-notifications' : 'notifications')}
           className="relative p-2 text-muted hover:text-foreground transition-colors"
           aria-label="Notifications"
         >

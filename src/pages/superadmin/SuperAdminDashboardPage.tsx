@@ -5,19 +5,13 @@ import { superAdminNav } from '../../components/layout/Sidebar'
 type Props = { onNavigate: (page: string) => void }
 
 const stats = [
-  { label: 'MRR',            value: '₦48.2M',  change: '+12%',  color: 'text-primary'   },
-  { label: 'Active Schools', value: '127',      change: '+8',    color: 'text-accent-mint'},
-  { label: 'Total Students', value: '84,320',   change: '+1,204',color: 'text-foreground' },
-  { label: 'Churn Rate',     value: '2.1%',     change: '-0.3%', color: 'text-green-600' },
+  { label: 'MRR',            value: '—', change: '+12%',  color: 'text-primary'   },
+  { label: 'Active Schools', value: '—', change: '+8',    color: 'text-accent-mint'},
+  { label: 'Total Students', value: '—', change: '+1,204',color: 'text-foreground' },
+  { label: 'Churn Rate',     value: '—', change: '-0.3%', color: 'text-green-600' },
 ]
 
-const recentSchools = [
-  { name: 'Greenfield Academy',       location: 'Lagos',    plan: 'Professional', students: 1248, mrr: '₦1.06M', status: 'Active'  },
-  { name: 'Royal Crown Secondary',    location: 'Abuja',    plan: 'Starter',      students: 420,  mrr: '₦357K',  status: 'Active'  },
-  { name: 'Heritage International',   location: 'PH',       plan: 'Professional', students: 890,  mrr: '₦756.5K',status: 'Active'  },
-  { name: 'Bright Future School',     location: 'Kano',     plan: 'Starter',      students: 310,  mrr: '₦263.5K',status: 'Trial'   },
-  { name: 'Unity Academy',            location: 'Enugu',    plan: 'Professional', students: 680,  mrr: '₦578K',  status: 'Suspended'},
-]
+const recentSchools: { name: string; location: string; plan: string; students: number; mrr: string; status: string }[] = []
 
 export default function SuperAdminDashboardPage({ onNavigate }: Props) {
   return (
@@ -73,7 +67,11 @@ export default function SuperAdminDashboardPage({ onNavigate }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {recentSchools.map((s, i) => (
+                {recentSchools.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-10 text-center text-sm text-muted">No data yet.</td>
+                  </tr>
+                ) : recentSchools.map((s, i) => (
                   <tr key={i} className="border-b border-black/4 last:border-0 hover:bg-canvas/40 transition-colors cursor-pointer" onClick={() => onNavigate('school-detail')}>
                     <td className="px-6 py-3.5">
                       <div className="flex items-center gap-3">

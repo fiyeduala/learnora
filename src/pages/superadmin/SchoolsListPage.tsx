@@ -7,15 +7,7 @@ type Props = { onNavigate: (page: string) => void }
 
 type StatusFilter = 'All' | 'Active' | 'Trial' | 'Suspended'
 
-const schools = [
-  { name: 'Greenfield Academy',     location: 'Lagos',     plan: 'Professional', students: 1248, mrr: '₦1.06M', status: 'Active',    joined: 'Jan 2024' },
-  { name: 'Royal Crown Secondary',  location: 'Abuja',     plan: 'Starter',      students: 420,  mrr: '₦357K',  status: 'Active',    joined: 'Mar 2024' },
-  { name: 'Heritage International', location: 'PH',        plan: 'Professional', students: 890,  mrr: '₦756.5K',status: 'Active',    joined: 'Jun 2024' },
-  { name: 'Bright Future School',   location: 'Kano',      plan: 'Starter',      students: 310,  mrr: '₦263.5K',status: 'Trial',     joined: 'May 2026' },
-  { name: 'Unity Academy',          location: 'Enugu',     plan: 'Professional', students: 680,  mrr: '₦578K',  status: 'Suspended', joined: 'Sep 2023' },
-  { name: 'Apex College',           location: 'Ibadan',    plan: 'Starter',      students: 280,  mrr: '₦238K',  status: 'Active',    joined: 'Nov 2024' },
-  { name: 'Pinnacle Academy',       location: 'Kaduna',    plan: 'Professional', students: 760,  mrr: '₦646K',  status: 'Active',    joined: 'Feb 2025' },
-]
+const schools: { name: string; location: string; plan: string; students: number; mrr: string; status: string; joined: string }[] = []
 
 export default function SchoolsListPage({ onNavigate }: Props) {
   const [search, setSearch]   = useState('')
@@ -58,6 +50,9 @@ export default function SchoolsListPage({ onNavigate }: Props) {
 
         {/* School cards */}
         <div className="flex flex-col gap-3">
+          {filtered.length === 0 && (
+            <div className="bg-surface rounded-card shadow-sm py-12 text-center text-sm text-muted">No data yet.</div>
+          )}
           {filtered.map((s, i) => (
             <div key={i} className="bg-surface rounded-card shadow-sm p-5 flex flex-wrap items-center gap-4 hover:shadow-md transition-all cursor-pointer" onClick={() => onNavigate('school-detail')}>
               <div className="size-11 rounded-card bg-primary/10 text-primary text-lg font-bold flex items-center justify-center shrink-0">

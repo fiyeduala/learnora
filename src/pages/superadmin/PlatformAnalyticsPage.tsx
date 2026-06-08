@@ -5,34 +5,19 @@ import { superAdminNav } from '../../components/layout/Sidebar'
 type Props = { onNavigate: (page: string) => void }
 
 const stats = [
-  { label: 'Total Schools',   value: '142',     change: '+8',    Icon: Building2, color: 'bg-primary/10 text-primary'         },
-  { label: 'Total Students',  value: '86,450',  change: '+4,200', Icon: Users,    color: 'bg-accent-mint/10 text-accent-mint' },
-  { label: 'Monthly Active',  value: '71,200',  change: '+3,100', Icon: Activity, color: 'bg-green-50 text-green-600'         },
-  { label: 'Lessons Created', value: '12,840',  change: '+940',  Icon: BookOpen, color: 'bg-amber-50 text-amber-600'         },
+  { label: 'Total Schools',   value: '—', change: '+8',    Icon: Building2, color: 'bg-primary/10 text-primary'         },
+  { label: 'Total Students',  value: '—', change: '+4,200', Icon: Users,    color: 'bg-accent-mint/10 text-accent-mint' },
+  { label: 'Monthly Active',  value: '—', change: '+3,100', Icon: Activity, color: 'bg-green-50 text-green-600'         },
+  { label: 'Lessons Created', value: '—', change: '+940',  Icon: BookOpen, color: 'bg-amber-50 text-amber-600'         },
 ]
 
-const growthData = [58, 72, 80, 92, 110, 125, 130, 135, 138, 140, 141, 142]
-const mauData    = [40, 48, 55, 62, 71, 80, 84, 86, 87, 89, 90, 91]
+const growthData: number[] = []
+const mauData: number[] = []
 const months = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
 
-const topSchools = [
-  { name: 'Unity High School',      students: 1240, mau: '94%', plan: 'Enterprise' },
-  { name: 'Greenfield Academy',     students: 980,  mau: '91%', plan: 'Growth'     },
-  { name: 'Royal Crown Academy',    students: 870,  mau: '89%', plan: 'Enterprise' },
-  { name: 'Scholars Hub',           students: 760,  mau: '88%', plan: 'Growth'     },
-  { name: 'Bright Minds School',    students: 290,  mau: '85%', plan: 'Starter'    },
-]
+const topSchools: { name: string; students: number; mau: string; plan: string }[] = []
 
-const moduleAdoption = [
-  { module: 'Core LMS',          pct: 98 },
-  { module: 'Attendance',        pct: 94 },
-  { module: 'Assignments',       pct: 91 },
-  { module: 'Parent Portal',     pct: 82 },
-  { module: 'Messages',          pct: 75 },
-  { module: 'Finance',           pct: 68 },
-  { module: 'Analytics',         pct: 55 },
-  { module: 'AI Tutor',          pct: 32 },
-]
+const moduleAdoption: { module: string; pct: number }[] = []
 
 const maxSchools = 150
 const maxMau = 100
@@ -76,7 +61,9 @@ export default function PlatformAnalyticsPage({ onNavigate }: Props) {
           <div className="bg-surface rounded-card shadow-sm p-6">
             <h2 className="text-base font-bold text-foreground mb-5">School Growth (Last 12 Months)</h2>
             <div className="flex items-end gap-1.5 h-36">
-              {growthData.map((v, i) => (
+              {growthData.length === 0 ? (
+                <p className="w-full text-center text-sm text-muted self-center">No data yet.</p>
+              ) : growthData.map((v, i) => (
                 <div key={i} className="flex flex-col items-center gap-1.5 flex-1">
                   <div className="w-full bg-primary rounded-t" style={{ height: `${Math.round((v / maxSchools) * 100)}%` }} />
                   <span className="text-[8px] text-muted">{months[i]}</span>
@@ -89,7 +76,9 @@ export default function PlatformAnalyticsPage({ onNavigate }: Props) {
           <div className="bg-surface rounded-card shadow-sm p-6">
             <h2 className="text-base font-bold text-foreground mb-5">Monthly Active Users (k)</h2>
             <div className="flex items-end gap-1.5 h-36">
-              {mauData.map((v, i) => (
+              {mauData.length === 0 ? (
+                <p className="w-full text-center text-sm text-muted self-center">No data yet.</p>
+              ) : mauData.map((v, i) => (
                 <div key={i} className="flex flex-col items-center gap-1.5 flex-1">
                   <div className="w-full bg-accent-mint rounded-t" style={{ height: `${Math.round((v / maxMau) * 100)}%` }} />
                   <span className="text-[8px] text-muted">{months[i]}</span>
@@ -106,7 +95,9 @@ export default function PlatformAnalyticsPage({ onNavigate }: Props) {
               <h2 className="text-base font-bold text-foreground">Top Schools by Usage</h2>
             </div>
             <div className="divide-y divide-black/4">
-              {topSchools.map((s, i) => (
+              {topSchools.length === 0 ? (
+                <p className="px-6 py-10 text-center text-sm text-muted">No data yet.</p>
+              ) : topSchools.map((s, i) => (
                 <div key={i} className="flex items-center gap-4 px-6 py-4">
                   <span className="text-sm font-bold text-muted w-5">{i + 1}</span>
                   <div className="flex-1 min-w-0">
@@ -123,7 +114,9 @@ export default function PlatformAnalyticsPage({ onNavigate }: Props) {
           <div className="bg-surface rounded-card shadow-sm p-6">
             <h2 className="text-base font-bold text-foreground mb-5">Module Adoption</h2>
             <div className="flex flex-col gap-3.5">
-              {moduleAdoption.map(({ module, pct }) => (
+              {moduleAdoption.length === 0 ? (
+                <p className="text-center text-sm text-muted py-6">No data yet.</p>
+              ) : moduleAdoption.map(({ module, pct }) => (
                 <div key={module}>
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-sm font-medium text-foreground">{module}</p>

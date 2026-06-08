@@ -7,24 +7,15 @@ type Props = { onNavigate: (page: string) => void }
 /* Per-student-per-term billing model */
 
 const stats = [
-  { label: 'Current Term Revenue',   value: '₦48.2M',   change: '+12%', Icon: TrendingUp,  color: 'bg-primary/10 text-primary'         },
-  { label: 'Annual Run Rate',        value: '₦144.6M',  change: '+12%', Icon: TrendingUp,  color: 'bg-green-50 text-green-600'         },
-  { label: 'Billable Schools',       value: '142',       change: '+8',   Icon: Building2,   color: 'bg-accent-mint/10 text-accent-mint' },
-  { label: 'Failed Payments',        value: '4',         change: '-2',   Icon: AlertCircle, color: 'bg-red-50 text-red-500'             },
+  { label: 'Current Term Revenue',   value: '—', change: '+12%', Icon: TrendingUp,  color: 'bg-primary/10 text-primary'         },
+  { label: 'Annual Run Rate',        value: '—', change: '+12%', Icon: TrendingUp,  color: 'bg-green-50 text-green-600'         },
+  { label: 'Billable Schools',       value: '—', change: '+8',   Icon: Building2,   color: 'bg-accent-mint/10 text-accent-mint' },
+  { label: 'Failed Payments',        value: '—', change: '-2',   Icon: AlertCircle, color: 'bg-red-50 text-red-500'             },
 ]
 
 type InvStatus = 'paid' | 'failed' | 'pending'
 
-const invoices: { school: string; plan: string; students: number; rate: number; term: string; date: string; status: InvStatus }[] = [
-  { school: 'Greenfield Academy',     plan: 'Growth',     students: 1248, rate: 750, term: 'Term 2 2026', date: 'Apr 1, 2026',  status: 'paid'    },
-  { school: 'Bright Minds School',    plan: 'Starter',    students: 420,  rate: 900, term: 'Term 2 2026', date: 'Apr 1, 2026',  status: 'paid'    },
-  { school: 'Unity High School',      plan: 'Enterprise', students: 680,  rate: 600, term: 'Term 2 2026', date: 'Apr 1, 2026',  status: 'paid'    },
-  { school: 'Apex Academy',           plan: 'Growth',     students: 310,  rate: 800, term: 'Term 2 2026', date: 'Apr 1, 2026',  status: 'failed'  },
-  { school: 'Hillside College',       plan: 'Growth',     students: 890,  rate: 750, term: 'Term 2 2026', date: 'Apr 1, 2026',  status: 'paid'    },
-  { school: 'Sunrise International',  plan: 'Starter',    students: 280,  rate: 900, term: 'Term 2 2026', date: 'Apr 1, 2026',  status: 'pending' },
-  { school: 'Royal Crown Academy',    plan: 'Enterprise', students: 760,  rate: 600, term: 'Term 2 2026', date: 'Apr 1, 2026',  status: 'paid'    },
-  { school: 'Scholars Hub',           plan: 'Starter',    students: 195,  rate: 950, term: 'Term 2 2026', date: 'Apr 1, 2026',  status: 'paid'    },
-]
+const invoices: { school: string; plan: string; students: number; rate: number; term: string; date: string; status: InvStatus }[] = []
 
 const revenueByTerm = [
   { label: 'T1 2025', value: 38  },
@@ -119,7 +110,11 @@ export default function PlatformBillingPage({ onNavigate }: Props) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-black/4">
-                {invoices.map((t, i) => (
+                {invoices.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-10 text-center text-sm text-muted">No data yet.</td>
+                  </tr>
+                ) : invoices.map((t, i) => (
                   <tr key={i} className="hover:bg-canvas/50 transition-colors">
                     <td className="px-6 py-3.5 font-semibold text-foreground">{t.school}</td>
                     <td className="px-4 py-3.5 text-muted">{t.plan}</td>
