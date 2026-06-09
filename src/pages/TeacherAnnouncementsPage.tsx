@@ -1,17 +1,18 @@
-﻿import { useState } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { Megaphone, Search, ChevronRight, Pin, Plus } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
 import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 
 type Props = { onNavigate: (page: string) => void }
 
-const announcements = [
-  { id: 1, pinned: true,  title: 'Staff Meeting — Thursday 3 PM',         body: 'All teaching and non-teaching staff are required to attend the monthly staff meeting on Thursday June 12 at 3 PM in the main hall.', author: 'Admin Okafor', role: 'School Admin', date: 'Jun 6, 2026', category: 'General' },
-  { id: 2, pinned: false, title: 'Second Term Examination Timetable',      body: 'The examination timetable for the second term has been published. Students should collect timetables from the office or download from the portal.', author: 'Admin Okafor', role: 'School Admin', date: 'Jun 4, 2026', category: 'Academic' },
-  { id: 3, pinned: false, title: 'Inter-House Sports Day — June 28',       body: 'The annual Inter-House Sports Day will hold on Saturday June 28. All students must participate in at least one event.', author: 'Principal Adebayo', role: 'Principal', date: 'May 28, 2026', category: 'Event' },
-  { id: 4, pinned: false, title: 'Library Hours Extended',                  body: 'The school library will now be open until 7:00 PM on weekdays to support students preparing for examinations.', author: 'Mrs Okonkwo', role: 'Head Librarian', date: 'May 20, 2026', category: 'Resource' },
-]
+interface Announcement {
+  id: string; title: string; body: string
+  is_pinned: boolean; category: string | null
+  created_at: string
+  profiles: { full_name: string | null; role: string } | null
+}
 
 const categoryColor: Record<string, string> = {
   Academic: 'bg-primary/10 text-primary',
@@ -21,14 +22,42 @@ const categoryColor: Record<string, string> = {
   Resource: 'bg-teal-50 text-teal-700',
 }
 
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-NG', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
 export default function TeacherAnnouncementsPage({ onNavigate }: Props) {
   const { profile } = useAuth()
-  const [search, setSearch] = useState('')
+  const [announcements, setAnnouncements] = useState<Announcement[]>([])
+  const [search,        setSearch]        = useState('')
+  const [loading,       setLoading]       = useState(true)
 
+  useEffect(() => { if (profile?.school_id) loadAnnouncements() }, [profile?.school_id])
+
+  async function loadAnnouncements() {
+    setLoading(true)
+    const { data } = await supabase
+      .from('announcements')
+      .select('id, title, body, is_pinned, category, created_at, profiles!author_id(full_name, role)')
+      .eq('school_id', profile!.school_id)
+      .order('is_pinned', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(50)
+    setAnnouncements((data ?? []) as unknown as Announcement[])
+    setLoading(false)
+  }
+
+  const q        = search.toLowerCase()
   const filtered = announcements.filter(a =>
-    a.title.toLowerCase().includes(search.toLowerCase()) ||
-    a.body.toLowerCase().includes(search.toLowerCase())
+    !q ||
+    a.title.toLowerCase().includes(q) ||
+    a.body.toLowerCase().includes(q)
   )
+
+  function openAnnouncement(id: string) {
+    localStorage.setItem('learnora_selected_announcement', id)
+    onNavigate('announcement-details')
+  }
 
   return (
     <DashboardLayout
@@ -58,41 +87,50 @@ export default function TeacherAnnouncementsPage({ onNavigate }: Props) {
           </button>
         </div>
 
-        <div className="flex flex-col gap-4">
-          {filtered.map(a => (
-            <button
-              key={a.id}
-              onClick={() => onNavigate('announcement-details')}
-              className="bg-surface rounded-card shadow-sm p-6 text-left hover:shadow-md transition-all"
-            >
-              <div className="flex items-start gap-3 mb-3">
-                {a.pinned && <Pin size={14} className="text-primary mt-1 shrink-0" />}
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <h3 className="text-base font-bold text-foreground">{a.title}</h3>
-                    <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${categoryColor[a.category]}`}>{a.category}</span>
-                    {a.pinned && <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">Pinned</span>}
+        {loading ? (
+          <div className="py-12 text-center text-sm text-muted">Loading…</div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {filtered.map(a => {
+              const cat = a.category ?? 'General'
+              return (
+                <button
+                  key={a.id}
+                  onClick={() => openAnnouncement(a.id)}
+                  className="bg-surface rounded-card shadow-sm p-6 text-left hover:shadow-md transition-all"
+                >
+                  <div className="flex items-start gap-3 mb-3">
+                    {a.is_pinned && <Pin size={14} className="text-primary mt-1 shrink-0" />}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <h3 className="text-base font-bold text-foreground">{a.title}</h3>
+                        <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${categoryColor[cat] ?? categoryColor['General']}`}>{cat}</span>
+                        {a.is_pinned && <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">Pinned</span>}
+                      </div>
+                      <p className="text-sm text-muted line-clamp-2 leading-relaxed">{a.body}</p>
+                    </div>
+                    <ChevronRight size={16} className="text-muted shrink-0 mt-1" />
                   </div>
-                  <p className="text-sm text-muted line-clamp-2 leading-relaxed">{a.body}</p>
-                </div>
-                <ChevronRight size={16} className="text-muted shrink-0 mt-1" />
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted">
-                <div className="size-5 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px]">{a.author.charAt(0)}</div>
-                <span>{a.author} · {a.role}</span>
-                <span>·</span>
-                <span>{a.date}</span>
-              </div>
-            </button>
-          ))}
+                  <div className="flex items-center gap-2 text-xs text-muted">
+                    <div className="size-5 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px]">
+                      {(a.profiles?.full_name ?? 'A').charAt(0)}
+                    </div>
+                    <span>{a.profiles?.full_name ?? 'Admin'} · {a.profiles?.role ?? '—'}</span>
+                    <span>·</span>
+                    <span>{fmtDate(a.created_at)}</span>
+                  </div>
+                </button>
+              )
+            })}
 
-          {filtered.length === 0 && (
-            <div className="text-center py-16 text-muted">
-              <Megaphone size={36} className="mx-auto mb-3 opacity-30" />
-              <p className="text-sm">No announcements found.</p>
-            </div>
-          )}
-        </div>
+            {filtered.length === 0 && (
+              <div className="text-center py-16 text-muted">
+                <Megaphone size={36} className="mx-auto mb-3 opacity-30" />
+                <p className="text-sm">No announcements found.</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </DashboardLayout>
   )
