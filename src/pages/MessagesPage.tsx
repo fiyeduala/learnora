@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Search, Send, Paperclip, MoreVertical, ArrowLeft, MessageSquare } from 'lucide-react'
+import { Search, Send, Paperclip, MoreVertical, ArrowLeft, MessageSquare, Loader2 } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -16,10 +16,11 @@ interface Conversation {
 }
 
 interface Message {
-  id:   string
-  from: 'me' | 'them'
-  text: string
-  time: string
+  id:             string
+  from:           'me' | 'them'
+  text:           string
+  time:           string
+  attachmentUrl?: string
 }
 
 function initials(name: string) {
@@ -49,7 +50,9 @@ export default function MessagesPage({ onNavigate }: Props) {
   const [input,         setInput]         = useState('')
   const [mobileView,    setMobileView]    = useState<'list' | 'chat'>('list')
   const [sending,       setSending]       = useState(false)
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const [uploading,     setUploading]     = useState(false)
+  const bottomRef  = useRef<HTMLDivElement>(null)
+  const fileRef    = useRef<HTMLInputElement>(null)
 
   useEffect(() => { if (profile?.id) loadConversations() }, [profile?.id])
   useEffect(() => { if (activeId) loadMessages(activeId) }, [activeId])
@@ -121,17 +124,18 @@ export default function MessagesPage({ onNavigate }: Props) {
     setLoadingMsgs(true)
     const { data } = await supabase
       .from('messages')
-      .select('id, body, sent_at, sender_id')
+      .select('id, body, sent_at, sender_id, attachment_url')
       .eq('conversation_id', convId)
       .order('sent_at', { ascending: true })
       .limit(100)
 
     const userId = profile!.id
-    setMessages((data ?? []).map((m: { id: string; body: string | null; sent_at: string; sender_id: string }) => ({
-      id:   m.id,
-      from: m.sender_id === userId ? 'me' : 'them',
-      text: m.body ?? '',
-      time: fmtMsgTime(m.sent_at),
+    setMessages((data ?? []).map((m: { id: string; body: string | null; sent_at: string; sender_id: string; attachment_url: string | null }) => ({
+      id:            m.id,
+      from:          m.sender_id === userId ? 'me' : 'them',
+      text:          m.body ?? '',
+      time:          fmtMsgTime(m.sent_at),
+      attachmentUrl: m.attachment_url ?? undefined,
     })))
     setLoadingMsgs(false)
   }
@@ -154,6 +158,36 @@ export default function MessagesPage({ onNavigate }: Props) {
     })
     if (error) setMessages(prev => prev.filter(m => m.id !== tempId))
     setSending(false)
+  }
+
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !activeId) return
+    e.target.value = ''
+    setUploading(true)
+    const ext  = file.name.split('.').pop() ?? 'bin'
+    const path = `${profile!.school_id}/${activeId}/${Date.now()}.${ext}`
+    const { data: uploadData, error: uploadErr } = await supabase.storage
+      .from('message-attachments')
+      .upload(path, file, { upsert: false })
+    if (uploadErr || !uploadData) { setUploading(false); return }
+    const { data: urlData } = supabase.storage
+      .from('message-attachments')
+      .getPublicUrl(uploadData.path)
+    const attachmentUrl = urlData.publicUrl
+    const now    = new Date().toISOString()
+    const tempId = `t-${Date.now()}`
+    setMessages(prev => [...prev, { id: tempId, from: 'me', text: '', time: fmtMsgTime(now), attachmentUrl }])
+    const { error } = await supabase.from('messages').insert({
+      conversation_id: activeId,
+      sender_id:       profile!.id,
+      school_id:       profile!.school_id,
+      body:            null,
+      attachment_url:  attachmentUrl,
+      sent_at:         now,
+    })
+    if (error) setMessages(prev => prev.filter(m => m.id !== tempId))
+    setUploading(false)
   }
 
   function openChat(id: string) {
@@ -256,7 +290,13 @@ export default function MessagesPage({ onNavigate }: Props) {
                     ${msg.from === 'me'
                       ? 'bg-primary text-white rounded-card rounded-br-xs'
                       : 'bg-surface text-foreground rounded-card rounded-bl-xs shadow-sm'}`}>
-                    {msg.text}
+                    {msg.text && <p>{msg.text}</p>}
+                    {msg.attachmentUrl && (
+                      /\.(jpg|jpeg|png|gif|webp)$/i.test(msg.attachmentUrl)
+                        ? <img src={msg.attachmentUrl} alt="attachment" className="max-w-[240px] rounded-lg mt-1" />
+                        : <a href={msg.attachmentUrl} target="_blank" rel="noreferrer"
+                            className="underline text-xs">View attachment</a>
+                    )}
                   </div>
                   <span className="text-xs text-muted">{msg.time}</span>
                 </div>
@@ -265,9 +305,13 @@ export default function MessagesPage({ onNavigate }: Props) {
             </div>
 
             <div className="px-4 md:px-6 py-3 md:py-4 bg-surface border-t border-black/6 shrink-0">
+              <input ref={fileRef} type="file" accept="image/*,application/pdf,.doc,.docx"
+                className="hidden" onChange={handleFileSelect} />
               <div className="flex items-center gap-3 h-11 md:h-12 px-4 bg-canvas border border-black/8 rounded-pill">
-                <button className="p-1 text-muted hover:text-foreground shrink-0">
-                  <Paperclip size={15} />
+                <button onClick={() => fileRef.current?.click()} disabled={uploading}
+                  title="Attach file or photo"
+                  className="p-1 text-muted hover:text-foreground shrink-0 disabled:opacity-40">
+                  {uploading ? <Loader2 size={15} className="animate-spin" /> : <Paperclip size={15} />}
                 </button>
                 <input type="text" value={input}
                   onChange={e => setInput(e.target.value)}

@@ -31,6 +31,7 @@ export default function ProfileSettingsPage({ onNavigate }: Props) {
   async function save(e: React.FormEvent) {
     e.preventDefault()
     if (!profile) return
+    if (!firstName.trim()) { setError('First name is required.'); return }
     setError(null)
     setSaving(true)
     const full_name = [firstName.trim(), lastName.trim()].filter(Boolean).join(' ') || null

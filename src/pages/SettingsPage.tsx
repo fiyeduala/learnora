@@ -2,6 +2,7 @@ import { User, Bell, Shield, ChevronRight, LogOut, Palette, Wifi } from 'lucide-
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav, adminNav, superAdminNav } from '../components/layout/Sidebar'
 import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
+import { signOut } from '../lib/auth'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -28,6 +29,9 @@ export default function SettingsPage({ onNavigate }: Props) {
   const sidebarUser  = profileToSidebarUser(profile)
   const settingsPage = profile?.role === 'teacher' ? 'teacher-settings' : profile?.role === 'super_admin' ? 'platform-settings' : 'settings'
   const settingsNav  = profile?.role === 'teacher' ? teacherNav : profile?.role === 'admin' ? adminNav : profile?.role === 'super_admin' ? superAdminNav : undefined
+  const displayName  = profile?.full_name ?? sidebarUser.name
+  const displayEmail = profile?.email ?? ''
+  const displayRole  = profile ? (profile.role.charAt(0).toUpperCase() + profile.role.slice(1).replace('_', ' ')) : ''
 
   return (
     <DashboardLayout
@@ -42,11 +46,13 @@ export default function SettingsPage({ onNavigate }: Props) {
 
         {/* Profile summary */}
         <div className="bg-surface rounded-card shadow-sm p-6 flex items-center gap-5">
-          <div className="size-16 rounded-full bg-primary text-white text-2xl font-bold flex items-center justify-center shrink-0">O</div>
+          <div className="size-16 rounded-full bg-primary text-white text-2xl font-bold flex items-center justify-center shrink-0">
+            {sidebarUser.initials}
+          </div>
           <div className="flex-1">
-            <h2 className="text-xl font-bold text-foreground">Olive Johnson</h2>
-            <p className="text-sm text-muted">Student · SS1A · Greenfield Academy</p>
-            <p className="text-xs text-muted mt-0.5">olive.johnson@greenfield.edu</p>
+            <h2 className="text-xl font-bold text-foreground">{displayName}</h2>
+            <p className="text-sm text-muted capitalize">{displayRole}</p>
+            {displayEmail && <p className="text-xs text-muted mt-0.5">{displayEmail}</p>}
           </div>
           <button onClick={() => onNavigate('profile-settings')}
             className="h-9 px-4 border border-primary text-primary text-sm font-semibold rounded-pill hover:bg-primary hover:text-white transition-colors shrink-0">
@@ -90,7 +96,7 @@ export default function SettingsPage({ onNavigate }: Props) {
             <p className="text-xs font-semibold text-muted uppercase tracking-wider">Session</p>
           </div>
           <button
-            onClick={() => onNavigate('logout')}
+            onClick={() => signOut()}
             className="w-full flex items-center gap-4 px-6 py-4 hover:bg-red-50/50 transition-colors text-left"
           >
             <div className="size-9 rounded-card bg-red-50 flex items-center justify-center shrink-0">

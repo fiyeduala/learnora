@@ -35,13 +35,14 @@ export default function ParentProgressPage({ onNavigate }: Props) {
   const [subjects,   setSubjects]   = useState<SubjectStat[]>([])
   const [avgGPA,     setAvgGPA]     = useState<number | null>(null)
   const [loading,    setLoading]    = useState(true)
+  const [noChild,    setNoChild]    = useState(false)
 
   useEffect(() => { if (profile?.school_id) loadProgress() }, [profile?.school_id])
 
   async function loadProgress() {
     setLoading(true)
     const childId = localStorage.getItem('learnora_selected_child')
-    if (!childId) { setLoading(false); return }
+    if (!childId) { setNoChild(true); setLoading(false); return }
 
     // Guard: verify child belongs to this school
     const { data: childCheck } = await supabase
@@ -114,6 +115,15 @@ export default function ParentProgressPage({ onNavigate }: Props) {
 
         {loading ? (
           <p className="text-sm text-muted text-center py-10">Loading…</p>
+        ) : noChild ? (
+          <div className="py-16 text-center">
+            <p className="text-sm font-semibold text-foreground">No child selected</p>
+            <p className="text-xs text-muted mt-1">Go back to the home screen and select a child first.</p>
+            <button onClick={() => onNavigate('parent/home')}
+              className="mt-4 h-9 px-5 bg-primary text-white text-sm font-semibold rounded-pill">
+              Go to Home
+            </button>
+          </div>
         ) : (
           <>
             {/* Academic Growth card */}

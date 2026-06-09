@@ -79,7 +79,7 @@ export default function AdminFeeSetupPage({ onNavigate }: Props) {
 
   async function loadFeeStructure(level: string, term: string) {
     const { data } = await supabase
-      .from('fee_structures')
+      .from('fee_level_configs')
       .select('items')
       .eq('school_id', profile!.school_id)
       .eq('level', level)
@@ -114,7 +114,7 @@ export default function AdminFeeSetupPage({ onNavigate }: Props) {
     if (!profile?.school_id) return
     setSaving(true)
     await supabase
-      .from('fee_structures')
+      .from('fee_level_configs')
       .upsert(
         { school_id: profile.school_id, level: selLevel, term: selTerm, items },
         { onConflict: 'school_id,level,term' }
