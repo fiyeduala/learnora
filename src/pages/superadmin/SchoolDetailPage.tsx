@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Building2, Users, ArrowLeft, Mail, Globe, Phone, MapPin,
   Calendar, AlertCircle, CheckCircle2, Activity,
@@ -10,6 +10,7 @@ import {
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { superAdminNav } from '../../components/layout/Sidebar'
 import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
+import { supabase } from '../../lib/supabase'
 
 type Props = { onNavigate: (page: string) => void }
 type Tab = 'overview' | 'students' | 'finance' | 'modules' | 'actions' | 'support'
@@ -37,8 +38,7 @@ const school = {
   healthScore:   91,
 }
 
-const RATE     = school.ratePerStudent
-const termBill = school.studentCount * RATE
+const RATE = school.ratePerStudent
 const fmt = (n: number) => '₦' + n.toLocaleString('en-NG')
 
 const mauData   = [72, 78, 81, 85, 88, 91]
@@ -198,6 +198,54 @@ export default function SchoolDetailPage({ onNavigate }: Props) {
   const [studentSearch, setStudentSearch] = useState('')
   const [tickets,       setTickets]      = useState<Ticket[]>(initTickets)
 
+  // Real data from DB
+  const [realSchool,  setRealSchool]  = useState<{ name: string; location: string } | null>(null)
+  const [realCounts,  setRealCounts]  = useState<{ student: number; teacher: number; parent: number } | null>(null)
+  const [dbStudents,  setDbStudents]  = useState<{ name: string; class: string; status: string; feePaid: boolean }[]>(allStudents)
+  const [dbLoading,   setDbLoading]   = useState(true)
+
+  useEffect(() => { loadSchoolData() }, [])
+
+  async function loadSchoolData() {
+    setDbLoading(true)
+    const schoolId = localStorage.getItem('learnora_selected_school_id')
+    if (!schoolId) { setDbLoading(false); return }
+
+    const [schRes, profRes] = await Promise.all([
+      supabase.from('schools').select('name, location').eq('id', schoolId).maybeSingle(),
+      supabase.from('profiles').select('id, full_name, role').eq('school_id', schoolId),
+    ])
+
+    if (schRes.data) setRealSchool({ name: schRes.data.name, location: schRes.data.location ?? '' })
+
+    const profiles = (profRes.data ?? []) as { id: string; full_name: string | null; role: string }[]
+    const students  = profiles.filter(p => p.role === 'student')
+    const teachers  = profiles.filter(p => p.role === 'teacher')
+    const parents   = profiles.filter(p => p.role === 'parent')
+    setRealCounts({ student: students.length, teacher: teachers.length, parent: parents.length })
+
+    if (students.length > 0) {
+      const studentIds = students.map(s => s.id)
+      const [ceRes, invRes] = await Promise.all([
+        supabase.from('class_enrollments').select('student_id, classes(name)').in('student_id', studentIds),
+        supabase.from('invoices').select('student_id, amount, paid_amount').eq('school_id', schoolId),
+      ])
+      const ceRows  = (ceRes.data  ?? []) as unknown as { student_id: string; classes: { name: string } | null }[]
+      const invRows = (invRes.data ?? []) as { student_id: string; amount: number; paid_amount: number }[]
+      const classMap: Record<string, string> = {}
+      for (const e of ceRows) { if (!classMap[e.student_id]) classMap[e.student_id] = e.classes?.name ?? '—' }
+      const paidMap: Record<string, boolean> = {}
+      for (const inv of invRows) { paidMap[inv.student_id] = (inv.paid_amount ?? 0) >= (inv.amount ?? 1) }
+      setDbStudents(students.map(s => ({
+        name:    s.full_name ?? 'Unknown',
+        class:   classMap[s.id] ?? '—',
+        status:  'active',
+        feePaid: paidMap[s.id] ?? false,
+      })))
+    }
+    setDbLoading(false)
+  }
+
   // ── Support tab state ──────────────────────────────────────────────────────
   type TicketFilter = 'All' | 'Open' | 'In Progress' | 'Resolved' | 'Escalated'
   const [ticketFilter, setTicketFilter]    = useState<TicketFilter>('All')
@@ -272,10 +320,16 @@ export default function SchoolDetailPage({ onNavigate }: Props) {
     { id: 'support',  label: 'Support',  icon: AlertCircle  },
   ]
 
-  const visibleStudents = allStudents.filter(s =>
+  const visibleStudents = dbStudents.filter(s =>
     s.name.toLowerCase().includes(studentSearch.toLowerCase()) ||
     s.class.toLowerCase().includes(studentSearch.toLowerCase())
   )
+
+  const displayName         = realSchool?.name          ?? school.name
+  const displayStudentCount = realCounts?.student        ?? school.studentCount
+  const displayTeacherCount = realCounts?.teacher        ?? school.teacherCount
+  const displayParentCount  = realCounts?.parent         ?? school.parentCount
+  const displayTermBill     = displayStudentCount * RATE
 
   return (
     <DashboardLayout
@@ -307,7 +361,7 @@ export default function SchoolDetailPage({ onNavigate }: Props) {
                 <Building2 size={28} className="text-primary" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-foreground">{school.name}</h1>
+                <h1 className="text-xl font-bold text-foreground">{displayName}</h1>
                 <div className="flex flex-wrap gap-3 text-xs text-muted mt-1.5">
                   <span className="flex items-center gap-1"><Globe size={11} />{school.domain}</span>
                   <span className="flex items-center gap-1"><Mail size={11} />{school.email}</span>
@@ -329,10 +383,10 @@ export default function SchoolDetailPage({ onNavigate }: Props) {
           {/* Quick stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-6 gap-3 mt-5 pt-5 border-t border-black/6">
             {[
-              { label: 'Students',     value: school.studentCount,          color: 'text-primary'    },
-              { label: 'Teachers',     value: school.teacherCount,          color: 'text-foreground' },
-              { label: 'Parents',      value: school.parentCount,           color: 'text-foreground' },
-              { label: 'Term Bill',    value: fmt(termBill),                color: 'text-green-600'  },
+              { label: 'Students',     value: dbLoading ? '…' : displayStudentCount, color: 'text-primary'    },
+              { label: 'Teachers',     value: dbLoading ? '…' : displayTeacherCount, color: 'text-foreground' },
+              { label: 'Parents',      value: dbLoading ? '…' : displayParentCount,  color: 'text-foreground' },
+              { label: 'Term Bill',    value: dbLoading ? '…' : fmt(displayTermBill),color: 'text-green-600'  },
               { label: 'Rate/Student', value: fmt(RATE) + '/term',          color: 'text-foreground' },
               { label: 'Health Score', value: school.healthScore + '%',     color: school.healthScore >= 80 ? 'text-green-600' : 'text-amber-600' },
             ].map(s => (
@@ -382,9 +436,9 @@ export default function SchoolDetailPage({ onNavigate }: Props) {
                 <p className="text-xs text-muted mb-4">{school.currentTerm} · {school.currentYear}</p>
                 <div className="flex flex-col gap-3">
                   {[
-                    { label: 'Students enrolled',          value: `${school.studentCount} students` },
+                    { label: 'Students enrolled',          value: `${displayStudentCount} students` },
                     { label: 'Rate per student per term',  value: fmt(RATE)                         },
-                    { label: 'Term invoice total',         value: fmt(termBill)                     },
+                    { label: 'Term invoice total',         value: fmt(displayTermBill)              },
                     { label: 'Invoice status',             value: 'Paid ✓'                         },
                     { label: 'Invoice date',               value: 'Jan 10, 2026'                   },
                   ].map(row => (
@@ -446,7 +500,7 @@ export default function SchoolDetailPage({ onNavigate }: Props) {
             <div className="flex items-center justify-between px-6 py-4 border-b border-black/6 gap-3 flex-wrap">
               <div>
                 <h3 className="text-sm font-bold text-foreground">Student Roster</h3>
-                <p className="text-xs text-muted mt-0.5">{school.studentCount} enrolled · {school.currentTerm} {school.currentYear}</p>
+                <p className="text-xs text-muted mt-0.5">{displayStudentCount} enrolled · {school.currentTerm} {school.currentYear}</p>
               </div>
               <div className="flex items-center gap-2">
                 <input value={studentSearch} onChange={e => setStudentSearch(e.target.value)}
@@ -508,8 +562,8 @@ export default function SchoolDetailPage({ onNavigate }: Props) {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { label: 'Current Term Bill',     value: fmt(termBill)          },
-                { label: 'Students This Term',    value: `${school.studentCount}` },
+                { label: 'Current Term Bill',     value: fmt(displayTermBill)          },
+                { label: 'Students This Term',    value: `${displayStudentCount}` },
                 { label: 'Rate per Student',      value: fmt(RATE) + '/term'    },
                 { label: 'Total Paid (All Time)', value: fmt(termInvoices.reduce((s, i) => s + i.total, 0)) },
               ].map(s => (

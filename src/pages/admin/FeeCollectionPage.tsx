@@ -1,82 +1,151 @@
-﻿import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Search, Filter, Download, Plus, CheckCircle2,
-  AlertCircle, Clock, XCircle, ChevronDown, X, Send,
+  AlertCircle, Clock, XCircle, ChevronDown, X, Send, Loader2,
 } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
 import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
+import { supabase } from '../../lib/supabase'
 
 type Props = { onNavigate: (page: string) => void }
-
 type PayStatus = 'Paid' | 'Partial' | 'Unpaid' | 'Overdue'
 
-interface Student {
-  id: number
+interface DBStudent {
+  id: string
   name: string
-  class: string
+  className: string
+  invoiceId: string | null
   expected: number
   paid: number
   lastPayment: string
   status: PayStatus
 }
 
-const ALL_STUDENTS: Student[] = [
-  { id: 1,  name: 'Olive Princely',    class: 'SS1A',  expected: 85000, paid: 85000, lastPayment: 'Jun 5, 2026',  status: 'Paid'    },
-  { id: 2,  name: 'Yetunde Adesanya',  class: 'SS2A',  expected: 85000, paid: 85000, lastPayment: 'Jun 4, 2026',  status: 'Paid'    },
-  { id: 3,  name: 'Fatima Al-Rashid',  class: 'SS3A',  expected: 85000, paid: 42500, lastPayment: 'Jun 3, 2026',  status: 'Partial' },
-  { id: 4,  name: 'Kofi Asante',       class: 'SS1A',  expected: 85000, paid: 0,     lastPayment: '—',            status: 'Overdue' },
-  { id: 5,  name: 'James Owusu',       class: 'SS2A',  expected: 85000, paid: 85000, lastPayment: 'May 28, 2026', status: 'Paid'    },
-  { id: 6,  name: 'Amara Osei',        class: 'JSS1',  expected: 65000, paid: 65000, lastPayment: 'Jun 1, 2026',  status: 'Paid'    },
-  { id: 7,  name: 'Chisom Eze',        class: 'SS3A',  expected: 85000, paid: 30000, lastPayment: 'May 15, 2026', status: 'Partial' },
-  { id: 8,  name: 'Emmanuel Boateng',  class: 'JSS1',  expected: 65000, paid: 0,     lastPayment: '—',            status: 'Unpaid'  },
-  { id: 9,  name: 'Akosua Mensah',     class: 'SS1A',  expected: 85000, paid: 0,     lastPayment: '—',            status: 'Overdue' },
-  { id: 10, name: 'Daniel Eze',        class: 'JSS2',  expected: 65000, paid: 65000, lastPayment: 'Jun 2, 2026',  status: 'Paid'    },
-  { id: 11, name: 'Grace Okafor',      class: 'SS2A',  expected: 85000, paid: 50000, lastPayment: 'May 20, 2026', status: 'Partial' },
-  { id: 12, name: 'Ibrahim Musa',      class: 'JSS3',  expected: 65000, paid: 0,     lastPayment: '—',            status: 'Unpaid'  },
-]
-
 const statusConfig: Record<PayStatus, { color: string; icon: typeof CheckCircle2 }> = {
-  Paid:    { color: 'bg-green-50 text-green-700',   icon: CheckCircle2 },
-  Partial: { color: 'bg-amber-50 text-amber-700',   icon: Clock        },
-  Unpaid:  { color: 'bg-red-50 text-red-600',       icon: XCircle      },
-  Overdue: { color: 'bg-red-100 text-red-700',      icon: AlertCircle  },
+  Paid:    { color: 'bg-green-50 text-green-700',  icon: CheckCircle2 },
+  Partial: { color: 'bg-amber-50 text-amber-700',  icon: Clock        },
+  Unpaid:  { color: 'bg-red-50 text-red-600',      icon: XCircle      },
+  Overdue: { color: 'bg-red-100 text-red-700',     icon: AlertCircle  },
 }
 
-const CLASSES = ['All Classes', 'JSS1', 'JSS2', 'JSS3', 'SS1A', 'SS2A', 'SS3A']
 const FILTERS: (PayStatus | 'All')[] = ['All', 'Paid', 'Partial', 'Unpaid', 'Overdue']
 const OFFLINE_METHODS = ['Cash', 'Bank Transfer', 'Cheque', 'POS']
 
 function fmt(n: number) { return '₦' + n.toLocaleString('en-NG') }
 
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-NG', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function deriveStatus(expected: number, paid: number): PayStatus {
+  if (expected === 0) return 'Unpaid'
+  if (paid >= expected) return 'Paid'
+  if (paid > 0) return 'Partial'
+  return 'Unpaid'
+}
+
 export default function FeeCollectionPage({ onNavigate }: Props) {
   const { profile } = useAuth()
-  const [search,      setSearch]      = useState('')
-  const [filter,      setFilter]      = useState<PayStatus | 'All'>('All')
-  const [selClass,    setSelClass]    = useState('All Classes')
-  const [showOffline, setShowOffline] = useState(false)
-  const [offStudent,  setOffStudent]  = useState<Student | null>(null)
-  const [offAmount,   setOffAmount]   = useState('')
-  const [offMethod,   setOffMethod]   = useState('Cash')
-  const [offNote,     setOffNote]     = useState('')
-  const [offDone,     setOffDone]     = useState(false)
-  const [showReminder,setShowReminder]= useState(false)
-  const [reminderSent,setReminderSent]= useState(false)
 
-  const visible = ALL_STUDENTS.filter(s => {
-    const matchSearch = s.name.toLowerCase().includes(search.toLowerCase()) ||
-                        s.class.toLowerCase().includes(search.toLowerCase())
+  const [students,      setStudents]      = useState<DBStudent[]>([])
+  const [loading,       setLoading]       = useState(true)
+  const [search,        setSearch]        = useState('')
+  const [filter,        setFilter]        = useState<PayStatus | 'All'>('All')
+  const [selClass,      setSelClass]      = useState('All Classes')
+  const [saving,        setSaving]        = useState(false)
+
+  const [showOffline,   setShowOffline]   = useState(false)
+  const [offStudent,    setOffStudent]    = useState<DBStudent | null>(null)
+  const [offAmount,     setOffAmount]     = useState('')
+  const [offMethod,     setOffMethod]     = useState('Cash')
+  const [offNote,       setOffNote]       = useState('')
+  const [offDone,       setOffDone]       = useState(false)
+
+  const [showReminder,  setShowReminder]  = useState(false)
+  const [reminderSent,  setReminderSent]  = useState(false)
+
+  useEffect(() => { if (profile?.school_id) loadData() }, [profile?.school_id])
+
+  async function loadData() {
+    setLoading(true)
+    const schoolId = profile!.school_id!
+
+    const { data: studentData } = await supabase
+      .from('profiles')
+      .select('id, full_name')
+      .eq('school_id', schoolId)
+      .eq('role', 'student')
+    const studentProfiles = (studentData ?? []) as { id: string; full_name: string | null }[]
+    const studentIds = studentProfiles.map(s => s.id)
+
+    if (studentIds.length === 0) { setStudents([]); setLoading(false); return }
+
+    const [ceRes, invRes] = await Promise.all([
+      supabase
+        .from('class_enrollments')
+        .select('student_id, classes(name)')
+        .in('student_id', studentIds),
+      supabase
+        .from('invoices')
+        .select('id, student_id, amount, paid_amount, status, updated_at')
+        .eq('school_id', schoolId),
+    ])
+
+    const ceRows = (ceRes.data ?? []) as unknown as { student_id: string; classes: { name: string } | null }[]
+    const classMap: Record<string, string> = {}
+    for (const e of ceRows) {
+      if (!classMap[e.student_id]) classMap[e.student_id] = e.classes?.name ?? '—'
+    }
+
+    const invRows = (invRes.data ?? []) as {
+      id: string; student_id: string; amount: number; paid_amount: number; status: string; updated_at: string
+    }[]
+    const byStudent: Record<string, { invoiceId: string; expected: number; paid: number; lastIso: string }> = {}
+    for (const inv of invRows) {
+      const sid = inv.student_id
+      if (!byStudent[sid]) byStudent[sid] = { invoiceId: inv.id, expected: 0, paid: 0, lastIso: '' }
+      byStudent[sid].expected += inv.amount ?? 0
+      byStudent[sid].paid     += inv.paid_amount ?? 0
+      if (inv.updated_at > byStudent[sid].lastIso) byStudent[sid].lastIso = inv.updated_at
+    }
+
+    const rows: DBStudent[] = studentProfiles.map(s => {
+      const agg = byStudent[s.id]
+      const expected = agg?.expected ?? 0
+      const paid     = agg?.paid     ?? 0
+      return {
+        id:          s.id,
+        name:        s.full_name ?? 'Unknown',
+        className:   classMap[s.id] ?? '—',
+        invoiceId:   agg?.invoiceId ?? null,
+        expected,
+        paid,
+        lastPayment: agg?.lastIso ? fmtDate(agg.lastIso) : '—',
+        status:      deriveStatus(expected, paid),
+      }
+    })
+
+    setStudents(rows)
+    setLoading(false)
+  }
+
+  const classOptions = ['All Classes', ...[...new Set(students.map(s => s.className).filter(c => c !== '—'))].sort()]
+
+  const visible = students.filter(s => {
+    const q = search.toLowerCase()
+    const matchSearch = !q || s.name.toLowerCase().includes(q) || s.className.toLowerCase().includes(q)
     const matchFilter = filter === 'All' || s.status === filter
-    const matchClass  = selClass === 'All Classes' || s.class === selClass
+    const matchClass  = selClass === 'All Classes' || s.className === selClass
     return matchSearch && matchFilter && matchClass
   })
 
-  const totalExpected = ALL_STUDENTS.reduce((s, st) => s + st.expected, 0)
-  const totalPaid     = ALL_STUDENTS.reduce((s, st) => s + st.paid, 0)
+  const totalExpected = students.reduce((s, st) => s + st.expected, 0)
+  const totalPaid     = students.reduce((s, st) => s + st.paid,     0)
   const totalBalance  = totalExpected - totalPaid
-  const notPaid       = ALL_STUDENTS.filter(s => s.status !== 'Paid')
+  const notPaid       = students.filter(s => s.status !== 'Paid').length
 
-  function openOffline(student: Student) {
+  function openOffline(student: DBStudent) {
     setOffStudent(student)
     setOffAmount(String(student.expected - student.paid))
     setOffMethod('Cash')
@@ -85,9 +154,34 @@ export default function FeeCollectionPage({ onNavigate }: Props) {
     setShowOffline(true)
   }
 
-  function submitOffline(e: React.FormEvent) {
+  async function submitOffline(e: React.FormEvent) {
     e.preventDefault()
+    if (!offStudent || !profile?.school_id) return
+    setSaving(true)
+    const amount   = parseFloat(offAmount) || 0
+    const newPaid  = Math.min(offStudent.expected || amount, offStudent.paid + amount)
+    const newStatus = newPaid >= (offStudent.expected || amount) ? 'paid' : 'partial'
+
+    if (offStudent.invoiceId) {
+      await supabase
+        .from('invoices')
+        .update({ paid_amount: newPaid, status: newStatus })
+        .eq('id', offStudent.invoiceId)
+    } else {
+      await supabase
+        .from('invoices')
+        .insert({
+          student_id: offStudent.id,
+          school_id:  profile.school_id,
+          amount:     offStudent.expected || amount,
+          paid_amount: amount,
+          status:     newStatus,
+        })
+    }
+
+    setSaving(false)
     setOffDone(true)
+    loadData()
   }
 
   function sendReminders() {
@@ -106,13 +200,12 @@ export default function FeeCollectionPage({ onNavigate }: Props) {
     >
       <div className="max-w-[1100px] flex flex-col gap-6">
 
-        {/* Summary stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Total Expected',  value: fmt(totalExpected), color: 'text-foreground' },
-            { label: 'Total Collected', value: fmt(totalPaid),     color: 'text-green-600'  },
-            { label: 'Outstanding',     value: fmt(totalBalance),  color: 'text-red-500'    },
-            { label: 'Not Fully Paid',  value: `${notPaid.length} students`, color: 'text-amber-600' },
+            { label: 'Total Expected',  value: loading ? '…' : fmt(totalExpected), color: 'text-foreground'  },
+            { label: 'Total Collected', value: loading ? '…' : fmt(totalPaid),     color: 'text-green-600'   },
+            { label: 'Outstanding',     value: loading ? '…' : fmt(totalBalance),  color: 'text-red-500'     },
+            { label: 'Not Fully Paid',  value: loading ? '…' : `${notPaid} students`, color: 'text-amber-600' },
           ].map(s => (
             <div key={s.label} className="bg-surface rounded-card shadow-sm p-5">
               <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
@@ -121,7 +214,6 @@ export default function FeeCollectionPage({ onNavigate }: Props) {
           ))}
         </div>
 
-        {/* Controls */}
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-[200px]">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
@@ -133,7 +225,7 @@ export default function FeeCollectionPage({ onNavigate }: Props) {
           <div className="relative">
             <select value={selClass} onChange={e => setSelClass(e.target.value)}
               className="h-10 pl-4 pr-8 border border-black/15 rounded-input text-sm bg-white outline-none focus:border-primary appearance-none">
-              {CLASSES.map(c => <option key={c}>{c}</option>)}
+              {classOptions.map(c => <option key={c}>{c}</option>)}
             </select>
             <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
           </div>
@@ -158,7 +250,6 @@ export default function FeeCollectionPage({ onNavigate }: Props) {
           </div>
         </div>
 
-        {/* Table */}
         <div className="bg-surface rounded-card shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm" style={{ minWidth: '780px' }}>
@@ -170,9 +261,18 @@ export default function FeeCollectionPage({ onNavigate }: Props) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-black/4">
-                {visible.map(s => {
+                {loading ? (
+                  <tr><td colSpan={8} className="px-5 py-10 text-center text-sm text-muted">Loading…</td></tr>
+                ) : visible.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-5 py-12 text-center text-sm text-muted">
+                      <Filter size={28} className="mx-auto mb-2 opacity-30" />
+                      No students match your current filters.
+                    </td>
+                  </tr>
+                ) : visible.map(s => {
                   const balance = s.expected - s.paid
-                  const pct = Math.round((s.paid / s.expected) * 100)
+                  const pct = s.expected > 0 ? Math.round((s.paid / s.expected) * 100) : 0
                   const { color, icon: Icon } = statusConfig[s.status]
                   return (
                     <tr key={s.id} className="hover:bg-canvas/40 transition-colors">
@@ -184,14 +284,16 @@ export default function FeeCollectionPage({ onNavigate }: Props) {
                           <span className="font-medium text-foreground">{s.name}</span>
                         </div>
                       </td>
-                      <td className="px-5 py-3.5 text-muted">{s.class}</td>
-                      <td className="px-5 py-3.5 font-semibold text-foreground">{fmt(s.expected)}</td>
+                      <td className="px-5 py-3.5 text-muted">{s.className}</td>
+                      <td className="px-5 py-3.5 font-semibold text-foreground">{s.expected > 0 ? fmt(s.expected) : '—'}</td>
                       <td className="px-5 py-3.5">
                         <div>
                           <span className="font-semibold text-green-600">{fmt(s.paid)}</span>
-                          <div className="mt-1 h-1.5 w-20 bg-black/8 rounded-full overflow-hidden">
-                            <div className="h-full bg-green-500 rounded-full" style={{ width: `${pct}%` }} />
-                          </div>
+                          {s.expected > 0 && (
+                            <div className="mt-1 h-1.5 w-20 bg-black/8 rounded-full overflow-hidden">
+                              <div className="h-full bg-green-500 rounded-full" style={{ width: `${pct}%` }} />
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td className="px-5 py-3.5 font-semibold text-red-500">{balance > 0 ? fmt(balance) : '—'}</td>
@@ -212,26 +314,16 @@ export default function FeeCollectionPage({ onNavigate }: Props) {
                     </tr>
                   )
                 })}
-                {visible.length === 0 && (
-                  <tr>
-                    <td colSpan={8} className="px-5 py-12 text-center text-sm text-muted">
-                      <Filter size={28} className="mx-auto mb-2 opacity-30" />
-                      No students match your current filters.
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>
         </div>
       </div>
 
-      {/* ── Record Offline Payment Modal ── */}
       {showOffline && offStudent && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowOffline(false)} />
           <div className="relative z-10 bg-white rounded-card shadow-xl w-full max-w-[480px]">
-
             <div className="flex items-center justify-between px-6 py-4 border-b border-black/8">
               <h2 className="text-base font-bold text-foreground">
                 {offDone ? 'Payment Recorded' : 'Record Offline Payment'}
@@ -250,7 +342,7 @@ export default function FeeCollectionPage({ onNavigate }: Props) {
                 <p className="text-sm text-muted mb-1">
                   {fmt(Number(offAmount))} via {offMethod} for <strong>{offStudent.name}</strong>.
                 </p>
-                <p className="text-xs text-muted mb-6">The student's payment record has been updated.</p>
+                <p className="text-xs text-muted mb-6">The student payment record has been updated.</p>
                 <div className="flex gap-3 justify-center">
                   <button onClick={() => setOffDone(false)}
                     className="h-10 px-5 border border-black/15 text-sm font-semibold rounded-pill hover:border-primary hover:text-primary transition-colors">
@@ -264,8 +356,6 @@ export default function FeeCollectionPage({ onNavigate }: Props) {
               </div>
             ) : (
               <form onSubmit={submitOffline} className="p-6 flex flex-col gap-4">
-
-                {/* Student info */}
                 <div className="bg-canvas rounded-card p-3.5 flex items-center gap-3">
                   <div className="size-9 rounded-full bg-primary/10 text-primary text-sm font-bold flex items-center justify-center shrink-0">
                     {offStudent.name.charAt(0)}
@@ -273,7 +363,8 @@ export default function FeeCollectionPage({ onNavigate }: Props) {
                   <div>
                     <p className="text-sm font-bold text-foreground">{offStudent.name}</p>
                     <p className="text-xs text-muted">
-                      {offStudent.class} · Balance: <span className="text-red-500 font-semibold">{fmt(offStudent.expected - offStudent.paid)}</span>
+                      {offStudent.className} &middot; Balance:{' '}
+                      <span className="text-red-500 font-semibold">{fmt(offStudent.expected - offStudent.paid)}</span>
                     </p>
                   </div>
                 </div>
@@ -281,7 +372,7 @@ export default function FeeCollectionPage({ onNavigate }: Props) {
                 <div className="flex flex-col gap-1.5">
                   <label className="text-sm font-semibold text-foreground">Amount Paid <span className="text-red-500">*</span></label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted text-sm font-semibold">₦</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted text-sm font-semibold">&#8358;</span>
                     <input required type="number" min={1} value={offAmount}
                       onChange={e => setOffAmount(e.target.value)}
                       className="h-11 w-full pl-8 pr-4 border border-black/20 rounded-input text-sm font-semibold outline-none focus:border-primary" />
@@ -312,9 +403,9 @@ export default function FeeCollectionPage({ onNavigate }: Props) {
                     className="h-11 px-5 border border-black/15 text-sm font-semibold text-foreground rounded-pill hover:border-primary hover:text-primary transition-colors">
                     Cancel
                   </button>
-                  <button type="submit"
-                    className="flex-1 h-11 bg-primary text-white text-sm font-semibold rounded-pill hover:bg-primary-deep transition-colors shadow-primary">
-                    Confirm Payment
+                  <button type="submit" disabled={saving}
+                    className="flex-1 h-11 bg-primary text-white text-sm font-semibold rounded-pill hover:bg-primary-deep transition-colors shadow-primary flex items-center justify-center gap-2 disabled:opacity-60">
+                    {saving ? <><Loader2 size={14} className="animate-spin" /> Saving…</> : 'Confirm Payment'}
                   </button>
                 </div>
               </form>
@@ -323,7 +414,6 @@ export default function FeeCollectionPage({ onNavigate }: Props) {
         </div>
       )}
 
-      {/* ── Send Reminders Modal ── */}
       {showReminder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowReminder(false)} />
@@ -333,7 +423,7 @@ export default function FeeCollectionPage({ onNavigate }: Props) {
               <button onClick={() => setShowReminder(false)} className="text-muted hover:text-foreground"><X size={18} /></button>
             </div>
             <p className="text-sm text-muted mb-5">
-              This will send a payment reminder to parents of all <strong>{notPaid.length} students</strong> who have not fully paid their fees.
+              This will send a payment reminder to parents of all <strong>{notPaid} students</strong> who have not fully paid their fees.
             </p>
             <div className="bg-canvas rounded-card p-3.5 mb-5">
               <p className="text-xs text-muted">Reminder will be sent via:</p>

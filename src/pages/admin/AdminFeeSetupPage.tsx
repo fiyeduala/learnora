@@ -1,27 +1,27 @@
-﻿import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   DollarSign, Building2, CreditCard, Plus, Trash2,
-  CheckCircle2, Eye, EyeOff, Save, AlertCircle, Info,
+  CheckCircle2, Eye, EyeOff, Save, AlertCircle, Info, Loader2,
 } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
 import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
+import { supabase } from '../../lib/supabase'
 
 type Props = { onNavigate: (page: string) => void }
 type Tab = 'structure' | 'bank' | 'paystack'
 
-// ── fee structure ────────────────────────────────────────────────────────────
 type FeeItem = { id: number; label: string; amount: string; mandatory: boolean }
 
 const LEVELS = ['JSS1', 'JSS2', 'JSS3', 'SS1', 'SS2', 'SS3']
 const TERMS  = ['First Term', 'Second Term', 'Third Term']
 
-const defaultItems = (id = 0): FeeItem[] => [
-  { id: id + 1, label: 'Tuition Fee',    amount: '60000', mandatory: true  },
-  { id: id + 2, label: 'PTA Levy',       amount: '5000',  mandatory: true  },
-  { id: id + 3, label: 'Textbook Fee',   amount: '10000', mandatory: true  },
-  { id: id + 4, label: 'Uniform Levy',   amount: '8000',  mandatory: false },
-  { id: id + 5, label: 'Lab Fee',        amount: '7000',  mandatory: false },
+const defaultItems = (): FeeItem[] => [
+  { id: 1, label: 'Tuition Fee',  amount: '60000', mandatory: true  },
+  { id: 2, label: 'PTA Levy',     amount: '5000',  mandatory: true  },
+  { id: 3, label: 'Textbook Fee', amount: '10000', mandatory: true  },
+  { id: 4, label: 'Uniform Levy', amount: '8000',  mandatory: false },
+  { id: 5, label: 'Lab Fee',      amount: '7000',  mandatory: false },
 ]
 
 function fmt(n: number) {
@@ -30,62 +30,134 @@ function fmt(n: number) {
 
 export default function AdminFeeSetupPage({ onNavigate }: Props) {
   const { profile } = useAuth()
-  const [tab,       setTab]       = useState<Tab>('structure')
-  const [selLevel,  setSelLevel]  = useState('SS1')
-  const [selTerm,   setSelTerm]   = useState('First Term')
-  const [items,     setItems]     = useState<FeeItem[]>(defaultItems(0))
-  const [structSaved, setStructSaved] = useState(false)
+  const [tab,      setTab]      = useState<Tab>('structure')
+  const [selLevel, setSelLevel] = useState('SS1')
+  const [selTerm,  setSelTerm]  = useState('First Term')
+  const [items,    setItems]    = useState<FeeItem[]>(defaultItems())
+  const [saving,   setSaving]   = useState(false)
+  const [saved,    setSaved]    = useState<Tab | null>(null)
 
   // bank details
   const [bankName,   setBankName]   = useState('')
   const [acctName,   setAcctName]   = useState('')
   const [acctNumber, setAcctNumber] = useState('')
-  const [bankSaved,  setBankSaved]  = useState(false)
 
   // paystack
-  const [pubKey,     setPubKey]     = useState('')
-  const [secKey,     setSecKey]     = useState('')
-  const [showSec,    setShowSec]    = useState(false)
-  const [subAcctId,  setSubAcctId]  = useState('')
-  const [paySaved,   setPaySaved]   = useState(false)
+  const [pubKey,    setPubKey]    = useState('')
+  const [secKey,    setSecKey]    = useState('')
+  const [showSec,   setShowSec]   = useState(false)
+  const [subAcctId, setSubAcctId] = useState('')
+
+  // Load bank + paystack settings on mount
+  useEffect(() => {
+    if (profile?.school_id) {
+      loadSettings()
+      loadFeeStructure(selLevel, selTerm)
+    }
+  }, [profile?.school_id])
+
+  // Reload fee structure when level/term changes
+  useEffect(() => {
+    if (profile?.school_id) loadFeeStructure(selLevel, selTerm)
+  }, [selLevel, selTerm])
+
+  async function loadSettings() {
+    const { data } = await supabase
+      .from('school_settings')
+      .select('bank_name, account_number, account_name, paystack_public_key, paystack_secret_key, paystack_subaccount_code')
+      .eq('school_id', profile!.school_id)
+      .maybeSingle()
+    if (data) {
+      setBankName(data.bank_name ?? '')
+      setAcctNumber(data.account_number ?? '')
+      setAcctName(data.account_name ?? '')
+      setPubKey(data.paystack_public_key ?? '')
+      setSecKey(data.paystack_secret_key ?? '')
+      setSubAcctId(data.paystack_subaccount_code ?? '')
+    }
+  }
+
+  async function loadFeeStructure(level: string, term: string) {
+    const { data } = await supabase
+      .from('fee_structures')
+      .select('items')
+      .eq('school_id', profile!.school_id)
+      .eq('level', level)
+      .eq('term', term)
+      .maybeSingle()
+    if (data?.items && Array.isArray(data.items)) {
+      setItems(data.items as FeeItem[])
+    } else {
+      setItems(defaultItems())
+    }
+  }
 
   const total = items.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0)
 
   function addItem() {
     const newId = Math.max(0, ...items.map(i => i.id)) + 1
     setItems(p => [...p, { id: newId, label: '', amount: '', mandatory: false }])
-    setStructSaved(false)
+    setSaved(null)
   }
 
   function removeItem(id: number) {
     setItems(p => p.filter(i => i.id !== id))
-    setStructSaved(false)
+    setSaved(null)
   }
 
   function updateItem<K extends keyof FeeItem>(id: number, key: K, val: FeeItem[K]) {
     setItems(p => p.map(i => i.id === id ? { ...i, [key]: val } : i))
-    setStructSaved(false)
+    setSaved(null)
   }
 
-  function saveStructure() {
-    setStructSaved(true)
-    setTimeout(() => setStructSaved(false), 2500)
+  async function saveStructure() {
+    if (!profile?.school_id) return
+    setSaving(true)
+    await supabase
+      .from('fee_structures')
+      .upsert(
+        { school_id: profile.school_id, level: selLevel, term: selTerm, items },
+        { onConflict: 'school_id,level,term' }
+      )
+    setSaving(false)
+    flash('structure')
   }
 
-  function saveBank() {
-    setBankSaved(true)
-    setTimeout(() => setBankSaved(false), 2500)
+  async function saveBank() {
+    if (!profile?.school_id) return
+    setSaving(true)
+    await supabase
+      .from('school_settings')
+      .upsert(
+        { school_id: profile.school_id, bank_name: bankName, account_number: acctNumber, account_name: acctName },
+        { onConflict: 'school_id' }
+      )
+    setSaving(false)
+    flash('bank')
   }
 
-  function savePaystack() {
-    setPaySaved(true)
-    setTimeout(() => setPaySaved(false), 2500)
+  async function savePaystack() {
+    if (!profile?.school_id) return
+    setSaving(true)
+    await supabase
+      .from('school_settings')
+      .upsert(
+        { school_id: profile.school_id, paystack_public_key: pubKey, paystack_secret_key: secKey, paystack_subaccount_code: subAcctId },
+        { onConflict: 'school_id' }
+      )
+    setSaving(false)
+    flash('paystack')
+  }
+
+  function flash(t: Tab) {
+    setSaved(t)
+    setTimeout(() => setSaved(null), 2500)
   }
 
   const tabs: { id: Tab; label: string; icon: typeof DollarSign }[] = [
-    { id: 'structure', label: 'Fee Structure', icon: DollarSign  },
-    { id: 'bank',      label: 'Bank Account',  icon: Building2   },
-    { id: 'paystack',  label: 'Paystack',       icon: CreditCard  },
+    { id: 'structure', label: 'Fee Structure', icon: DollarSign },
+    { id: 'bank',      label: 'Bank Account',  icon: Building2  },
+    { id: 'paystack',  label: 'Paystack',      icon: CreditCard },
   ]
 
   return (
@@ -99,7 +171,6 @@ export default function AdminFeeSetupPage({ onNavigate }: Props) {
     >
       <div className="max-w-[820px] flex flex-col gap-6">
 
-        {/* Tabs */}
         <div className="flex gap-1 bg-canvas rounded-input p-1 w-fit">
           {tabs.map(t => {
             const Icon = t.icon
@@ -114,7 +185,6 @@ export default function AdminFeeSetupPage({ onNavigate }: Props) {
           })}
         </div>
 
-        {/* ── Fee Structure ── */}
         {tab === 'structure' && (
           <div className="bg-surface rounded-card shadow-sm p-6 flex flex-col gap-5">
             <div>
@@ -122,7 +192,6 @@ export default function AdminFeeSetupPage({ onNavigate }: Props) {
               <p className="text-sm text-muted mt-0.5">Set the fee breakdown for each class level and term.</p>
             </div>
 
-            {/* Level + Term selectors */}
             <div className="flex flex-wrap gap-3">
               <div className="flex flex-col gap-1.5 flex-1 min-w-[140px]">
                 <label className="text-xs font-semibold text-muted uppercase tracking-wide">Level</label>
@@ -152,10 +221,9 @@ export default function AdminFeeSetupPage({ onNavigate }: Props) {
               Editing: <span className="text-primary">{selLevel} — {selTerm}</span>
             </div>
 
-            {/* Fee items table */}
             <div className="flex flex-col gap-2">
               <div className="grid grid-cols-[1fr_140px_auto_auto] gap-2 text-xs font-semibold text-muted px-1">
-                <span>Fee Item</span><span>Amount (₦)</span><span>Mandatory</span><span />
+                <span>Fee Item</span><span>Amount (&#8358;)</span><span>Mandatory</span><span />
               </div>
               {items.map(item => (
                 <div key={item.id} className="grid grid-cols-[1fr_140px_auto_auto] gap-2 items-center">
@@ -192,27 +260,26 @@ export default function AdminFeeSetupPage({ onNavigate }: Props) {
               <Plus size={14} /> Add fee item
             </button>
 
-            {/* Total */}
             <div className="flex items-center justify-between bg-primary/8 border border-primary/20 rounded-card px-5 py-3.5">
               <span className="text-sm font-bold text-foreground">Total for {selLevel} — {selTerm}</span>
               <span className="text-xl font-bold text-primary">{fmt(total)}</span>
             </div>
 
             <div className="flex justify-end">
-              <button onClick={saveStructure}
-                className="flex items-center gap-2 h-11 px-6 bg-primary text-white text-sm font-semibold rounded-pill hover:bg-primary-deep transition-colors shadow-primary">
-                {structSaved ? <><CheckCircle2 size={14} /> Saved!</> : <><Save size={14} /> Save Fee Structure</>}
+              <button onClick={saveStructure} disabled={saving}
+                className="flex items-center gap-2 h-11 px-6 bg-primary text-white text-sm font-semibold rounded-pill hover:bg-primary-deep transition-colors shadow-primary disabled:opacity-60">
+                {saving ? <Loader2 size={14} className="animate-spin" /> : saved === 'structure' ? <CheckCircle2 size={14} /> : <Save size={14} />}
+                {saving ? 'Saving…' : saved === 'structure' ? 'Saved!' : 'Save Fee Structure'}
               </button>
             </div>
           </div>
         )}
 
-        {/* ── Bank Account ── */}
         {tab === 'bank' && (
           <div className="bg-surface rounded-card shadow-sm p-6 flex flex-col gap-5">
             <div>
               <h3 className="text-base font-bold text-foreground">School Bank Account</h3>
-              <p className="text-sm text-muted mt-0.5">This account receives fee payments remitted by Learnora. It is also shown to parents for direct bank transfers (offline payments).</p>
+              <p className="text-sm text-muted mt-0.5">This account receives fee payments remitted by Learnora. It is also shown to parents for direct bank transfers.</p>
             </div>
 
             <div className="flex items-start gap-2.5 bg-blue-50 border border-blue-200 rounded-card px-4 py-3 text-sm text-blue-800">
@@ -226,7 +293,7 @@ export default function AdminFeeSetupPage({ onNavigate }: Props) {
                 <select value={bankName} onChange={e => setBankName(e.target.value)}
                   className="h-11 px-3 border border-black/20 rounded-input text-sm bg-white outline-none focus:border-primary">
                   <option value="">Select bank</option>
-                  {['Access Bank', 'GTBank', 'First Bank', 'Zenith Bank', 'UBA', 'Sterling Bank', 'Fidelity Bank', 'FCMB', 'Polaris Bank', 'Stanbic IBTC', 'Union Bank', 'Wema Bank'].map(b => (
+                  {['Access Bank','GTBank','First Bank','Zenith Bank','UBA','Sterling Bank','Fidelity Bank','FCMB','Polaris Bank','Stanbic IBTC','Union Bank','Wema Bank'].map(b => (
                     <option key={b}>{b}</option>
                   ))}
                 </select>
@@ -253,7 +320,6 @@ export default function AdminFeeSetupPage({ onNavigate }: Props) {
               </div>
             </div>
 
-            {/* Preview */}
             {(bankName && acctNumber.length === 10 && acctName) && (
               <div className="bg-canvas rounded-card p-4 flex flex-col gap-1.5 text-sm">
                 <p className="font-semibold text-foreground mb-1">Bank Details Preview</p>
@@ -265,27 +331,27 @@ export default function AdminFeeSetupPage({ onNavigate }: Props) {
             )}
 
             <div className="flex justify-end">
-              <button onClick={saveBank}
-                className="flex items-center gap-2 h-11 px-6 bg-primary text-white text-sm font-semibold rounded-pill hover:bg-primary-deep transition-colors shadow-primary">
-                {bankSaved ? <><CheckCircle2 size={14} /> Saved!</> : <><Save size={14} /> Save Bank Details</>}
+              <button onClick={saveBank} disabled={saving}
+                className="flex items-center gap-2 h-11 px-6 bg-primary text-white text-sm font-semibold rounded-pill hover:bg-primary-deep transition-colors shadow-primary disabled:opacity-60">
+                {saving ? <Loader2 size={14} className="animate-spin" /> : saved === 'bank' ? <CheckCircle2 size={14} /> : <Save size={14} />}
+                {saving ? 'Saving…' : saved === 'bank' ? 'Saved!' : 'Save Bank Details'}
               </button>
             </div>
           </div>
         )}
 
-        {/* ── Paystack ── */}
         {tab === 'paystack' && (
           <div className="bg-surface rounded-card shadow-sm p-6 flex flex-col gap-5">
             <div>
               <h3 className="text-base font-bold text-foreground">Paystack Integration</h3>
-              <p className="text-sm text-muted mt-0.5">Connect your school's Paystack account so fees paid by parents are split and remitted directly to your school account.</p>
+              <p className="text-sm text-muted mt-0.5">Connect your school Paystack account so fees paid by parents are split and remitted directly to your school account.</p>
             </div>
 
             <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-card px-4 py-3 text-sm text-amber-800">
               <AlertCircle size={15} className="shrink-0 mt-0.5" />
               <div>
                 <p className="font-semibold">How it works</p>
-                <p className="mt-0.5">Parents pay via Paystack on Learnora. Paystack splits the payment: Learnora's platform fee is deducted and the remainder is remitted to your school's subaccount within 24 hours (T+1 settlement).</p>
+                <p className="mt-0.5">Parents pay via Paystack on Learnora. Paystack splits the payment: Learnora deducts a platform fee and the remainder is remitted to your school subaccount within 24 hours.</p>
               </div>
             </div>
 
@@ -297,7 +363,7 @@ export default function AdminFeeSetupPage({ onNavigate }: Props) {
                   placeholder="pk_live_xxxxxxxxxxxxxxxxxxxxxxxx"
                   className="h-11 px-4 border border-black/20 rounded-input text-sm font-mono outline-none focus:border-primary"
                 />
-                <p className="text-xs text-muted">Found in your Paystack Dashboard → Settings → API Keys & Webhooks.</p>
+                <p className="text-xs text-muted">Found in your Paystack Dashboard under Settings &rarr; API Keys &amp; Webhooks.</p>
               </div>
 
               <div className="flex flex-col gap-1.5">
@@ -314,7 +380,7 @@ export default function AdminFeeSetupPage({ onNavigate }: Props) {
                     {showSec ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
-                <p className="text-xs text-muted">Keep this secret. Never share it publicly.</p>
+                <p className="text-xs text-muted">Keep this secret — never share it publicly.</p>
               </div>
 
               <div className="flex flex-col gap-1.5">
@@ -325,27 +391,27 @@ export default function AdminFeeSetupPage({ onNavigate }: Props) {
                   className="h-11 px-4 border border-black/20 rounded-input text-sm font-mono outline-none focus:border-primary"
                 />
                 <p className="text-xs text-muted">
-                  Create a subaccount in Paystack Dashboard → Settlement → Subaccounts, then paste the code here. This enables automatic split and remittance to your school.
+                  Create a subaccount in Paystack Dashboard under Settlement &rarr; Subaccounts, then paste the code here.
                 </p>
               </div>
             </div>
 
-            {/* Step guide */}
             <div className="bg-canvas rounded-card p-4">
               <p className="text-sm font-bold text-foreground mb-3">Setup Steps</p>
               <ol className="flex flex-col gap-2 text-sm text-muted list-decimal list-inside">
-                <li>Create a Paystack business account at <span className="text-primary font-semibold">paystack.com</span></li>
-                <li>Go to Settings → API Keys and copy your Live Public and Secret keys above</li>
-                <li>Go to Settlement → Subaccounts → Create subaccount with your school bank details</li>
+                <li>Create a Paystack business account at paystack.com</li>
+                <li>Go to Settings &rarr; API Keys and copy your Live Public and Secret keys above</li>
+                <li>Go to Settlement &rarr; Subaccounts &rarr; Create subaccount with your school bank details</li>
                 <li>Copy the subaccount code (starts with ACCT_) and paste above</li>
                 <li>Save — parents can now pay online and funds settle to your account automatically</li>
               </ol>
             </div>
 
             <div className="flex justify-end">
-              <button onClick={savePaystack}
-                className="flex items-center gap-2 h-11 px-6 bg-primary text-white text-sm font-semibold rounded-pill hover:bg-primary-deep transition-colors shadow-primary">
-                {paySaved ? <><CheckCircle2 size={14} /> Saved!</> : <><Save size={14} /> Save Paystack Settings</>}
+              <button onClick={savePaystack} disabled={saving}
+                className="flex items-center gap-2 h-11 px-6 bg-primary text-white text-sm font-semibold rounded-pill hover:bg-primary-deep transition-colors shadow-primary disabled:opacity-60">
+                {saving ? <Loader2 size={14} className="animate-spin" /> : saved === 'paystack' ? <CheckCircle2 size={14} /> : <Save size={14} />}
+                {saving ? 'Saving…' : saved === 'paystack' ? 'Saved!' : 'Save Paystack Settings'}
               </button>
             </div>
           </div>
