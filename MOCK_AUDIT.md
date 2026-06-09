@@ -105,19 +105,19 @@
 
 | Screen | Feature | Status | Should do | Table(s) | Priority |
 |--------|---------|--------|-----------|----------|----------|
-| TeacherDashboardPage | Stats (classes, students, submissions) | ❌ | COUNT teacher_assignments, class_enrollments, assignment_submissions | `teacher_assignments`, `class_enrollments`, `assignment_submissions` | 🔴 MVP |
-| TeacherDashboardPage | Recent activity feed | ❌ | SELECT assignment_submissions ORDER BY created_at | `assignment_submissions` | 🔴 MVP |
+| TeacherDashboardPage | Stats (classes, students, submissions) | ✅ | COUNT teacher_assignments, class_enrollments, assignment_submissions | `teacher_assignments`, `class_enrollments`, `assignment_submissions` | 🔴 MVP |
+| TeacherDashboardPage | Recent activity feed | ✅ | SELECT assignment_submissions ORDER BY submitted_at | `assignment_submissions` | 🔴 MVP |
 | TeacherDashboardPage | Upcoming schedule widget | ❌ | SELECT calendar_events WHERE school_id + teacher | `calendar_events` | 🟡 Soon |
-| MyClassesPage | List assigned classes | ❌ | SELECT teacher_assignments → classes + enrollment count | `teacher_assignments`, `classes`, `class_enrollments` | 🔴 MVP |
-| StudentsManagementPage | List students in teacher's classes | ❌ | SELECT class_enrollments → profiles WHERE teacher's classes | `class_enrollments`, `profiles`, `teacher_assignments` | 🔴 MVP |
+| MyClassesPage | List assigned classes | ✅ | SELECT teacher_assignments → classes + enrollment count | `teacher_assignments`, `classes`, `class_enrollments` | 🔴 MVP |
+| StudentsManagementPage | List students in teacher's classes | ✅ | SELECT class_enrollments → profiles WHERE teacher's classes | `class_enrollments`, `profiles`, `teacher_assignments` | 🔴 MVP |
 | StudentDetailViewPage | Individual student profile + grades | ❌ | SELECT profile + grades + attendance_records | `profiles`, `grades`, `attendance_records` | 🟡 Soon |
 | TeacherAssignmentsPage | List assignments | ❌ | SELECT assignments WHERE created_by = teacher | `assignments` | 🔴 MVP |
-| AssignmentBuilderPage | Create assignment | ❌ | INSERT assignments | `assignments` | 🔴 MVP |
-| SubmissionsInboxPage | View student submissions | ❌ | SELECT assignment_submissions JOIN profiles | `assignment_submissions`, `profiles` | 🔴 MVP |
-| GradingScreenPage | Grade a submission | ❌ | UPDATE assignment_submissions SET grade; INSERT grades | `assignment_submissions`, `grades` | 🔴 MVP |
+| AssignmentBuilderPage | Create assignment | ✅ | INSERT assignments | `assignments` | 🔴 MVP |
+| SubmissionsInboxPage | View student submissions | ✅ | SELECT assignment_submissions JOIN profiles | `assignment_submissions`, `profiles` | 🔴 MVP |
+| GradingScreenPage | Grade a submission | ✅ | UPDATE assignment_submissions SET grade; INSERT grades | `assignment_submissions`, `grades` | 🔴 MVP |
 | GradeBookPage | Full grade book grid | ❌ | SELECT grades JOIN profiles + assignments | `grades`, `profiles`, `assignments` | 🟡 Soon |
 | BulkGradePage | Grade multiple at once | ❌ | UPDATE multiple grades | `grades` | 🟡 Soon |
-| InClassAttendancePage | Mark today's attendance | ❌ | INSERT attendance_records | `attendance_records` | 🔴 MVP |
+| InClassAttendancePage | Mark today's attendance | ✅ | INSERT attendance_records (upsert on student_id,class_id,date) | `attendance_records` | 🔴 MVP |
 | AttendanceAnalyticsPage | Attendance trends | ❌ | SELECT + aggregate attendance_records | `attendance_records` | 🟡 Soon |
 | AttendanceManagementPage | View/edit attendance history | ❌ | SELECT/UPDATE attendance_records | `attendance_records` | 🟡 Soon |
 | TeacherLiveClassesPage | List live sessions | ❌ | SELECT live_sessions WHERE teacher | `live_sessions` | 🟡 Soon |
@@ -234,12 +234,13 @@
 | Auth | 3 | 1 | 5 | Password reset, CompleteProfile |
 | Super Admin | 4 | 0 | 12 | None blocking (can use existing) |
 | Admin | 5 | 1 | 18 | Fee setup, Attendance, Results |
-| Teacher | 0 | 1 | 32 | Dashboard, Classes, Assignments, Attendance, Grading |
+| Teacher | 6 | 1 | 26 | TeacherAssignmentsPage list |
 | Student | 0 | 0 | 35 | Dashboard, Courses, Assignments, Submit |
 | Parent | 0 | 0 | 18 | Children links, Fees, Progress |
 | Mobile | 0 | 1 | 10 | Home, Learn, Lesson progress |
 
-**Total wired: 13 / ~120 screens**  
+**Total wired: ~19 / ~120 screens**  
+*Batch 2 added: TeacherDashboardPage, MyClassesPage, StudentsManagementPage, InClassAttendancePage, AssignmentBuilderPage, SubmissionsInboxPage, GradingScreenPage*  
 **All backing tables exist** (except: `audit_logs`, `email_templates`, `quiz_questions`, `achievements`, `study_plans`, `certificates`, `goals`, `forum_posts`, `permission_slips`)
 
 ---

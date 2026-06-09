@@ -51,6 +51,9 @@ Brand: primary `#4b75ff` / deep `#005cf7` / sidebar `#0d2060` — DO NOT change 
 - `InviteAcceptancePage` — reads invite token from URL, calls `signUp()`, updates profile with `school_id + role`, enrolls student in class
 - **Migration required**: run `supabase/migrations/001_admin_panel.sql` in Supabase SQL Editor (adds `form_teacher_id` to classes, creates `invitations` table)
 
+### Settings pages — role-aware nav ✅ (committed 2026-06-09)
+All 4 settings pages (`SettingsPage`, `ProfileSettingsPage`, `NotificationSettingsPage`, `SecuritySettingsPage`) now use `useAuth()` to read role and render the correct sidebar nav, active page highlight, and back button. Admins see admin sidebar, teachers see teacher sidebar, super admin sees super admin sidebar — no longer falls through to student nav.
+
 ### Nav / Cross-role Fixes — Full Audit Pass ✅
 - `TopBar` fully role-aware (messages, calendar, settings, notifications)
 - Live class pages (`PreClassLobbyPage`, `LiveClassRoomPage`, `ClassRecordingsPage`) are now role-aware: teacher → `teacher-live-classes`, student → `live-classes`
@@ -71,28 +74,26 @@ Brand: primary `#4b75ff` / deep `#005cf7` / sidebar `#0d2060` — DO NOT change 
 - `AdminClassDetailsPage` — NEW page at `/admin-class-details`; shows class info, students, performance, attendance ✅
 - `MobileStudentSettingsPage` — NEW page at `/m/settings` with dark mode toggle + account links ✅
 
-### What's built but NOT yet wired to Supabase
-Pages need Supabase queries added feature by feature. **Wire in this order:**
+### Supabase Wiring — Batch 2 (Teacher core) ✅ (2026-06-09)
+- `TeacherDashboardPage` — live stats (classes, students, pending submissions), recent submissions activity, assignment overview table
+- `MyClassesPage` — teacher_assignments → classes with enrollment counts
+- `StudentsManagementPage` — class_enrollments → profiles for teacher's classes; search + class filter
+- `InClassAttendancePage` — class selector dropdown; loads enrolled students; upserts attendance_records (present/absent/late)
+- `AssignmentBuilderPage` — real class+subject dropdowns from teacher_assignments; INSERT assignments (published or draft); success screen
+- `SubmissionsInboxPage` — loads real assignment_submissions for teacher's assignments; status filter + search
+- `GradingScreenPage` — loads first ungraded submission (status='submitted'); grade score input + feedback; INSERT grades + UPDATE submission status='graded'
 
-**Phase 2 — Finish admin pipeline**
-1. ~~Admin: Create classes~~ ✅
-2. Admin: Invite teachers (send invite link, teacher accepts via `/invite?token=xxx`)
-3. Admin: Invite students (same invite flow, auto-enrolls in selected class)
-4. Admin: Invite parents → link to students (pending parent_student_links wiring)
+**Note on GradingScreenPage:** Loads the oldest ungraded submission. No routing params yet — teacher navigates to this page from SubmissionsInboxPage and grades one at a time. Full per-submission routing is a future improvement.
 
-**Phase 2 — Teacher features**
-5. Teacher: View assigned classes + students
-6. Teacher: Post assignments
-7. Teacher: Mark attendance
-8. Teacher: Grade submissions
+### Next Batches
+**Batch 3 — Student core:**
+- OverviewDashboardPage, MyCoursesPage + CourseDetailsPage, AssignmentsPage + AssignmentDetailsPage
 
-**Phase 3 — Student features**
-9. Student: View enrolled courses + assignments
-10. Student: Submit assignments
-11. Student: View grades/report cards
+**Batch 4 — Parent core:**
+- ParentHomePage (parent_student_links), ParentProgressPage, SchoolFeesPage
 
-**Phase 4 — Parent features**
-12. Parent: View linked children's progress + fees
+**Batch 5 — Shared:**
+- Announcements, Notifications, Messages, Calendar
 
 ---
 

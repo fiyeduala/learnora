@@ -1,50 +1,157 @@
-import { useState } from 'react'
-import { Plus, Trash2, ChevronDown } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Plus, Trash2, ChevronDown, CheckCircle2 } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 
 type Props = { onNavigate: (page: string) => void }
-
 type QType = 'multiple-choice' | 'short-answer' | 'essay'
 
-type Question = {
-  id: number
-  type: QType
-  text: string
+interface Question {
+  id:      number
+  type:    QType
+  text:    string
   options: string[]
-  answer: number
+  answer:  number
+}
+
+interface TeacherClass {
+  class_id:    string
+  subject_id:  string
+  label:       string
 }
 
 let nextId = 2
 
 export default function AssignmentBuilderPage({ onNavigate }: Props) {
-  const [title, setTitle]           = useState('')
-  const [subject, setSubject]       = useState('Physics 101')
-  const [classGroup, setClassGroup] = useState('SS1A')
-  const [deadline, setDeadline]     = useState('')
+  const { profile } = useAuth()
+  const sidebarUser = profileToSidebarUser(profile)
+
+  const [teacherClasses, setTeacherClasses] = useState<TeacherClass[]>([])
+  const [selectedIdx,    setSelectedIdx]    = useState(0)
+  const [loadingClasses, setLoadingClasses] = useState(true)
+
+  const [title,        setTitle]        = useState('')
+  const [deadline,     setDeadline]     = useState('')
   const [instructions, setInstructions] = useState('')
-  const [questions, setQuestions]   = useState<Question[]>([
+  const [questions,    setQuestions]    = useState<Question[]>([
     { id: 1, type: 'multiple-choice', text: '', options: ['', '', '', ''], answer: 0 },
   ])
+  const [saving, setSaving] = useState(false)
+  const [error,  setError]  = useState('')
+  const [done,   setDone]   = useState(false)
+
+  useEffect(() => { if (profile?.id) loadClasses() }, [profile?.id])
+
+  async function loadClasses() {
+    setLoadingClasses(true)
+    const { data } = await supabase
+      .from('teacher_assignments')
+      .select('class_id, subject_id, classes(name), subjects(name)')
+      .eq('teacher_id', profile!.id)
+
+    const raw = (data ?? []) as unknown as {
+      class_id:   string
+      subject_id: string
+      classes:    { name: string } | null
+      subjects:   { name: string } | null
+    }[]
+
+    setTeacherClasses(raw.map(r => ({
+      class_id:   r.class_id,
+      subject_id: r.subject_id,
+      label:      `${r.subjects?.name ?? '—'} — ${r.classes?.name ?? '—'}`,
+    })))
+    setLoadingClasses(false)
+  }
 
   function addQuestion(type: QType) {
     setQuestions(qs => [...qs, { id: nextId++, type, text: '', options: ['', '', '', ''], answer: 0 }])
   }
-
   function removeQuestion(id: number) {
     setQuestions(qs => qs.filter(q => q.id !== id))
   }
-
   function updateText(id: number, text: string) {
     setQuestions(qs => qs.map(q => q.id === id ? { ...q, text } : q))
   }
-
   function updateOption(id: number, idx: number, val: string) {
     setQuestions(qs => qs.map(q => q.id === id ? { ...q, options: q.options.map((o, i) => i === idx ? val : o) } : q))
   }
 
-  const subjects = ['Physics 101', 'Mathematics', 'English', 'Government', 'Chemistry']
-  const classes  = ['SS1A', 'SS1B', 'SS2A', 'SS2B', 'SS3A', 'SS3B']
+  async function publish(isDraft: boolean) {
+    if (!title.trim() || teacherClasses.length === 0) return
+    setSaving(true)
+    setError('')
+
+    const selected = teacherClasses[selectedIdx]
+
+    const filledQuestions = questions.filter(q => q.text.trim())
+    const questionsJson   = filledQuestions.length > 0
+      ? JSON.stringify(filledQuestions.map(q => ({ type: q.type, text: q.text, options: q.options, answer: q.answer })))
+      : null
+
+    const fullInstructions = [
+      instructions.trim(),
+      questionsJson ? `[Questions]\n${questionsJson}` : '',
+    ].filter(Boolean).join('\n\n') || null
+
+    const { error: err } = await supabase.from('assignments').insert({
+      school_id:    profile!.school_id!,
+      class_id:     selected.class_id,
+      subject_id:   selected.subject_id,
+      teacher_id:   profile!.id,
+      title:        title.trim(),
+      instructions: fullInstructions,
+      due_date:     deadline || null,
+      is_published: !isDraft,
+    })
+
+    setSaving(false)
+    if (err) { setError(err.message); return }
+    if (!isDraft) {
+      setDone(true)
+    } else {
+      onNavigate('teacher-assignments')
+    }
+  }
+
+  function resetForm() {
+    setDone(false)
+    setTitle('')
+    setDeadline('')
+    setInstructions('')
+    setQuestions([{ id: 1, type: 'multiple-choice', text: '', options: ['', '', '', ''], answer: 0 }])
+    setSelectedIdx(0)
+  }
+
+  if (done) {
+    return (
+      <DashboardLayout activePage="teacher-assignments" onNavigate={onNavigate} title="Assignment Builder" subtitle="" nav={teacherNav} user={sidebarUser}>
+        <div className="max-w-[500px] text-center py-16">
+          <div className="size-16 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-6">
+            <CheckCircle2 size={28} className="text-green-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-foreground mb-3">Assignment Published!</h2>
+          <p className="text-base text-muted mb-8">Students in the selected class can now see and submit this assignment.</p>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => onNavigate('teacher-assignments')}
+              className="h-12 px-6 bg-primary text-white text-sm font-semibold rounded-pill hover:bg-primary-deep shadow-primary"
+            >
+              View Assignments
+            </button>
+            <button
+              onClick={resetForm}
+              className="h-12 px-6 border border-black/20 text-foreground text-sm font-semibold rounded-pill hover:border-primary hover:text-primary"
+            >
+              Create Another
+            </button>
+          </div>
+        </div>
+      </DashboardLayout>
+    )
+  }
 
   return (
     <DashboardLayout
@@ -53,7 +160,7 @@ export default function AssignmentBuilderPage({ onNavigate }: Props) {
       title="Assignment Builder"
       subtitle="Create a new assignment for your students"
       nav={teacherNav}
-      user={{ name: 'Daniel Johnson', role: 'Teacher', initials: 'D' }}
+      user={sidebarUser}
     >
       <div className="max-w-[860px] flex flex-col gap-6">
 
@@ -70,38 +177,43 @@ export default function AssignmentBuilderPage({ onNavigate }: Props) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold text-foreground">Subject</label>
-              <div className="relative">
-                <select value={subject} onChange={e => setSubject(e.target.value)}
-                  className="w-full h-12 pl-4 pr-10 border border-black/20 rounded-input text-sm text-foreground bg-white outline-none focus:border-primary appearance-none">
-                  {subjects.map(s => <option key={s}>{s}</option>)}
-                </select>
-                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
-              </div>
+              <label className="text-sm font-semibold text-foreground">Class &amp; Subject</label>
+              {loadingClasses ? (
+                <p className="text-sm text-muted h-12 flex items-center">Loading…</p>
+              ) : teacherClasses.length === 0 ? (
+                <p className="text-sm text-amber-600 h-12 flex items-center">No classes assigned yet.</p>
+              ) : (
+                <div className="relative">
+                  <select
+                    value={selectedIdx}
+                    onChange={e => setSelectedIdx(Number(e.target.value))}
+                    className="w-full h-12 pl-4 pr-10 border border-black/20 rounded-input text-sm text-foreground bg-white outline-none focus:border-primary appearance-none"
+                  >
+                    {teacherClasses.map((c, i) => (
+                      <option key={`${c.class_id}-${c.subject_id}`} value={i}>{c.label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
+                </div>
+              )}
             </div>
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold text-foreground">Class</label>
-              <div className="relative">
-                <select value={classGroup} onChange={e => setClassGroup(e.target.value)}
-                  className="w-full h-12 pl-4 pr-10 border border-black/20 rounded-input text-sm text-foreground bg-white outline-none focus:border-primary appearance-none">
-                  {classes.map(c => <option key={c}>{c}</option>)}
-                </select>
-                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
-              </div>
+              <label className="text-sm font-semibold text-foreground">Due Date</label>
+              <input
+                type="datetime-local"
+                value={deadline}
+                onChange={e => setDeadline(e.target.value)}
+                className="h-12 px-4 border border-black/20 rounded-input text-sm text-foreground outline-none focus:border-primary"
+              />
             </div>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-semibold text-foreground">Due Date</label>
-            <input type="datetime-local" value={deadline} onChange={e => setDeadline(e.target.value)}
-              className="h-12 px-4 border border-black/20 rounded-input text-sm text-foreground outline-none focus:border-primary" />
           </div>
 
           <div className="flex flex-col gap-2">
             <label className="text-sm font-semibold text-foreground">Instructions (optional)</label>
-            <textarea value={instructions} onChange={e => setInstructions(e.target.value)}
+            <textarea
+              value={instructions} onChange={e => setInstructions(e.target.value)}
               rows={3} placeholder="Add any instructions or notes for students..."
               className="px-4 py-3 border border-black/20 rounded-card text-sm text-foreground placeholder:text-muted outline-none focus:border-primary resize-none"
             />
@@ -158,7 +270,6 @@ export default function AssignmentBuilderPage({ onNavigate }: Props) {
             </div>
           ))}
 
-          {/* Add question buttons */}
           <div className="flex flex-wrap gap-2">
             {(['multiple-choice', 'short-answer', 'essay'] as QType[]).map(t => (
               <button key={t} onClick={() => addQuestion(t)}
@@ -169,15 +280,21 @@ export default function AssignmentBuilderPage({ onNavigate }: Props) {
           </div>
         </div>
 
-        {/* Actions */}
+        {error && <p className="text-sm text-red-500">{error}</p>}
+
         <div className="flex gap-3">
           <button
-            onClick={() => onNavigate('teacher-assignments')}
-            className="h-12 px-6 bg-primary text-white text-sm font-semibold rounded-pill hover:bg-primary-deep transition-colors shadow-primary"
+            onClick={() => publish(false)}
+            disabled={saving || !title.trim() || teacherClasses.length === 0}
+            className="h-12 px-6 bg-primary text-white text-sm font-semibold rounded-pill hover:bg-primary-deep transition-colors shadow-primary disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Publish Assignment
+            {saving ? 'Publishing…' : 'Publish Assignment'}
           </button>
-          <button className="h-12 px-6 border border-black/20 text-foreground text-sm font-semibold rounded-pill hover:border-primary hover:text-primary transition-colors">
+          <button
+            onClick={() => publish(true)}
+            disabled={saving || !title.trim() || teacherClasses.length === 0}
+            className="h-12 px-6 border border-black/20 text-foreground text-sm font-semibold rounded-pill hover:border-primary hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             Save as Draft
           </button>
         </div>
