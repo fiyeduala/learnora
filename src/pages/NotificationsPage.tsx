@@ -80,13 +80,13 @@ export default function NotificationsPage({ onNavigate }: Props) {
 
     setNotifs((data ?? []).map((n: {
       id: string; title: string; body: string | null; type: string | null
-      read: boolean | null; link: string | null; created_at: string
+      read: boolean | null; link: string | null; created_at: string | null
     }) => ({
       id:    n.id,
       type:  (n.type as NType) ?? 'general',
       title: n.title,
       body:  n.body ?? '',
-      time:  fmtNotifTime(n.created_at),
+      time:  fmtNotifTime(n.created_at ?? new Date().toISOString()),
       read:  n.read ?? false,
       link:  n.link,
     })))

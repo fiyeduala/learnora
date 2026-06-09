@@ -65,7 +65,7 @@ export default function AdminFeeSetupPage({ onNavigate }: Props) {
     const { data } = await supabase
       .from('school_settings')
       .select('bank_name, account_number, account_name, paystack_public_key, paystack_secret_key, paystack_subaccount_code')
-      .eq('school_id', profile!.school_id)
+      .eq('school_id', profile!.school_id!)
       .maybeSingle()
     if (data) {
       setBankName(data.bank_name ?? '')
@@ -81,7 +81,7 @@ export default function AdminFeeSetupPage({ onNavigate }: Props) {
     const { data } = await supabase
       .from('fee_level_configs')
       .select('items')
-      .eq('school_id', profile!.school_id)
+      .eq('school_id', profile!.school_id!)
       .eq('level', level)
       .eq('term', term)
       .maybeSingle()

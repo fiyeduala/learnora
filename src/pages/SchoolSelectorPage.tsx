@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 
 type Props = { onNavigate: (page: string) => void }
 
-interface School { id: string; name: string; location: string | null; code: string | null }
+interface School { id: string; name: string; address: string | null; code: string | null }
 
 export default function SchoolSelectorPage({ onNavigate }: Props) {
   const [query,   setQuery]   = useState('')
@@ -21,7 +21,7 @@ export default function SchoolSelectorPage({ onNavigate }: Props) {
     setLoading(true)
     const { data } = await supabase
       .from('schools')
-      .select('id, name, location, code')
+      .select('id, name, address, code')
       .order('name', { ascending: true })
       .limit(100)
     setSchools((data ?? []) as School[])
@@ -48,7 +48,7 @@ export default function SchoolSelectorPage({ onNavigate }: Props) {
   const filtered = schools.filter(s =>
     !q ||
     s.name.toLowerCase().includes(q) ||
-    (s.location ?? '').toLowerCase().includes(q)
+    (s.address ?? '').toLowerCase().includes(q)
   )
 
   return (
@@ -106,9 +106,9 @@ export default function SchoolSelectorPage({ onNavigate }: Props) {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-foreground">{s.name}</p>
-                        {s.location && (
+                        {s.address && (
                           <p className="text-xs text-muted flex items-center gap-1 mt-0.5">
-                            <MapPin size={10} />{s.location}
+                            <MapPin size={10} />{s.address}
                           </p>
                         )}
                       </div>

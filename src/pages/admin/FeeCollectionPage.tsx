@@ -88,7 +88,7 @@ export default function FeeCollectionPage({ onNavigate }: Props) {
         .in('student_id', studentIds),
       supabase
         .from('invoices')
-        .select('id, student_id, amount, paid_amount, status, updated_at')
+        .select('id, student_id, amount, paid_amount, status, created_at')
         .eq('school_id', schoolId),
     ])
 
@@ -99,7 +99,7 @@ export default function FeeCollectionPage({ onNavigate }: Props) {
     }
 
     const invRows = (invRes.data ?? []) as {
-      id: string; student_id: string; amount: number; paid_amount: number; status: string; updated_at: string
+      id: string; student_id: string; amount: number; paid_amount: number; status: string; created_at: string | null
     }[]
     const byStudent: Record<string, { invoiceId: string; expected: number; paid: number; lastIso: string }> = {}
     for (const inv of invRows) {
@@ -107,7 +107,8 @@ export default function FeeCollectionPage({ onNavigate }: Props) {
       if (!byStudent[sid]) byStudent[sid] = { invoiceId: inv.id, expected: 0, paid: 0, lastIso: '' }
       byStudent[sid].expected += inv.amount ?? 0
       byStudent[sid].paid     += inv.paid_amount ?? 0
-      if (inv.updated_at > byStudent[sid].lastIso) byStudent[sid].lastIso = inv.updated_at
+      const iso = inv.created_at ?? ''
+      if (iso > byStudent[sid].lastIso) byStudent[sid].lastIso = iso
     }
 
     const rows: DBStudent[] = studentProfiles.map(s => {

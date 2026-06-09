@@ -199,7 +199,7 @@ export default function SchoolDetailPage({ onNavigate }: Props) {
   const [tickets,       setTickets]      = useState<Ticket[]>(initTickets)
 
   // Real data from DB
-  const [realSchool,  setRealSchool]  = useState<{ name: string; location: string } | null>(null)
+  const [realSchool,  setRealSchool]  = useState<{ name: string; address: string } | null>(null)
   const [realCounts,  setRealCounts]  = useState<{ student: number; teacher: number; parent: number } | null>(null)
   const [dbStudents,  setDbStudents]  = useState<{ name: string; class: string; status: string; feePaid: boolean }[]>(allStudents)
   const [dbLoading,   setDbLoading]   = useState(true)
@@ -212,11 +212,11 @@ export default function SchoolDetailPage({ onNavigate }: Props) {
     if (!schoolId) { setDbLoading(false); return }
 
     const [schRes, profRes] = await Promise.all([
-      supabase.from('schools').select('name, location').eq('id', schoolId).maybeSingle(),
+      supabase.from('schools').select('name, address').eq('id', schoolId).maybeSingle(),
       supabase.from('profiles').select('id, full_name, role').eq('school_id', schoolId),
     ])
 
-    if (schRes.data) setRealSchool({ name: schRes.data.name, location: schRes.data.location ?? '' })
+    if (schRes.data) setRealSchool({ name: schRes.data.name, address: schRes.data.address ?? '' })
 
     const profiles = (profRes.data ?? []) as { id: string; full_name: string | null; role: string }[]
     const students  = profiles.filter(p => p.role === 'student')

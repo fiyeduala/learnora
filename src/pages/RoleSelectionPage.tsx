@@ -26,7 +26,7 @@ export default function RoleSelectionPage({ onNavigate }: Props) {
     setLoading(true)
     setError('')
 
-    const updates: Record<string, string | null> = { role: selected }
+    const updates: { role?: string; school_id?: string | null } = { role: selected }
     const schoolId = localStorage.getItem('learnora_selected_school_id')
     if (schoolId) updates.school_id = schoolId
 

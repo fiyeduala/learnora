@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect } from 'react'
-import { Megaphone, Search, ChevronRight, Pin, Plus } from 'lucide-react'
+import { Megaphone, Search, ChevronRight, Plus } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
 import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
@@ -8,18 +8,9 @@ import { supabase } from '../lib/supabase'
 type Props = { onNavigate: (page: string) => void }
 
 interface Announcement {
-  id: string; title: string; body: string
-  is_pinned: boolean; category: string | null
-  created_at: string
+  id: string; title: string; body: string | null
+  published_at: string | null
   profiles: { full_name: string | null; role: string } | null
-}
-
-const categoryColor: Record<string, string> = {
-  Academic: 'bg-primary/10 text-primary',
-  General:  'bg-canvas text-muted border border-black/10',
-  Finance:  'bg-amber-50 text-amber-700',
-  Event:    'bg-green-50 text-green-700',
-  Resource: 'bg-teal-50 text-teal-700',
 }
 
 function fmtDate(iso: string) {
@@ -38,10 +29,9 @@ export default function TeacherAnnouncementsPage({ onNavigate }: Props) {
     setLoading(true)
     const { data } = await supabase
       .from('announcements')
-      .select('id, title, body, is_pinned, category, created_at, profiles!author_id(full_name, role)')
-      .eq('school_id', profile!.school_id)
-      .order('is_pinned', { ascending: false })
-      .order('created_at', { ascending: false })
+      .select('id, title, body, published_at, profiles!author_id(full_name, role)')
+      .eq('school_id', profile!.school_id!)
+      .order('published_at', { ascending: false })
       .limit(50)
     setAnnouncements((data ?? []) as unknown as Announcement[])
     setLoading(false)
@@ -51,7 +41,7 @@ export default function TeacherAnnouncementsPage({ onNavigate }: Props) {
   const filtered = announcements.filter(a =>
     !q ||
     a.title.toLowerCase().includes(q) ||
-    a.body.toLowerCase().includes(q)
+    (a.body ?? '').toLowerCase().includes(q)
   )
 
   function openAnnouncement(id: string) {
@@ -91,22 +81,15 @@ export default function TeacherAnnouncementsPage({ onNavigate }: Props) {
           <div className="py-12 text-center text-sm text-muted">Loading…</div>
         ) : (
           <div className="flex flex-col gap-4">
-            {filtered.map(a => {
-              const cat = a.category ?? 'General'
-              return (
+            {filtered.map(a => (
                 <button
                   key={a.id}
                   onClick={() => openAnnouncement(a.id)}
                   className="bg-surface rounded-card shadow-sm p-6 text-left hover:shadow-md transition-all"
                 >
                   <div className="flex items-start gap-3 mb-3">
-                    {a.is_pinned && <Pin size={14} className="text-primary mt-1 shrink-0" />}
                     <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <h3 className="text-base font-bold text-foreground">{a.title}</h3>
-                        <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${categoryColor[cat] ?? categoryColor['General']}`}>{cat}</span>
-                        {a.is_pinned && <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">Pinned</span>}
-                      </div>
+                      <h3 className="text-base font-bold text-foreground mb-1">{a.title}</h3>
                       <p className="text-sm text-muted line-clamp-2 leading-relaxed">{a.body}</p>
                     </div>
                     <ChevronRight size={16} className="text-muted shrink-0 mt-1" />
@@ -117,11 +100,10 @@ export default function TeacherAnnouncementsPage({ onNavigate }: Props) {
                     </div>
                     <span>{a.profiles?.full_name ?? 'Admin'} · {a.profiles?.role ?? '—'}</span>
                     <span>·</span>
-                    <span>{fmtDate(a.created_at)}</span>
+                    <span>{a.published_at ? fmtDate(a.published_at) : '—'}</span>
                   </div>
                 </button>
-              )
-            })}
+            ))}
 
             {filtered.length === 0 && (
               <div className="text-center py-16 text-muted">

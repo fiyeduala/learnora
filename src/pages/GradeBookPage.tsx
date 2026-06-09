@@ -130,7 +130,7 @@ export default function GradeBookPage({ onNavigate }: Props) {
       return {
         student_id:    s.id,
         subject_id:    selectedOpt.subjectId,
-        school_id:     profile.school_id,
+        school_id:     profile.school_id!,
         average_score: total,
         grade_letter:  label,
       }

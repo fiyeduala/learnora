@@ -103,7 +103,7 @@ export default function AttendanceManagementPage({ onNavigate }: Props) {
         class_id:   selectedOpt.classId,
         date,
         status:     attendance[s.id],
-        school_id:  profile.school_id,
+        school_id:  profile.school_id!,
       }))
     if (records.length > 0) {
       const { error } = await supabase

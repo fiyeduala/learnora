@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect } from 'react'
-import { Megaphone, Plus, Search, ChevronRight, Pin, Send, X, CheckCircle2, Users, BookOpen, User } from 'lucide-react'
+import { Megaphone, Plus, Search, ChevronRight, Send, X, CheckCircle2, Users, BookOpen, User } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
 import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
@@ -10,24 +10,26 @@ type Props = { onNavigate: (page: string) => void }
 type Audience = 'school-wide' | 'students' | 'teachers' | 'parents' | 'class'
 
 interface Announcement {
-  id: string; title: string; body: string
-  is_pinned: boolean; category: string | null
-  target_roles: string | null; created_at: string
+  id: string; title: string; body: string | null
+  target_roles: string[] | null; published_at: string | null
 }
 
-const categoryColor: Record<string, string> = {
-  Academic: 'bg-primary/10 text-primary',
-  Finance:  'bg-amber-50 text-amber-700',
-  General:  'bg-canvas text-muted border border-black/10',
-  Event:    'bg-green-50 text-green-700',
+function audienceToRoles(aud: Audience): string[] {
+  switch (aud) {
+    case 'school-wide': return ['student', 'teacher', 'parent', 'admin']
+    case 'students':    return ['student']
+    case 'teachers':    return ['teacher']
+    case 'parents':     return ['parent']
+    case 'class':       return ['student']
+  }
 }
 
-const audienceLabel: Record<string, string> = {
-  'school-wide': 'Whole School',
-  'students':    'Students',
-  'teachers':    'Teachers',
-  'parents':     'Parents',
-  'class':       'Specific Class',
+function rolesDisplay(roles: string[] | null): string {
+  if (!roles?.length) return 'Whole School'
+  if (roles.includes('teacher') && roles.includes('parent')) return 'Whole School'
+  if (roles.includes('teacher')) return 'Teachers'
+  if (roles.includes('parent')) return 'Parents'
+  return 'Students'
 }
 
 function fmtDate(iso: string) {
@@ -56,10 +58,9 @@ export default function AdminAnnouncementsPage({ onNavigate }: Props) {
     setLoading(true)
     const { data } = await supabase
       .from('announcements')
-      .select('id, title, body, is_pinned, category, target_roles, created_at')
-      .eq('school_id', profile!.school_id)
-      .order('is_pinned', { ascending: false })
-      .order('created_at', { ascending: false })
+      .select('id, title, body, target_roles, published_at')
+      .eq('school_id', profile!.school_id!)
+      .order('published_at', { ascending: false })
       .limit(50)
     setAnnouncements((data ?? []) as Announcement[])
     setLoading(false)
@@ -74,10 +75,8 @@ export default function AdminAnnouncementsPage({ onNavigate }: Props) {
       .insert({
         title,
         body,
-        is_pinned:    pin,
-        category,
-        target_roles: audience,
-        school_id:    profile.school_id,
+        target_roles: audienceToRoles(audience),
+        school_id:    profile.school_id!,
         author_id:    profile.id,
       })
     logSupabaseError('AdminAnnouncements.send', error)
@@ -108,7 +107,7 @@ export default function AdminAnnouncementsPage({ onNavigate }: Props) {
 
   const q        = search.toLowerCase()
   const filtered = announcements.filter(a =>
-    !q || a.title.toLowerCase().includes(q) || a.body.toLowerCase().includes(q)
+    !q || a.title.toLowerCase().includes(q) || (a.body ?? '').toLowerCase().includes(q)
   )
 
   function openAnnouncement(id: string) {
@@ -143,9 +142,9 @@ export default function AdminAnnouncementsPage({ onNavigate }: Props) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
             { label: 'Total Sent',    value: announcements.length },
-            { label: 'School-Wide',   value: announcements.filter(a => a.target_roles === 'school-wide').length },
-            { label: 'To Parents',    value: announcements.filter(a => a.target_roles === 'parents').length },
-            { label: 'To Teachers',   value: announcements.filter(a => a.target_roles === 'teachers').length },
+            { label: 'School-Wide',   value: announcements.filter(a => rolesDisplay(a.target_roles) === 'Whole School').length },
+            { label: 'To Parents',    value: announcements.filter(a => rolesDisplay(a.target_roles) === 'Parents').length },
+            { label: 'To Teachers',   value: announcements.filter(a => rolesDisplay(a.target_roles) === 'Teachers').length },
           ].map(s => (
             <div key={s.label} className="bg-surface rounded-card shadow-sm p-4">
               <p className="text-2xl font-bold text-primary">{loading ? '…' : s.value}</p>
@@ -159,27 +158,21 @@ export default function AdminAnnouncementsPage({ onNavigate }: Props) {
         ) : (
           <div className="flex flex-col gap-4">
             {filtered.map(a => {
-              const cat = a.category ?? 'General'
-              const aud = a.target_roles ?? 'school-wide'
+              const aud = rolesDisplay(a.target_roles)
               return (
                 <button key={a.id} onClick={() => openAnnouncement(a.id)}
                   className="bg-surface rounded-card shadow-sm p-6 text-left hover:shadow-md transition-all">
                   <div className="flex items-start gap-3 mb-3">
-                    {a.is_pinned && <Pin size={14} className="text-primary mt-1 shrink-0" />}
                     <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <h3 className="text-base font-bold text-foreground">{a.title}</h3>
-                        <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${categoryColor[cat] ?? categoryColor['General']}`}>{cat}</span>
-                        {a.is_pinned && <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">Pinned</span>}
-                      </div>
+                      <h3 className="text-base font-bold text-foreground mb-1">{a.title}</h3>
                       <p className="text-sm text-muted line-clamp-2 leading-relaxed">{a.body}</p>
                     </div>
                     <ChevronRight size={16} className="text-muted shrink-0 mt-1" />
                   </div>
                   <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
-                    <span className="flex items-center gap-1"><Users size={11} /> {audienceLabel[aud] ?? aud}</span>
+                    <span className="flex items-center gap-1"><Users size={11} /> {aud}</span>
                     <span>·</span>
-                    <span>{fmtDate(a.created_at)}</span>
+                    <span>{a.published_at ? fmtDate(a.published_at) : '—'}</span>
                   </div>
                 </button>
               )
@@ -212,7 +205,7 @@ export default function AdminAnnouncementsPage({ onNavigate }: Props) {
                 <h3 className="text-xl font-bold text-foreground mb-2">Sent Successfully!</h3>
                 <p className="text-sm text-muted mb-6">
                   <strong>"{title}"</strong> has been sent to{' '}
-                  <strong>{audienceLabel[audience]}</strong>.
+                  <strong>{audience.replace('-', ' ')}</strong>.
                 </p>
                 <div className="flex gap-3 justify-center">
                   <button onClick={() => { setSent(false); setTitle(''); setBody('') }}

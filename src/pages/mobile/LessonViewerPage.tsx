@@ -71,8 +71,7 @@ export default function LessonViewerPage({ onNavigate }: Props) {
     await supabase.from('lesson_progress').upsert({
       lesson_id:  lesson.id,
       student_id: profile.id,
-      school_id:  profile.school_id,
-      course_id:  lesson.course_id,
+      school_id:  profile.school_id!,
       completed:  true,
       completed_at: new Date().toISOString(),
     }, { onConflict: 'lesson_id,student_id' })

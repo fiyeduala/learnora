@@ -46,7 +46,7 @@ export default function ParentProgressPage({ onNavigate }: Props) {
 
     // Guard: verify child belongs to this school
     const { data: childCheck } = await supabase
-      .from('profiles').select('id').eq('id', childId).eq('school_id', profile!.school_id).maybeSingle()
+      .from('profiles').select('id').eq('id', childId).eq('school_id', profile!.school_id!).maybeSingle()
     if (!childCheck) { setLoading(false); return }
 
     const [profileRes, enrollRes, gradeRes] = await Promise.all([

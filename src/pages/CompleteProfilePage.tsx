@@ -29,7 +29,7 @@ export default function CompleteProfilePage({ onNavigate }: Props) {
     setLoading(true)
     setError('')
 
-    const updates: Record<string, string | null> = {
+    const updates: { full_name?: string | null; phone?: string | null; school_id?: string | null } = {
       full_name: fullName.trim() || null,
       phone:     phone.trim()    || null,
     }

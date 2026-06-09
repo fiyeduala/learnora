@@ -79,7 +79,7 @@ export default function TeacherMessagesPage({ onNavigate }: Props) {
       .from('conversation_members')
       .select('conversation_id')
       .eq('user_id', userId)
-      .eq('school_id', profile!.school_id)
+      .eq('school_id', profile!.school_id!)
 
     const convIds = (memberData ?? []).map((m: { conversation_id: string }) => m.conversation_id)
     if (!convIds.length) { setLoadingList(false); return }
@@ -155,11 +155,11 @@ export default function TeacherMessagesPage({ onNavigate }: Props) {
       .limit(100)
 
     const userId = profile!.id
-    setMessages((data ?? []).map((m: { id: string; body: string | null; sent_at: string; sender_id: string }) => ({
+    setMessages((data ?? []).map((m: { id: string; body: string | null; sent_at: string | null; sender_id: string }) => ({
       id:   m.id,
       from: m.sender_id === userId ? 'me' : 'them',
       text: m.body ?? '',
-      time: fmtMsgTime(m.sent_at),
+      time: fmtMsgTime(m.sent_at ?? new Date().toISOString()),
     })))
     setLoadingMsgs(false)
   }
@@ -175,7 +175,7 @@ export default function TeacherMessagesPage({ onNavigate }: Props) {
     const { error } = await supabase.from('messages').insert({
       conversation_id: activeConvId,
       sender_id:       profile!.id,
-      school_id:       profile!.school_id,
+      school_id:       profile!.school_id!,
       body:            text,
       sent_at:         now,
     })
