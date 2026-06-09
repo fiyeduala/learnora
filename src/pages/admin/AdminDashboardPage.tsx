@@ -61,7 +61,7 @@ export default function AdminDashboardPage({ onNavigate }: Props) {
       teachers: teachRes.count ?? 0,
       classes:  clsRes.count   ?? 0,
     })
-    setRecentUsers((recentRes.data as RecentUser[]) ?? [])
+    setRecentUsers((recentRes.data as unknown as RecentUser[]) ?? [])
 
     // Mark checklist steps that are done
     const completedSteps = new Set<string>(['registered'])

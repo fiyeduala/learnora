@@ -63,7 +63,7 @@ export default function ClassesManagementPage({ onNavigate }: Props) {
                class_enrollments(id)`)
       .eq('school_id', schoolId!)
       .order('level').order('arm')
-    if (!error) setClasses((data as ClassRow[]) ?? [])
+    if (!error) setClasses((data as unknown as ClassRow[]) ?? [])
   }
 
   async function loadTeachers() {

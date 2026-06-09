@@ -46,7 +46,7 @@ export default function InviteAcceptancePage({ onNavigate }: Props) {
 
     const inv = {
       ...data,
-      school_name: (data.schools as { name: string } | null)?.name ?? 'Your School',
+      school_name: (data.schools as unknown as { name: string }[] | null)?.[0]?.name ?? 'Your School',
     } as InviteData & { school_name: string }
 
     setInvite(inv)

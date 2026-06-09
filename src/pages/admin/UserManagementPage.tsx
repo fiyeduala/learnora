@@ -61,7 +61,7 @@ export default function UserManagementPage({ onNavigate }: Props) {
       .eq('school_id', schoolId!)
       .in('role', ['student', 'teacher', 'parent'])
       .order('created_at', { ascending: false })
-    setUsers((data as ProfileRow[]) ?? [])
+    setUsers((data as unknown as ProfileRow[]) ?? [])
   }
 
   async function loadClasses() {
