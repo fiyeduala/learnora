@@ -54,6 +54,23 @@ export default function TeacherMessagesPage({ onNavigate }: Props) {
   useEffect(() => { if (activeConvId) loadMessages(activeConvId) }, [activeConvId])
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
 
+  useEffect(() => {
+    if (!activeConvId || !profile?.id) return
+    const channel = supabase
+      .channel(`teacher-messages:${activeConvId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages',
+          filter: `conversation_id=eq.${activeConvId}` },
+        (payload) => {
+          const m = payload.new as { id: string; body: string | null; sent_at: string; sender_id: string }
+          if (m.sender_id === profile.id) return
+          setMessages(prev => [...prev, {
+            id: m.id, from: 'them', text: m.body ?? '', time: fmtMsgTime(m.sent_at),
+          }])
+        })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [activeConvId, profile?.id])
+
   async function loadContacts() {
     setLoadingList(true)
     const userId = profile!.id
@@ -67,7 +84,7 @@ export default function TeacherMessagesPage({ onNavigate }: Props) {
     const convIds = (memberData ?? []).map((m: { conversation_id: string }) => m.conversation_id)
     if (!convIds.length) { setLoadingList(false); return }
 
-    const [partnerRes, lastMsgRes] = await Promise.all([
+    const [partnerRes, lastMsgRes, myMemberRes, unreadMsgRes] = await Promise.all([
       supabase.from('conversation_members')
         .select('conversation_id, user_id, profiles!user_id(full_name, role)')
         .in('conversation_id', convIds)
@@ -76,6 +93,14 @@ export default function TeacherMessagesPage({ onNavigate }: Props) {
         .select('conversation_id, body, sent_at')
         .in('conversation_id', convIds)
         .order('sent_at', { ascending: false }),
+      supabase.from('conversation_members')
+        .select('conversation_id, last_read_at')
+        .eq('user_id', userId)
+        .in('conversation_id', convIds),
+      supabase.from('messages')
+        .select('conversation_id, sent_at, sender_id')
+        .in('conversation_id', convIds)
+        .neq('sender_id', userId),
     ])
 
     const partners = (partnerRes.data ?? []) as unknown as {
@@ -96,13 +121,26 @@ export default function TeacherMessagesPage({ onNavigate }: Props) {
         lastMsgMap[msg.conversation_id] = { body: msg.body ?? '', sent_at: msg.sent_at }
     }
 
+    const myLastRead: Record<string, string | null> = {}
+    for (const m of (myMemberRes.data ?? []) as { conversation_id: string; last_read_at: string | null }[]) {
+      myLastRead[m.conversation_id] = m.last_read_at
+    }
+
+    const unreadMap: Record<string, number> = {}
+    for (const m of (unreadMsgRes.data ?? []) as { conversation_id: string; sent_at: string; sender_id: string }[]) {
+      const lastRead = myLastRead[m.conversation_id]
+      if (!lastRead || m.sent_at > lastRead) {
+        unreadMap[m.conversation_id] = (unreadMap[m.conversation_id] ?? 0) + 1
+      }
+    }
+
     setContacts(convIds.map(id => ({
       id,
       name:     partnerMap[id]?.name ?? 'Unknown',
       type:     partnerMap[id]?.role ?? 'student',
       lastMsg:  lastMsgMap[id]?.body ?? '',
       lastTime: lastMsgMap[id] ? fmtMsgTime(lastMsgMap[id].sent_at) : '',
-      unread:   0,
+      unread:   unreadMap[id] ?? 0,
     })))
     setLoadingList(false)
   }
@@ -145,9 +183,19 @@ export default function TeacherMessagesPage({ onNavigate }: Props) {
     setSending(false)
   }
 
+  async function markRead(convId: string) {
+    await supabase
+      .from('conversation_members')
+      .update({ last_read_at: new Date().toISOString() })
+      .eq('conversation_id', convId)
+      .eq('user_id', profile!.id)
+    setContacts(prev => prev.map(c => c.id === convId ? { ...c, unread: 0 } : c))
+  }
+
   function openContact(c: Contact) {
     setSelected(c)
     setActiveConvId(c.id)
+    markRead(c.id)
   }
 
   const visible = contacts.filter(c =>

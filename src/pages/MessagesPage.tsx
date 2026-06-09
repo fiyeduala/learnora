@@ -58,6 +58,25 @@ export default function MessagesPage({ onNavigate }: Props) {
   useEffect(() => { if (activeId) loadMessages(activeId) }, [activeId])
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
 
+  // Realtime: subscribe to new messages in the active conversation
+  useEffect(() => {
+    if (!activeId || !profile?.id) return
+    const channel = supabase
+      .channel(`messages:${activeId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages',
+          filter: `conversation_id=eq.${activeId}` },
+        (payload) => {
+          const m = payload.new as { id: string; body: string | null; sent_at: string; sender_id: string; attachment_url: string | null }
+          if (m.sender_id === profile.id) return
+          setMessages(prev => [...prev, {
+            id: m.id, from: 'them', text: m.body ?? '',
+            time: fmtMsgTime(m.sent_at), attachmentUrl: m.attachment_url ?? undefined,
+          }])
+        })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [activeId, profile?.id])
+
   async function loadConversations() {
     setLoadingConvs(true)
     const userId = profile!.id
@@ -71,7 +90,7 @@ export default function MessagesPage({ onNavigate }: Props) {
     const convIds = (memberData ?? []).map((m: { conversation_id: string }) => m.conversation_id)
     if (!convIds.length) { setLoadingConvs(false); return }
 
-    const [convRes, partnerRes, lastMsgRes] = await Promise.all([
+    const [convRes, partnerRes, lastMsgRes, myMemberRes, unreadMsgRes] = await Promise.all([
       supabase.from('conversations').select('id, name, type').in('id', convIds),
       supabase.from('conversation_members')
         .select('conversation_id, user_id, profiles!user_id(full_name, role)')
@@ -81,6 +100,14 @@ export default function MessagesPage({ onNavigate }: Props) {
         .select('conversation_id, body, sent_at')
         .in('conversation_id', convIds)
         .order('sent_at', { ascending: false }),
+      supabase.from('conversation_members')
+        .select('conversation_id, last_read_at')
+        .eq('user_id', userId)
+        .in('conversation_id', convIds),
+      supabase.from('messages')
+        .select('conversation_id, sent_at, sender_id')
+        .in('conversation_id', convIds)
+        .neq('sender_id', userId),
     ])
 
     const convData = (convRes.data ?? []) as { id: string; name: string | null; type: string }[]
@@ -106,13 +133,26 @@ export default function MessagesPage({ onNavigate }: Props) {
       }
     }
 
+    const myLastRead: Record<string, string | null> = {}
+    for (const m of (myMemberRes.data ?? []) as { conversation_id: string; last_read_at: string | null }[]) {
+      myLastRead[m.conversation_id] = m.last_read_at
+    }
+
+    const unreadMap: Record<string, number> = {}
+    for (const m of (unreadMsgRes.data ?? []) as { conversation_id: string; sent_at: string; sender_id: string }[]) {
+      const lastRead = myLastRead[m.conversation_id]
+      if (!lastRead || m.sent_at > lastRead) {
+        unreadMap[m.conversation_id] = (unreadMap[m.conversation_id] ?? 0) + 1
+      }
+    }
+
     const convList: Conversation[] = convData.map(c => ({
       id:       c.id,
       name:     c.name ?? partnerMap[c.id]?.full_name ?? 'Unknown',
       role:     partnerMap[c.id]?.role ?? '',
       lastMsg:  lastMsgMap[c.id]?.body ?? '',
       lastTime: lastMsgMap[c.id] ? fmtMsgTime(lastMsgMap[c.id].sent_at) : '',
-      unread:   0,
+      unread:   unreadMap[c.id] ?? 0,
     }))
 
     setConversations(convList)
@@ -190,9 +230,19 @@ export default function MessagesPage({ onNavigate }: Props) {
     setUploading(false)
   }
 
+  async function markRead(convId: string) {
+    await supabase
+      .from('conversation_members')
+      .update({ last_read_at: new Date().toISOString() })
+      .eq('conversation_id', convId)
+      .eq('user_id', profile!.id)
+    setConversations(prev => prev.map(c => c.id === convId ? { ...c, unread: 0 } : c))
+  }
+
   function openChat(id: string) {
     setActiveId(id)
     setMobileView('chat')
+    markRead(id)
   }
 
   const visibleConvs = conversations.filter(c => tab === 'all' || c.unread > 0)

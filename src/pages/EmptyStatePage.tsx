@@ -1,4 +1,5 @@
 import { BookOpen, PenLine, Bell, Search, WifiOff, FileQuestion, Lock, Wrench, CreditCard } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
 import DashboardLayout from '../components/layout/DashboardLayout'
 
 type Props = { onNavigate: (page: string) => void }
@@ -63,8 +64,10 @@ const stateConfig: Record<StateType, {
 }
 
 export default function EmptyStatePage({ onNavigate }: Props) {
-  const type: StateType = '404'
-  const cfg = stateConfig[type]
+  const [searchParams] = useSearchParams()
+  const raw  = searchParams.get('type') ?? '404'
+  const type = (raw in stateConfig ? raw : '404') as StateType
+  const cfg  = stateConfig[type]
   const Icon = cfg.icon
 
   return (
