@@ -12,13 +12,14 @@ type Props = {
 }
 
 function roleNav(role: string | undefined) {
-  const isTeacher = role === 'Teacher'
-  const isAdmin   = role === 'School Admin'
+  const isTeacher    = role === 'Teacher'
+  const isAdmin      = role === 'School Admin'
+  const isSuperAdmin = role === 'Super Admin'
   return {
-    notifications: role === 'Super Admin' ? 'super-notifications' : 'notifications',
-    messages:  isTeacher ? 'teacher-messages' : isAdmin ? 'teacher-messages' : 'messages',
-    calendar:  isTeacher ? 'teacher-calendar' : isAdmin ? 'timetable'        : 'calendar',
-    settings:  isTeacher ? 'teacher-settings' : isAdmin ? 'settings'         : 'settings',
+    notifications: isSuperAdmin ? 'super-notifications' : 'notifications',
+    messages:  isTeacher || isAdmin ? 'teacher-messages' : isSuperAdmin ? null : 'messages',
+    calendar:  isTeacher ? 'teacher-calendar' : isAdmin ? 'timetable' : isSuperAdmin ? null : 'calendar',
+    settings:  isTeacher ? 'teacher-settings' : isAdmin ? 'settings'  : isSuperAdmin ? 'platform-settings' : 'settings',
   }
 }
 
@@ -65,20 +66,24 @@ export default function TopBar({ title, subtitle, onMenuClick, onNavigate, user 
           <Bell size={20} />
           <span className="absolute top-1.5 right-1.5 size-2 bg-red-500 rounded-full" />
         </button>
-        <button
-          onClick={() => nav(routes.messages)}
-          className="hidden sm:block p-2 text-muted hover:text-foreground transition-colors"
-          aria-label="Messages"
-        >
-          <MessageSquare size={20} />
-        </button>
-        <button
-          onClick={() => nav(routes.calendar)}
-          className="hidden sm:block p-2 text-muted hover:text-foreground transition-colors"
-          aria-label="Calendar"
-        >
-          <Calendar size={20} />
-        </button>
+        {routes.messages && (
+          <button
+            onClick={() => nav(routes.messages!)}
+            className="hidden sm:block p-2 text-muted hover:text-foreground transition-colors"
+            aria-label="Messages"
+          >
+            <MessageSquare size={20} />
+          </button>
+        )}
+        {routes.calendar && (
+          <button
+            onClick={() => nav(routes.calendar!)}
+            className="hidden sm:block p-2 text-muted hover:text-foreground transition-colors"
+            aria-label="Calendar"
+          >
+            <Calendar size={20} />
+          </button>
+        )}
 
         {/* Avatar + dropdown */}
         <div className="relative ml-1">
