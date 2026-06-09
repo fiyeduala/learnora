@@ -34,13 +34,15 @@ export default function SchoolsListPage({ onNavigate }: Props) {
   const [status, setStatus]   = useState<StatusFilter>('All')
   const [schools, setSchools] = useState<School[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('schools')
         .select('id, name, state, subscription_plan, subscription_status, student_count, created_at')
         .order('created_at', { ascending: false })
+      if (error) setFetchError(error.message)
       setSchools((data as School[]) ?? [])
       setLoading(false)
     }
@@ -88,7 +90,12 @@ export default function SchoolsListPage({ onNavigate }: Props) {
           {loading && (
             <div className="bg-surface rounded-card shadow-sm py-12 text-center text-sm text-muted">Loading…</div>
           )}
-          {!loading && filtered.length === 0 && (
+          {fetchError && (
+            <div className="bg-red-50 border border-red-200 rounded-card px-5 py-4 text-sm text-red-600">
+              Query error: {fetchError}
+            </div>
+          )}
+          {!loading && !fetchError && filtered.length === 0 && (
             <div className="bg-surface rounded-card shadow-sm py-12 text-center text-sm text-muted">No schools found.</div>
           )}
           {filtered.map(s => {
