@@ -34,162 +34,102 @@ Brand: primary `#4b75ff` / deep `#005cf7` / sidebar `#0d2060` — DO NOT change 
 `courses` · `modules` · `lessons` · `assignments` · `assignment_submissions` · `grades`
 `attendance_records` · `live_sessions` · `messages` · `invoices` · `payments` · `notifications` · `announcements`
 
----
-
-## Current State
-
-### What works end-to-end
-- School registration (signup → Supabase → school code generated)
-- Login → role read from DB → routes to correct dashboard
-- Super admin login → super-dashboard
-- **Admin panel — Phase 1 complete ✅**
-
-### Admin Panel — Wired (Phase 1)
-- `AdminDashboardPage` — real student/teacher/class counts + recent users; onboarding checklist auto-marks steps as done
-- `ClassesManagementPage` — reads classes from Supabase; creates classes with subjects + form teacher; auto-seeds default subjects on first load
-- `UserManagementPage` — reads real profiles; Add User creates invite record + shows shareable signup link
-- `InviteAcceptancePage` — reads invite token from URL, calls `signUp()`, updates profile with `school_id + role`, enrolls student in class
-- **Migration required**: run `supabase/migrations/001_admin_panel.sql` in Supabase SQL Editor (adds `form_teacher_id` to classes, creates `invitations` table)
-
-### Settings pages — role-aware nav ✅ (committed 2026-06-09)
-All 4 settings pages (`SettingsPage`, `ProfileSettingsPage`, `NotificationSettingsPage`, `SecuritySettingsPage`) now use `useAuth()` to read role and render the correct sidebar nav, active page highlight, and back button. Admins see admin sidebar, teachers see teacher sidebar, super admin sees super admin sidebar — no longer falls through to student nav.
-
-### Nav / Cross-role Fixes — Full Audit Pass ✅
-- `TopBar` fully role-aware (messages, calendar, settings, notifications)
-- Live class pages (`PreClassLobbyPage`, `LiveClassRoomPage`, `ClassRecordingsPage`) are now role-aware: teacher → `teacher-live-classes`, student → `live-classes`
-- `LiveClassesOverviewPage` — student-only; removed Schedule button (teachers use `TeacherLiveClassesPage`)
-- `ScheduleLiveClassPage` back → `teacher-live-classes` ✅
-- `ComposeAnnouncementPage` back + publish → `teacher-announcements` ✅
-- `TeacherAnnouncementsPage` card click → `announcement-details` ✅
-- `AnnouncementsFeedPage` (student) — removed Compose button; card → `announcement-details` ✅
-- `StudentDetailViewPage` + `BehaviorAnalyticsPage` Message → `teacher-messages` ✅
-- `MyCoursesPage` course card → `course-details` (was `course-detail`, was 404) ✅
-- `MyClassesPage` (teacher) — removed "New Class" button (admin creates classes) ✅
-- `TeacherDashboardPage` "View calendar" label fixed → "View all" (→`classes`); "Post Announcement" → `teacher-announcements` ✅
-- `ParentMessageTeacherPage` back → `parent/chat` ✅
-- `MobileStudentHomePage` AI banner → `ai-tutor` (was `m/ai`, was 404) ✅
-- `MobileStudentProfilePage` settings icon → `m/settings` ✅
-- `CompleteProfilePage` routes by role after submit ✅
-- `AdminAttendancePage` "View Details" drills into class students in-page ✅
-- `AdminClassDetailsPage` — NEW page at `/admin-class-details`; shows class info, students, performance, attendance ✅
-- `MobileStudentSettingsPage` — NEW page at `/m/settings` with dark mode toggle + account links ✅
-
-### Supabase Wiring — Batch 2 (Teacher core) ✅ (2026-06-09)
-- `TeacherDashboardPage` — live stats (classes, students, pending submissions), recent submissions activity, assignment overview table
-- `MyClassesPage` — teacher_assignments → classes with enrollment counts
-- `StudentsManagementPage` — class_enrollments → profiles for teacher's classes; search + class filter
-- `InClassAttendancePage` — class selector dropdown; loads enrolled students; upserts attendance_records (present/absent/late)
-- `AssignmentBuilderPage` — real class+subject dropdowns from teacher_assignments; INSERT assignments (published or draft); success screen
-- `SubmissionsInboxPage` — loads real assignment_submissions for teacher's assignments; status filter + search
-- `GradingScreenPage` — loads first ungraded submission (status='submitted'); grade score input + feedback; INSERT grades + UPDATE submission status='graded'
-
-**Note on GradingScreenPage:** Loads the oldest ungraded submission. No routing params yet — teacher navigates to this page from SubmissionsInboxPage and grades one at a time. Full per-submission routing is a future improvement.
-
-### Supabase Wiring — Batch 3 (Student core) ✅ (2026-06-09)
-- `OverviewDashboardPage` — real student name; enrolled courses (first 4) with lesson progress %; upcoming assignments with submission status; "due this week" count
-- `MyCoursesPage` — all enrolled courses with lesson count + progress %; search filter; stats strip
-- `CourseDetailsPage` — loads course by localStorage key `learnora_selected_course` (fallback: first enrolled); modules + lessons with done/not-done; lesson_progress from DB
-- `AssignmentsPage` — replaced mock `initialAssignments` with real DB data; inline submit wired to `upsert assignment_submissions`; ID changed number→string
-- `AssignmentDetailsPage` — loads by localStorage key `learnora_selected_assignment`; real instructions, due date, teacher; submit view wired to Supabase; file upload is UI-only (storage not wired yet)
-
-**Note on navigation:** No URL params in this app. Detail pages (CourseDetails, AssignmentDetails) use localStorage keys to pass selection from list pages. Set before `onNavigate()` call, read on mount.
-
-### Supabase Wiring — Batches 4/5/6 ✅ (2026-06-09)
-
-**Batch 4 — Parent core:**
-- `ParentHomePage` — loads children from parent_student_links; per-child: class name, GPA from grade_summaries, fee status from invoices; child switcher persists `learnora_selected_child` in localStorage
-- `ParentProgressPage` — loads grade_summaries for selected child; subject bar chart + grade breakdown
-- `SchoolFeesPage` — loads invoices + payments for selected child; fee breakdown with progress bars; payment history tab
-
-**Batch 5 — Shared:**
-- `NotificationsPage` — real notifications from DB; mark-read + mark-all-read wired; role-aware sidebar nav
-- `AnnouncementsFeedPage` — loads announcements filtered by target_roles; sets localStorage before navigating
-- `AnnouncementDetailsPage` — loads by `learnora_selected_announcement`; role-aware back button
-- `CalendarPage` — fully dynamic month grid; prev/next/today navigation; loads calendar_events for visible month
-- `MessagesPage` — loads conversations via conversation_members; messages per conv; send wired to INSERT
-- `TeacherMessagesPage` — same pattern with teacher sidebar + student/parent role filter
-
-**Batch 6 — Teacher remaining:**
-- `TeacherAssignmentsPage` — teacher's own assignments with class + submission counts; New Assignment nav fixed to `assignment-builder`
-
-**Note on bank details (SchoolFeesPage):** No `school_settings` or `bank_details` table in schema — bank details remain placeholder. Replace when admin panel adds school settings.
-
-**Note on messages (both pages):** No Supabase Realtime subscription — user must navigate away and back to see new messages. Real-time is a future improvement.
-
-### Auth Fixes — DONE (commit 1ab53da)
-A1 ✅ ProtectedRoute in App.tsx — all non-auth routes require active session; unauthenticated → /login
-A5 ✅ RoleRoute in App.tsx — admin and super_admin routes have role guard
-A2 ✅ Sidebar logout now calls signOut() from AuthContext (JWT actually invalidated)
-A3 ✅ SignUpPage calls supabase.auth.signUp(); since email confirmation is off, skips OTP, navigates to role-select; stores learnora_pending_role in localStorage
-N1 ✅ "Forgot password?" button in LoginPage navigates to /forgot-password
-
-### Open Items / Next Steps
-- A7 + D21/D22: Real user identity in sidebar (~47 pages pass hardcoded user) + wire profile/security settings saves
-- D12–D14: Mobile student home, learn, lesson pages (still mock data)
-- D15–D20: Parent payment flow end-to-end
-- D2–D11: Teacher/admin mock pages (gradebook, attendance, announcements, fee setup, results)
-- E3+E4: ErrorBoundary + surface Supabase errors sitewide
-- N2: School selector saves school_id on click (currently navigates to login without persisting)
-- MOCK_AUDIT.md stale — needs update
-- Admin settings page / school bank details storage
-- Real-time messaging (Supabase Realtime)
+**New tables expected (may need migration):**
+- `fee_structures (school_id, level, term, items jsonb)` — for AdminFeeSetupPage
+- `school_settings (school_id, bank_name, account_number, account_name, paystack_public_key, paystack_secret_key, paystack_subaccount_code)` — for AdminFeeSetupPage + SchoolFeesPage
 
 ---
 
-## Mock Data Status
-All pages cleared — empty state UI shows everywhere until real data is added:
-- ✅ All student dashboard pages
-- ✅ All teacher dashboard pages
-- ✅ All super admin pages (dashboard, schools list, analytics, billing, support)
-- ✅ Admin pages (cleared in earlier session)
-- ⚠️ Some lower-priority pages NOT yet cleared (not in main testing flow):
-  AnalysisPage, StudentAnalysisPage, StudentProfilePage, TeacherAnalyticsPage,
-  AttendanceAnalyticsPage, StudyConsistencyPage, AchievementsPage, GroupChatPage,
-  LiveClassRoomPage, AcademicHistoryPage, LessonNotesPage, AIStudyPlanPage,
-  ParentProgressPage, QuizPage, ReportPage
+## Current State — Full Audit Pass Complete ✅ (2026-06-09)
+
+### Audit Items Resolved (this session)
+
+**HIGH items — all done:**
+- D6 ✅ AdminAttendancePage — real school classes + students + today's attendance from Supabase
+- D7 ✅ AdminAnnouncementsPage — real announcements load + send wired (INSERT with school_id, author_id, target_roles)
+- D8 ✅ AdminResultsPage — real classes + grade_summaries; review modal with dynamic subject columns
+- D9 ✅ AdminFeeSetupPage — fee structure upserts to `fee_structures`; bank + Paystack upserts to `school_settings`; load-on-mount pre-fills form
+- D10 ✅ FeeCollectionPage — real students from `profiles` + class from `class_enrollments` + invoice data; "Record Payment" updates invoice in DB
+- D11 ✅ SchoolDetailPage (super admin) — loads school name/location + user counts from Supabase; students tab uses real data
+
+**MED items — resolved:**
+- E3 ✅ ErrorBoundary added (`src/components/shared/ErrorBoundary.tsx`) — wraps entire app in `main.tsx`
+- E4 ✅ `src/lib/supabaseError.ts` utility added — wired into GradeBook, Attendance, AdminAnnouncements writes
+- A8 ✅ ParentProgressPage — school_id guard added: verifies child belongs to parent's school before querying
+- A9 ✅ MobileStudentSettingsPage — Sign Out now calls `signOut()` from `useAuth()` (was just `onNavigate('login')`)
+- D24 ✅ TeacherAssignmentsPage — added `.eq('school_id', profile.school_id)` to assignments query
+- D25 ✅ MessagesPage + TeacherMessagesPage — `conversation_members` membership query now includes `.eq('school_id', ...)`
+- Q8 ✅ SchoolFeesPage — bank details now loaded from `school_settings` table (set up by admin in AdminFeeSetupPage)
+- N3 ✅ ParentHomePage "View All" quick actions button → `parent/fees`
+
+**LOW items — resolved:**
+- V4 ✅ AssignmentBuilderPage — validates title, deadline, instructions before publish
+- Q3 ✅ MessagesPage + TeacherMessagesPage — rollback optimistic message if INSERT fails
+- N6 ✅ SchoolFeesPage download buttons — disabled with `cursor-not-allowed` + tooltip (receipt download not yet implemented)
+
+### Still Open (not fixed — needs schema work or complex implementation)
+- E6 — Unread message count always 0 (needs `last_read_at` in `conversation_members`)
+- Q4 — No Supabase Realtime subscription on messages (future improvement)
+- Q5 — localStorage coupling fragile (architectural — acceptable for now)
+- Q7 — No Supabase type generation (run `supabase gen types` when ready)
+- S3 — RLS not explicitly enabled on 9+ tables (`audit_logs`, `quiz_questions`, etc.) — needs SQL migration
+- V3 — SecuritySettingsPage already calls `signInWithPassword` for re-auth before password change ✅ (actually fine)
+- N4/N5 — Paperclip and MoreVertical in MessagesPage are UI stubs (file attach not implemented)
+- A6 — Default sidebar user "Olive Johnson" (47 pages — most now pass `profileToSidebarUser(profile)`)
+- R4 — Admin tables at narrow viewport not fully audited
 
 ---
 
 ## What's Built (All Screens)
 
 ### Super Admin
-SuperAdminDashboardPage, SchoolsListPage, SchoolDetailPage (6 tabs), PlansAndPricingPage,
-PlatformBillingPage, PlatformAnalyticsPage, BroadcastPage, SupportTicketsPage,
+SuperAdminDashboardPage, SchoolsListPage, SchoolDetailPage (6 tabs, real school/user counts),
+PlansAndPricingPage, PlatformBillingPage, PlatformAnalyticsPage, BroadcastPage, SupportTicketsPage,
 PlatformSettingsPage, FeatureFlagsPage, EmailTemplatesPage, AuditLogsPage, OnboardSchoolPage,
-**SuperAdminNotificationsPage** (bell → correct page with superAdminNav)
+SuperAdminNotificationsPage
 
 ### Admin
-AdminDashboardPage (onboarding checklist), AdminResultsPage, AdminFeeSetupPage,
-FeeCollectionPage, AdminAttendancePage, AdminAnnouncementsPage, AdminSupportPage,
-RolesPermissionsPage, AuditLogsPage, TimetableManagementPage, SchoolAnalyticsPage,
-SubscriptionBillingPage
+AdminDashboardPage, AdminResultsPage, AdminFeeSetupPage (wired to DB),
+FeeCollectionPage (wired to DB), AdminAttendancePage (wired to DB),
+AdminAnnouncementsPage (wired to DB), AdminSupportPage, RolesPermissionsPage,
+AuditLogsPage, TimetableManagementPage, SchoolAnalyticsPage, SubscriptionBillingPage
 
 ### Teacher
-TeacherDashboardPage, TeacherSettingsPage (dark mode functional), GradeBookPage,
-MyClassesPage, StudentsManagementPage, TeacherAssignmentsPage, MyCoursesPage,
-full live classes suite
+TeacherDashboardPage, GradeBookPage, AttendanceManagementPage, TeacherAnnouncementsPage,
+AnalysisPage, MyClassesPage, StudentsManagementPage, TeacherAssignmentsPage,
+AssignmentBuilderPage, SubmissionsInboxPage, GradingScreenPage, MyCoursesPage,
+full live classes suite, TeacherMessagesPage (school-scoped)
 
 ### Student
-OverviewDashboardPage, MyCoursesPage, AssignmentsPage, NotificationsPage,
-GlobalSearchPage (6 result types), full suite
+OverviewDashboardPage, MyCoursesPage, CourseDetailsPage, AssignmentsPage,
+AssignmentDetailsPage, NotificationsPage, GlobalSearchPage, full mobile suite,
+MobileStudentSettingsPage (logout wired)
 
 ### Parent
-ParentHomePage (multi-child switcher), PaymentSuccessPage, full fee flow
+ParentHomePage (multi-child switcher), SchoolFeesPage (real bank details from school_settings),
+ParentProgressPage (school-id guarded), full payment flow D15–D20
+
+---
+
+## Error Handling Infrastructure
+- `src/components/shared/ErrorBoundary.tsx` — class component, wraps full app
+- `src/lib/supabaseError.ts` — `logSupabaseError(context, error)` + `logAuthError(context, error)`
+- Wired into: GradeBookPage save, AttendanceManagementPage save, AdminAnnouncementsPage send
+- Pattern to follow for future: import `logSupabaseError` and call after every write operation
 
 ---
 
 ## Notifications Routing
-- Student/Teacher/Admin bell → `/notifications` (uses `studentNav`) — needs role-aware nav eventually
-- **Super Admin bell → `/super-notifications`** (uses `superAdminNav`) ✅ fixed
-- Routing logic in `TopBar.tsx`: checks `user.role === 'Super Admin'`
+- Student/Teacher/Admin bell → `/notifications` (role-aware sidebar via `useAuth()`)
+- Super Admin bell → `/super-notifications` (uses `superAdminNav`)
 
 ## Dark Mode
-CSS vars under `[data-theme="dark"]` in `index.css`. Toggled from TeacherSettingsPage → `localStorage` key `learnora-theme`.
+CSS vars under `[data-theme="dark"]` in `index.css`. Toggled from TeacherSettingsPage and MobileStudentSettingsPage.
 
 ## Design Source
 Screenshots in `design/sections/`. MCP available but rate-limited on free plan.
 
 ## Git / Deploy
-- Repo: `github.com/fiyeduala/learnora` (going private)
+- Repo: `github.com/fiyeduala/learnora`
 - Deploy: Vercel auto-deploys on push to `main`
-- Vercel env vars already set — no action needed after making repo private
+- Latest commit: `bd60a89` — Fix V4/Q3/N3/N6: assignment validation, message rollback, dead buttons
