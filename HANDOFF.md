@@ -77,14 +77,17 @@ Brand: primary `#4b75ff` / deep `#005cf7` / sidebar `#0d2060` — DO NOT change 
 - N4 ✅ MessagesPage paperclip — wired to Supabase Storage upload; images displayed inline, other files as download link
 - DB ✅ AdminFeeSetupPage — switched from `fee_structures` to `fee_level_configs` (schema mismatch fix)
 
-### Still Open (not fixed — needs schema work or complex implementation)
-- E6 — Unread message count always 0; `last_read_at` column now exists via migration — needs wiring in MessagesPage (update column on conversation open, compute unread from it)
-- Q4 — No Supabase Realtime subscription on messages (future improvement)
+### Still Open
 - Q5 — localStorage coupling fragile (architectural — acceptable for now)
-- Q7 ✅ Supabase types generated → `src/lib/database.types.ts`; client is now `createClient<Database>`
-- S3 — audit_logs, quiz_questions etc. tables don't exist in schema yet; RLS is moot until those screens are backed by real tables
-- N5 — MoreVertical menu in MessagesPage header is still a stub
+- S3 — audit_logs, quiz_questions etc. tables don't exist in schema yet
+- N5 — MoreVertical menu in MessagesPage header is a stub
 - R4 — Admin tables at narrow viewport not fully audited
+
+### This session — fully resolved
+- E6 ✅ Unread counts: computed from `last_read_at`; marked read on conversation open
+- Q4 ✅ Realtime: `postgres_changes` subscription in MessagesPage + TeacherMessagesPage
+- Q7 ✅ Supabase types generated → `src/lib/database.types.ts`; client is `createClient<Database>`
+- 15.1–15.9 ✅ EmptyStatePage: all 9 states (404, 403, offline, maintenance, subscription-expired, no-courses, no-assignments, no-notifications, no-search) driven by `?type=` URL param; wildcard `*` route already redirects to `/404`
 
 ---
 
@@ -140,4 +143,4 @@ Screenshots in `design/sections/`. MCP available but rate-limited on free plan.
 ## Git / Deploy
 - Repo: `github.com/fiyeduala/learnora`
 - Deploy: Vercel auto-deploys on push to `main`
-- Latest commit: `e70e3ff` — Add Supabase generated types + wire into client
+- Latest commit: `4850a9b` — E6/Q4 unread counts + Realtime; fix EmptyStatePage type
