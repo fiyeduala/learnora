@@ -130,16 +130,18 @@ export default function TeacherMessagesPage({ onNavigate }: Props) {
     const text = draft.trim()
     if (!text || !activeConvId || sending) return
     setSending(true)
-    const now = new Date().toISOString()
-    setMessages(prev => [...prev, { id: `t-${Date.now()}`, from: 'me', text, time: fmtMsgTime(now) }])
+    const now    = new Date().toISOString()
+    const tempId = `t-${Date.now()}`
+    setMessages(prev => [...prev, { id: tempId, from: 'me', text, time: fmtMsgTime(now) }])
     setDraft('')
-    await supabase.from('messages').insert({
+    const { error } = await supabase.from('messages').insert({
       conversation_id: activeConvId,
       sender_id:       profile!.id,
       school_id:       profile!.school_id,
       body:            text,
       sent_at:         now,
     })
+    if (error) setMessages(prev => prev.filter(m => m.id !== tempId))
     setSending(false)
   }
 

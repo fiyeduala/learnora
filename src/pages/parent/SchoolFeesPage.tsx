@@ -261,7 +261,11 @@ export default function SchoolFeesPage({ onNavigate }: Props) {
                   <div key={i} className="bg-white border border-black/8 rounded-2xl shadow-sm px-4 py-4">
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-sm font-bold text-foreground">{fmt(h.amount)}</p>
-                      <button className="size-8 border border-black/12 rounded-lg flex items-center justify-center">
+                      <button
+                        aria-label="Download receipt"
+                        title="Receipt download coming soon"
+                        className="size-8 border border-black/12 rounded-lg flex items-center justify-center opacity-40 cursor-not-allowed"
+                      >
                         <Download size={14} className="text-muted" />
                       </button>
                     </div>

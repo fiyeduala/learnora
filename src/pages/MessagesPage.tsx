@@ -140,17 +140,19 @@ export default function MessagesPage({ onNavigate }: Props) {
     const text = input.trim()
     if (!text || !activeId || sending) return
     setSending(true)
-    const now = new Date().toISOString()
-    const tempMsg: Message = { id: `t-${Date.now()}`, from: 'me', text, time: fmtMsgTime(now) }
+    const now    = new Date().toISOString()
+    const tempId = `t-${Date.now()}`
+    const tempMsg: Message = { id: tempId, from: 'me', text, time: fmtMsgTime(now) }
     setMessages(prev => [...prev, tempMsg])
     setInput('')
-    await supabase.from('messages').insert({
+    const { error } = await supabase.from('messages').insert({
       conversation_id: activeId,
       sender_id:       profile!.id,
       school_id:       profile!.school_id,
       body:            text,
       sent_at:         now,
     })
+    if (error) setMessages(prev => prev.filter(m => m.id !== tempId))
     setSending(false)
   }
 

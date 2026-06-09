@@ -80,7 +80,10 @@ export default function AssignmentBuilderPage({ onNavigate }: Props) {
   }
 
   async function publish(isDraft: boolean) {
-    if (!title.trim() || teacherClasses.length === 0) return
+    if (!title.trim()) { setError('Title is required.'); return }
+    if (!isDraft && !deadline) { setError('Due date is required to publish.'); return }
+    if (!isDraft && !instructions.trim()) { setError('Instructions are required to publish.'); return }
+    if (teacherClasses.length === 0) { setError('No class available. Contact admin.'); return }
     setSaving(true)
     setError('')
 

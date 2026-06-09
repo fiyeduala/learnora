@@ -263,7 +263,7 @@ export default function ParentHomePage({ onNavigate }: Props) {
             {/* Quick Actions */}
             <div className="flex items-center justify-between mb-3">
               <p className="text-base font-bold text-foreground">Quick Actions</p>
-              <button className="text-xs text-primary font-medium">View All</button>
+              <button onClick={() => onNavigate('parent/fees')} className="text-xs text-primary font-medium">View All</button>
             </div>
             <div className="grid grid-cols-4 gap-3 mb-6">
               {quickActions.map(a => (
