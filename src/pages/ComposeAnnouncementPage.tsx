@@ -22,7 +22,7 @@ export default function ComposeAnnouncementPage({ onNavigate }: Props) {
 
   return (
     <DashboardLayout
-      activePage="announcements"
+      activePage="teacher-announcements"
       onNavigate={onNavigate}
       title="New Announcement"
       subtitle="Broadcast a message to students or parents"
@@ -31,7 +31,7 @@ export default function ComposeAnnouncementPage({ onNavigate }: Props) {
     >
       <div className="max-w-[800px] flex flex-col gap-6">
 
-        <button onClick={() => onNavigate('announcements')} className="flex items-center gap-2 text-sm text-muted hover:text-foreground w-fit">
+        <button onClick={() => onNavigate('teacher-announcements')} className="flex items-center gap-2 text-sm text-muted hover:text-foreground w-fit">
           <ChevronLeft size={16} /> Back to Announcements
         </button>
 
@@ -127,7 +127,7 @@ export default function ComposeAnnouncementPage({ onNavigate }: Props) {
         {/* Actions */}
         <div className="flex gap-3">
           <button
-            onClick={() => onNavigate('announcements')}
+            onClick={() => onNavigate('teacher-announcements')}
             disabled={!title || !body}
             className="flex items-center gap-2 h-12 px-6 bg-primary text-white text-sm font-semibold rounded-pill hover:bg-primary-deep transition-colors shadow-primary disabled:opacity-50 disabled:cursor-not-allowed"
           >

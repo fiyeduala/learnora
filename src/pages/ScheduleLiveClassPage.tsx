@@ -43,7 +43,7 @@ export default function ScheduleLiveClassPage({ onNavigate }: Props) {
           <p className="text-xs text-muted mb-8">{form.date} · {form.time} · {form.duration}</p>
           <div className="flex gap-3">
             <button
-              onClick={() => onNavigate('live-classes')}
+              onClick={() => onNavigate('teacher-live-classes')}
               className="h-11 px-6 bg-primary text-white text-sm font-semibold rounded-pill shadow-primary hover:bg-primary-deep transition-colors"
             >
               Back to Live Classes

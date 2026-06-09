@@ -35,19 +35,21 @@ const statusStyle: Record<string, string> = {
 const terms = ['Term 1, 2025/2026', 'Term 2, 2025/2026', 'Term 3, 2024/2025']
 
 export default function AdminAttendancePage({ onNavigate }: Props) {
-  const [tab,    setTab]    = useState<'overview' | 'students'>('overview')
-  const [term,   setTerm]   = useState(terms[0])
-  const [search, setSearch] = useState('')
+  const [tab,            setTab]            = useState<'overview' | 'students'>('overview')
+  const [term,           setTerm]           = useState(terms[0])
+  const [search,         setSearch]         = useState('')
+  const [selectedClass,  setSelectedClass]  = useState<string | null>(null)
 
   const totalPresent = classData.reduce((s, c) => s + c.present, 0)
   const totalStudents = classData.reduce((s, c) => s + c.total, 0)
   const schoolRate = Math.round((totalPresent / totalStudents) * 100)
   const atRisk = studentRecords.filter(s => s.rate < 75).length
 
-  const filteredStudents = studentRecords.filter(s =>
-    s.name.toLowerCase().includes(search.toLowerCase()) ||
-    s.class.toLowerCase().includes(search.toLowerCase())
-  )
+  const filteredStudents = studentRecords.filter(s => {
+    const matchClass = selectedClass ? s.class === selectedClass : true
+    const matchSearch = !search || s.name.toLowerCase().includes(search.toLowerCase()) || s.class.toLowerCase().includes(search.toLowerCase())
+    return matchClass && matchSearch
+  })
 
   return (
     <DashboardLayout
@@ -166,7 +168,7 @@ export default function AdminAttendancePage({ onNavigate }: Props) {
                       </td>
                       <td className="px-5 py-3.5">
                         <button
-                          onClick={() => onNavigate('admin-attendance')}
+                          onClick={() => { setSelectedClass(c.id); setTab('students'); setSearch('') }}
                           className="text-xs font-semibold text-primary hover:underline"
                         >
                           View Details
@@ -177,6 +179,14 @@ export default function AdminAttendancePage({ onNavigate }: Props) {
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+
+        {/* Class drill-down banner */}
+        {tab === 'students' && selectedClass && (
+          <div className="flex items-center justify-between bg-primary/8 border border-primary/20 rounded-card px-4 py-3">
+            <p className="text-sm font-semibold text-primary">Showing attendance for class <span className="font-bold">{selectedClass}</span></p>
+            <button onClick={() => setSelectedClass(null)} className="text-xs text-primary hover:underline font-semibold">Show all classes</button>
           </div>
         )}
 

@@ -46,7 +46,7 @@ export default function MobileStudentHomePage({ onNavigate }: Props) {
 
         {/* Learnora AI Banner */}
         <button
-          onClick={() => onNavigate('m/ai')}
+          onClick={() => onNavigate('ai-tutor')}
           className="w-full bg-primary rounded-2xl p-4 flex items-center justify-between mb-6"
         >
           <div className="text-left">

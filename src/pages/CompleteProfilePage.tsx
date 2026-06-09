@@ -1,16 +1,28 @@
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
+function roleDashboard(role: string | undefined): string {
+  switch (role) {
+    case 'teacher':     return 'teacher-dashboard'
+    case 'admin':       return 'admin-dashboard'
+    case 'parent':      return 'parent/home'
+    case 'super_admin': return 'super-dashboard'
+    default:            return 'dashboard'
+  }
+}
+
 export default function CompleteProfilePage({ onNavigate }: Props) {
+  const { profile }         = useAuth()
   const [phone, setPhone]   = useState('')
   const [school, setSchool] = useState('')
   const [cls, setCls]       = useState('')
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    onNavigate('dashboard')
+    onNavigate(roleDashboard(profile?.role))
   }
 
   return (

@@ -25,7 +25,7 @@ export default function MobileStudentProfilePage({ onNavigate }: Props) {
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-foreground">My Profile</h1>
           <button
-            onClick={() => onNavigate('settings')}
+            onClick={() => onNavigate('m/settings')}
             className="size-9 rounded-full bg-canvas flex items-center justify-center"
           >
             <Settings size={18} className="text-muted" />

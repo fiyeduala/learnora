@@ -88,7 +88,7 @@ export default function StudentDetailViewPage({ onNavigate }: Props) {
           </div>
           <div className="flex gap-2">
             <button
-              onClick={() => onNavigate('messages')}
+              onClick={() => onNavigate('teacher-messages')}
               className="flex items-center gap-2 h-9 px-4 bg-primary text-white text-xs font-bold rounded-full shadow-primary hover:bg-primary-deep transition-colors"
             >
               <MessageSquare size={13} /> Message

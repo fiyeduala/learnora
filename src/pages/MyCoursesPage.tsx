@@ -40,7 +40,7 @@ function CourseCard({ subject, teacher, progress, color, lessons, enrolled, onNa
       <div className="px-4 pb-4">
         {enrolled ? (
           <button
-            onClick={() => onNavigate('course-detail')}
+            onClick={() => onNavigate('course-details')}
             className="w-full h-10 flex items-center justify-center gap-2 bg-primary text-white text-sm font-semibold rounded-pill hover:bg-primary-deep transition-colors shadow-primary"
           >
             <Play size={12} fill="currentColor" />
@@ -48,7 +48,7 @@ function CourseCard({ subject, teacher, progress, color, lessons, enrolled, onNa
           </button>
         ) : (
           <button
-            onClick={() => onNavigate('course-detail')}
+            onClick={() => onNavigate('course-details')}
             className="w-full h-10 border border-primary text-primary text-sm font-semibold rounded-pill hover:bg-primary hover:text-white transition-colors"
           >
             Enroll Now

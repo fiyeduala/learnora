@@ -1,4 +1,4 @@
-import { Plus, Users, BookOpen, ChevronRight, TrendingUp } from 'lucide-react'
+import { Users, BookOpen, ChevronRight, TrendingUp } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
 
@@ -34,15 +34,9 @@ export default function MyClassesPage({ onNavigate }: Props) {
           ))}
         </div>
 
-        {/* Header + create */}
+        {/* Header */}
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-foreground">All Classes</h2>
-          <button
-            onClick={() => onNavigate('create-class')}
-            className="flex items-center gap-2 h-10 px-4 bg-primary text-white text-sm font-semibold rounded-pill hover:bg-primary-deep transition-colors shadow-primary"
-          >
-            <Plus size={14} /> New Class
-          </button>
         </div>
 
         {/* Classes grid */}

@@ -104,7 +104,7 @@ export default function ParentMessageTeacherPage({ onNavigate }: Props) {
   return (
     <MobileLayout activePage="parent/home" onNavigate={onNavigate} nav={parentMobileNav}>
       <div className="px-4 pt-5 pb-24">
-        <button onClick={() => onNavigate('parent/profile')} className="mb-4 text-muted">
+        <button onClick={() => onNavigate('parent/chat')} className="mb-4 text-muted">
           <ChevronLeft size={20} />
         </button>
 

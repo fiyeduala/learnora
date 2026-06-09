@@ -3,6 +3,7 @@ import {
   Mic, MicOff, Video, VideoOff, Monitor, Hand, MessageSquare,
   Users, Phone, Maximize2, MoreHorizontal, PenLine, Send
 } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -30,6 +31,8 @@ const chatMessages = [
 ]
 
 export default function LiveClassRoomPage({ onNavigate }: Props) {
+  const { profile }       = useAuth()
+  const liveClassesPage   = profile?.role === 'teacher' ? 'teacher-live-classes' : 'live-classes'
   const [micOn,    setMicOn]    = useState(true)
   const [camOn,    setCamOn]    = useState(true)
   const [raised,   setRaised]   = useState(false)
@@ -256,7 +259,7 @@ export default function LiveClassRoomPage({ onNavigate }: Props) {
         </button>
         <div className="h-8 w-px bg-white/10 mx-1" />
         <button
-          onClick={() => onNavigate('live-classes')}
+          onClick={() => onNavigate(liveClassesPage)}
           className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl bg-red-500/20 hover:bg-red-500/40 transition-colors"
         >
           <Phone size={20} className="text-red-400 rotate-[135deg]" />

@@ -66,6 +66,8 @@ import PermissionSlipsPage       from './pages/parent/PermissionSlipsPage'
 import ParentAnnouncementsPage   from './pages/parent/ParentAnnouncementsPage'
 
 import AdminResultsPage          from './pages/admin/AdminResultsPage'
+import AdminClassDetailsPage     from './pages/admin/AdminClassDetailsPage'
+import MobileStudentSettingsPage from './pages/mobile/MobileStudentSettingsPage'
 
 // ── Checklist additions (round 2) ────────────────────────────────────────────
 import ReportBuilderPage         from './pages/admin/ReportBuilderPage'
@@ -354,6 +356,8 @@ function ParentMsgTeacherRoute()    { const n = useNav(); return <ParentMessageT
 
 // ── Admin wrappers ────────────────────────────────────────────────────────────
 function AdminResultsRoute()    { const n = useNav(); return <AdminResultsPage        onNavigate={n} /> }
+function AdminClassDetailsRoute() { const n = useNav(); return <AdminClassDetailsPage  onNavigate={n} /> }
+function MStudentSettingsRoute() { const n = useNav(); return <MobileStudentSettingsPage onNavigate={n} /> }
 function AdminDashRoute()       { const n = useNav(); return <AdminDashboardPage     onNavigate={n} /> }
 function UserMgmtRoute()        { const n = useNav(); return <UserManagementPage     onNavigate={n} /> }
 function InviteUsersRoute()     { const n = useNav(); return <InviteUsersPage        onNavigate={n} /> }
@@ -557,6 +561,7 @@ export default function App() {
       <Route path="/admin-fee-setup"     element={<AdminFeeSetupRoute />} />
       <Route path="/fee-collection"      element={<FeeCollectionRoute />} />
       <Route path="/admin-results"       element={<AdminResultsRoute />} />
+      <Route path="/admin-class-details" element={<AdminClassDetailsRoute />} />
 
       {/* Super Admin */}
       <Route path="/super-dashboard"        element={<SuperDashRoute />} />
@@ -579,6 +584,7 @@ export default function App() {
       <Route path="/m/quiz"              element={<QuizRoute />} />
       <Route path="/m/quiz-result"       element={<QuizResultRoute />} />
       <Route path="/m/lesson-complete"   element={<LessonCompleteRoute />} />
+      <Route path="/m/settings"          element={<MStudentSettingsRoute />} />
 
       {/* Parent */}
       <Route path="/parent/home"         element={<ParentHomeRoute />} />

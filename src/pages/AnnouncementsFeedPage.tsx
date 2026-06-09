@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Megaphone, Plus, Search, ChevronRight, Pin } from 'lucide-react'
+import { Megaphone, Search, ChevronRight, Pin } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 
 type Props = { onNavigate: (page: string) => void }
@@ -45,12 +45,6 @@ export default function AnnouncementsFeedPage({ onNavigate }: Props) {
               className="w-full h-11 pl-9 pr-4 border border-black/15 rounded-input text-sm text-foreground placeholder:text-muted outline-none focus:border-primary"
             />
           </div>
-          <button
-            onClick={() => onNavigate('compose-announcement')}
-            className="flex items-center gap-2 h-11 px-4 bg-primary text-white text-sm font-semibold rounded-pill hover:bg-primary-deep transition-colors shadow-primary shrink-0"
-          >
-            <Plus size={14} /> New Announcement
-          </button>
         </div>
 
         {/* List */}
@@ -58,7 +52,7 @@ export default function AnnouncementsFeedPage({ onNavigate }: Props) {
           {filtered.map(a => (
             <button
               key={a.id}
-              onClick={() => onNavigate('notification-details')}
+              onClick={() => onNavigate('announcement-details')}
               className="bg-surface rounded-card shadow-sm p-6 text-left hover:shadow-md transition-all"
             >
               <div className="flex items-start gap-3 mb-3">

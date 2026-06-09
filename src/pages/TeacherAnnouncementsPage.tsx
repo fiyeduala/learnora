@@ -60,7 +60,7 @@ export default function TeacherAnnouncementsPage({ onNavigate }: Props) {
           {filtered.map(a => (
             <button
               key={a.id}
-              onClick={() => onNavigate('notification-details')}
+              onClick={() => onNavigate('announcement-details')}
               className="bg-surface rounded-card shadow-sm p-6 text-left hover:shadow-md transition-all"
             >
               <div className="flex items-start gap-3 mb-3">

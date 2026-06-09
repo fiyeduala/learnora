@@ -1,9 +1,12 @@
 import { useState } from 'react'
 import { Mic, MicOff, Video, VideoOff, ArrowLeft, Users, Clock } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
 export default function PreClassLobbyPage({ onNavigate }: Props) {
+  const { profile }          = useAuth()
+  const liveClassesPage      = profile?.role === 'teacher' ? 'teacher-live-classes' : 'live-classes'
   const [micOn,    setMicOn]    = useState(true)
   const [cameraOn, setCameraOn] = useState(true)
 
@@ -11,7 +14,7 @@ export default function PreClassLobbyPage({ onNavigate }: Props) {
     <div className="min-h-screen bg-[#0a0f1e] flex flex-col items-center justify-center p-6 gap-8">
       {/* Back */}
       <button
-        onClick={() => onNavigate('live-classes')}
+        onClick={() => onNavigate(liveClassesPage)}
         className="absolute top-6 left-6 flex items-center gap-2 text-white/60 text-sm hover:text-white transition-colors"
       >
         <ArrowLeft size={16} /> Back

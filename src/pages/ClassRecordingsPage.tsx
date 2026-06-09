@@ -1,6 +1,8 @@
 import { Play, Search, Download, Clock, Calendar, BookOpen } from 'lucide-react'
 import { useState } from 'react'
 import DashboardLayout from '../components/layout/DashboardLayout'
+import { teacherNav } from '../components/layout/Sidebar'
+import { useAuth } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -16,6 +18,8 @@ const recordings = [
 const subjects = ['All', 'Physics', 'Mathematics', 'Chemistry', 'English']
 
 export default function ClassRecordingsPage({ onNavigate }: Props) {
+  const { profile }    = useAuth()
+  const isTeacher      = profile?.role === 'teacher'
   const [query,   setQuery]   = useState('')
   const [subject, setSubject] = useState('All')
 
@@ -27,10 +31,11 @@ export default function ClassRecordingsPage({ onNavigate }: Props) {
 
   return (
     <DashboardLayout
-      activePage="live-classes"
+      activePage={isTeacher ? 'teacher-live-classes' : 'live-classes'}
       onNavigate={onNavigate}
       title="Class Recordings"
       subtitle="Catch up on missed sessions"
+      nav={isTeacher ? teacherNav : undefined}
     >
       <div className="flex flex-col gap-5">
         {/* Filters */}

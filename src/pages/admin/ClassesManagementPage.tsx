@@ -213,7 +213,18 @@ export default function ClassesManagementPage({ onNavigate }: Props) {
                 </div>
 
                 <div className="flex gap-2">
-                  <button onClick={() => onNavigate('admin-class-details')} className="flex-1 h-8 border border-primary text-primary text-xs font-semibold rounded-pill hover:bg-primary hover:text-white transition-colors">
+                  <button
+                    onClick={() => {
+                      sessionStorage.setItem('learnora_admin_class', JSON.stringify({
+                        id: c.id, name: c.name, level: c.level, arm: c.arm,
+                        teacher: c.form_teacher?.full_name ?? null,
+                        students: c.class_enrollments?.length ?? 0,
+                        subjects: c.class_subjects?.length ?? 0,
+                      }))
+                      onNavigate('admin-class-details')
+                    }}
+                    className="flex-1 h-8 border border-primary text-primary text-xs font-semibold rounded-pill hover:bg-primary hover:text-white transition-colors"
+                  >
                     View Details
                   </button>
                   <button onClick={() => onNavigate('admin-attendance')} className="flex-1 h-8 border border-black/15 text-muted text-xs font-semibold rounded-pill hover:border-primary hover:text-primary transition-colors">

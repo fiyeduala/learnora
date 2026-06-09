@@ -51,11 +51,25 @@ Brand: primary `#4b75ff` / deep `#005cf7` / sidebar `#0d2060` — DO NOT change 
 - `InviteAcceptancePage` — reads invite token from URL, calls `signUp()`, updates profile with `school_id + role`, enrolls student in class
 - **Migration required**: run `supabase/migrations/001_admin_panel.sql` in Supabase SQL Editor (adds `form_teacher_id` to classes, creates `invitations` table)
 
-### Nav / Cross-role Fixes
-- `TopBar` now fully role-aware: Teacher → `teacher-messages` / `teacher-calendar`; Admin → `teacher-messages` / `timetable`; Super Admin bell → `super-notifications`
-- Removed `Messages` from `adminNav` (linked to student page — no admin-specific messages page yet)
-- `AdminAttendancePage` fixed to navigate to `admin-attendance` not teacher `attendance`
-- `ClassesManagementPage` now navigates to `admin-class-details` and `admin-attendance`
+### Nav / Cross-role Fixes — Full Audit Pass ✅
+- `TopBar` fully role-aware (messages, calendar, settings, notifications)
+- Live class pages (`PreClassLobbyPage`, `LiveClassRoomPage`, `ClassRecordingsPage`) are now role-aware: teacher → `teacher-live-classes`, student → `live-classes`
+- `LiveClassesOverviewPage` — student-only; removed Schedule button (teachers use `TeacherLiveClassesPage`)
+- `ScheduleLiveClassPage` back → `teacher-live-classes` ✅
+- `ComposeAnnouncementPage` back + publish → `teacher-announcements` ✅
+- `TeacherAnnouncementsPage` card click → `announcement-details` ✅
+- `AnnouncementsFeedPage` (student) — removed Compose button; card → `announcement-details` ✅
+- `StudentDetailViewPage` + `BehaviorAnalyticsPage` Message → `teacher-messages` ✅
+- `MyCoursesPage` course card → `course-details` (was `course-detail`, was 404) ✅
+- `MyClassesPage` (teacher) — removed "New Class" button (admin creates classes) ✅
+- `TeacherDashboardPage` "View calendar" label fixed → "View all" (→`classes`); "Post Announcement" → `teacher-announcements` ✅
+- `ParentMessageTeacherPage` back → `parent/chat` ✅
+- `MobileStudentHomePage` AI banner → `ai-tutor` (was `m/ai`, was 404) ✅
+- `MobileStudentProfilePage` settings icon → `m/settings` ✅
+- `CompleteProfilePage` routes by role after submit ✅
+- `AdminAttendancePage` "View Details" drills into class students in-page ✅
+- `AdminClassDetailsPage` — NEW page at `/admin-class-details`; shows class info, students, performance, attendance ✅
+- `MobileStudentSettingsPage` — NEW page at `/m/settings` with dark mode toggle + account links ✅
 
 ### What's built but NOT yet wired to Supabase
 Pages need Supabase queries added feature by feature. **Wire in this order:**

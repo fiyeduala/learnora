@@ -1,4 +1,4 @@
-import { Video, Calendar, Clock, Users, Play, Plus } from 'lucide-react'
+import { Video, Calendar, Clock, Users, Play } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 
 type Props = { onNavigate: (page: string) => void }
@@ -63,12 +63,6 @@ export default function LiveClassesOverviewPage({ onNavigate }: Props) {
         <div className="bg-surface rounded-card shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-black/6 flex items-center justify-between">
             <h2 className="text-base font-bold text-foreground">Upcoming Classes</h2>
-            <button
-              onClick={() => onNavigate('schedule-class')}
-              className="flex items-center gap-1.5 h-8 px-3 bg-primary/10 text-primary text-xs font-semibold rounded-full hover:bg-primary/20 transition-colors"
-            >
-              <Plus size={12} /> Schedule
-            </button>
           </div>
           <div className="divide-y divide-black/4">
             {upcoming.filter(c => c.status === 'upcoming').map(cls => (

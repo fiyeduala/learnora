@@ -142,7 +142,7 @@ export default function TeacherDashboardPage({ onNavigate }: Props) {
                 onClick={() => onNavigate('classes')}
                 className="text-sm text-primary font-semibold hover:underline flex items-center gap-1"
               >
-                View calendar <ChevronRight size={14} />
+                View all <ChevronRight size={14} />
               </button>
             </div>
             <div className="flex flex-col gap-3">
@@ -246,7 +246,7 @@ export default function TeacherDashboardPage({ onNavigate }: Props) {
                   { label: 'Grade Work',    icon: CheckCircle2, page: 'gradebook'     },
                   { label: 'Take Attendance', icon: Clock,       page: 'attendance'    },
                   { label: 'View Analytics',  icon: AlertCircle, page: 'analytics'     },
-                  { label: 'Post Announcement', icon: Plus,      page: 'announcements' },
+                  { label: 'Post Announcement', icon: Plus,      page: 'teacher-announcements' },
                 ].map(a => {
                   const Icon = a.icon
                   return (

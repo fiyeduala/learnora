@@ -140,7 +140,7 @@ export default function BehaviorAnalyticsPage({ onNavigate }: Props) {
                     </div>
                     <div className="flex flex-col gap-2 shrink-0">
                       <button
-                        onClick={() => onNavigate('messages')}
+                        onClick={() => onNavigate('teacher-messages')}
                         className="h-8 px-3 border border-primary text-primary text-xs font-semibold rounded-full hover:bg-primary/8 transition-colors"
                       >
                         Message
