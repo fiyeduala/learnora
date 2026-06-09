@@ -166,7 +166,7 @@ export default function AdminAttendancePage({ onNavigate }: Props) {
                       </td>
                       <td className="px-5 py-3.5">
                         <button
-                          onClick={() => onNavigate('attendance')}
+                          onClick={() => onNavigate('admin-attendance')}
                           className="text-xs font-semibold text-primary hover:underline"
                         >
                           View Details

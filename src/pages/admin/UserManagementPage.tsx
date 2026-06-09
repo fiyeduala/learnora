@@ -1,90 +1,151 @@
-import { useState } from 'react'
-import { Search, Plus, Download, MoreHorizontal, Mail, UserX, Trash2, X, CheckCircle2, MessageSquare, ChevronDown } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Search, Plus, Download, MoreHorizontal, Mail, UserX, Trash2, X, CheckCircle2, ChevronDown, Copy, Link } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
+import { supabase } from '../../lib/supabase'
+import { useToast } from '../../components/shared/Toast'
 
 type Props = { onNavigate: (page: string) => void }
-type Role = 'All' | 'Student' | 'Teacher' | 'Parent'
+type RoleFilter = 'All' | 'Student' | 'Teacher' | 'Parent'
 
-interface User {
-  name:   string
-  role:   'Student' | 'Teacher' | 'Parent'
-  class:  string
-  email:  string
-  status: 'Active' | 'Inactive'
-  joined: string
+interface ProfileRow {
+  id: string
+  full_name: string | null
+  email: string | null
+  role: 'student' | 'teacher' | 'parent' | 'admin' | 'super_admin'
+  is_active: boolean
+  created_at: string
+  class_enrollments?: { classes: { name: string } | null }[]
 }
-
-const users: User[] = [
-  { name: 'Olive Princely',    role: 'Student', class: 'SS1A', email: 'olive@greenfield.edu',   status: 'Active',   joined: 'Jan 2026' },
-  { name: 'Yetunde Adesanya',  role: 'Student', class: 'SS1A', email: 'yetunde@greenfield.edu', status: 'Active',   joined: 'Jan 2026' },
-  { name: 'Kofi Asante',       role: 'Student', class: 'SS1A', email: 'kofi@greenfield.edu',    status: 'Inactive', joined: 'Jan 2026' },
-  { name: 'Mrs Nnduka Kisha',  role: 'Teacher', class: 'Math', email: 'nnduka@greenfield.edu',  status: 'Active',   joined: 'Sep 2025' },
-  { name: 'Mr Daniel Johnson', role: 'Teacher', class: 'Phys', email: 'daniel@greenfield.edu',  status: 'Active',   joined: 'Sep 2025' },
-  { name: 'Mrs Gloria Ewa',    role: 'Teacher', class: 'Math', email: 'gloria@greenfield.edu',  status: 'Active',   joined: 'Sep 2025' },
-  { name: 'Mr Olive Senior',   role: 'Parent',  class: '—',    email: 'parent@email.com',        status: 'Active',   joined: 'Feb 2026' },
-]
-
-type DeliveryMethod = 'email' | 'sms' | 'both'
 
 interface NewUser {
-  name: string; username: string; email: string; phone: string
+  full_name: string
+  email: string
+  phone: string
   role: 'Student' | 'Teacher' | 'Parent'
-  class: string; delivery: DeliveryMethod
 }
 
-const classes = ['SS1A','SS1B','SS2A','SS2B','SS3A','SS3B','JSS1','JSS2','JSS3']
-
 export default function UserManagementPage({ onNavigate }: Props) {
-  const [role,     setRole]     = useState<Role>('All')
-  const [search,   setSearch]   = useState('')
-  const [selected, setSelected] = useState<Set<number>>(new Set())
+  const { profile } = useAuth()
+  const { toast }   = useToast()
+  const schoolId    = profile?.school_id
 
-  const [showAddModal, setShowAddModal] = useState(false)
-  const [addDone,      setAddDone]      = useState(false)
-  const [newUser, setNewUser] = useState<NewUser>({
-    name: '', username: '', email: '', phone: '', role: 'Student', class: 'SS1A', delivery: 'email',
-  })
+  const [users,     setUsers]     = useState<ProfileRow[]>([])
+  const [classes,   setClasses]   = useState<{ id: string; name: string }[]>([])
+  const [loading,   setLoading]   = useState(true)
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>('All')
+  const [search,    setSearch]    = useState('')
+  const [selected,  setSelected]  = useState<Set<string>>(new Set())
 
-  function setField<K extends keyof NewUser>(k: K, v: NewUser[K]) {
-    setNewUser(u => ({ ...u, [k]: v }))
+  const [showModal, setShowModal] = useState(false)
+  const [saving,    setSaving]    = useState(false)
+  const [inviteLink, setInviteLink] = useState('')
+  const [savedUser, setSavedUser] = useState<NewUser | null>(null)
+  const [classId,   setClassId]   = useState('')
+  const [newUser,   setNewUser]   = useState<NewUser>({ full_name: '', email: '', phone: '', role: 'Student' })
+
+  useEffect(() => { if (schoolId) loadAll() }, [schoolId])
+
+  async function loadAll() {
+    setLoading(true)
+    await Promise.all([loadUsers(), loadClasses()])
+    setLoading(false)
   }
 
-  function handleCreate(e: React.FormEvent) {
+  async function loadUsers() {
+    const { data } = await supabase
+      .from('profiles')
+      .select(`id, full_name, email, role, is_active, created_at,
+               class_enrollments(classes(name))`)
+      .eq('school_id', schoolId!)
+      .in('role', ['student', 'teacher', 'parent'])
+      .order('created_at', { ascending: false })
+    setUsers((data as ProfileRow[]) ?? [])
+  }
+
+  async function loadClasses() {
+    const { data } = await supabase.from('classes').select('id, name').eq('school_id', schoolId!).order('name')
+    setClasses(data ?? [])
+  }
+
+  async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
-    setAddDone(true)
-  }
+    if (!schoolId) return
+    setSaving(true)
+    try {
+      const { data: inv, error } = await supabase
+        .from('invitations')
+        .insert({
+          school_id: schoolId,
+          email: newUser.email || null,
+          full_name: newUser.full_name,
+          role: newUser.role.toLowerCase(),
+          class_id: classId || null,
+        })
+        .select('token')
+        .single()
+      if (error) throw error
 
-  function closeModal() {
-    setShowAddModal(false)
-    setAddDone(false)
-    setNewUser({ name: '', username: '', email: '', phone: '', role: 'Student', class: 'SS1A', delivery: 'email' })
-  }
-
-  const filtered = users.filter(u =>
-    (role === 'All' || u.role === role) &&
-    u.name.toLowerCase().includes(search.toLowerCase())
-  )
-
-  function toggle(i: number) {
-    setSelected(prev => {
-      const next = new Set(prev)
-      next.has(i) ? next.delete(i) : next.add(i)
-      return next
-    })
-  }
-
-  function toggleAll() {
-    if (selected.size === filtered.length) {
-      setSelected(new Set())
-    } else {
-      setSelected(new Set(filtered.map((_, i) => i)))
+      const link = `${window.location.origin}/invite?token=${inv.token}`
+      setInviteLink(link)
+      setSavedUser(newUser)
+    } catch (err: unknown) {
+      toast((err as Error).message ?? 'Failed to create invitation', 'error')
+    } finally {
+      setSaving(false)
     }
   }
 
-  function clearSelection() { setSelected(new Set()) }
+  function copyLink() {
+    navigator.clipboard.writeText(inviteLink)
+    toast('Invite link copied!', 'success')
+  }
 
+  function resetModal() {
+    setShowModal(false)
+    setInviteLink('')
+    setSavedUser(null)
+    setClassId('')
+    setNewUser({ full_name: '', email: '', phone: '', role: 'Student' })
+  }
+
+  const dbRoleMap: Record<RoleFilter, string | null> = {
+    All: null, Student: 'student', Teacher: 'teacher', Parent: 'parent',
+  }
+
+  const filtered = users.filter(u => {
+    const matchRole = roleFilter === 'All' || u.role === dbRoleMap[roleFilter]
+    const matchSearch = (u.full_name ?? '').toLowerCase().includes(search.toLowerCase()) ||
+                        (u.email ?? '').toLowerCase().includes(search.toLowerCase())
+    return matchRole && matchSearch
+  })
+
+  function toggle(id: string) {
+    setSelected(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next })
+  }
+  function toggleAll() {
+    setSelected(selected.size === filtered.length ? new Set() : new Set(filtered.map(u => u.id)))
+  }
   const allChecked = filtered.length > 0 && selected.size === filtered.length
+
+  const counts = {
+    students: users.filter(u => u.role === 'student').length,
+    teachers: users.filter(u => u.role === 'teacher').length,
+    parents:  users.filter(u => u.role === 'parent').length,
+  }
+
+  const formatDate = (iso: string) =>
+    new Date(iso).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
+
+  function getClassLabel(u: ProfileRow) {
+    if (u.role === 'teacher') return 'Teacher'
+    if (u.role === 'parent')  return 'Parent'
+    const enrollment = u.class_enrollments?.[0]
+    return enrollment?.classes?.name ?? '—'
+  }
+
+  const sidebarUser = profileToSidebarUser(profile)
 
   return (
     <DashboardLayout
@@ -93,16 +154,16 @@ export default function UserManagementPage({ onNavigate }: Props) {
       title="User Management"
       subtitle="Manage students, teachers, and parents"
       nav={adminNav}
-      user={{ name: 'Admin Okafor', role: 'School Admin', initials: 'A' }}
+      user={sidebarUser}
     >
       <div className="max-w-[1200px] flex flex-col gap-5">
 
         {/* Summary */}
         <div className="grid grid-cols-3 gap-3 md:gap-4">
           {[
-            { label: 'Students', value: '1,248', color: 'text-primary' },
-            { label: 'Teachers', value: '86',    color: 'text-teal-600' },
-            { label: 'Parents',  value: '934',   color: 'text-foreground' },
+            { label: 'Students', value: loading ? '—' : String(counts.students), color: 'text-primary' },
+            { label: 'Teachers', value: loading ? '—' : String(counts.teachers), color: 'text-teal-600' },
+            { label: 'Parents',  value: loading ? '—' : String(counts.parents),  color: 'text-foreground' },
           ].map(s => (
             <div key={s.label} className="bg-surface rounded-card shadow-sm p-4 md:p-5">
               <p className={`text-2xl md:text-3xl font-bold ${s.color}`}>{s.value}</p>
@@ -116,16 +177,13 @@ export default function UserManagementPage({ onNavigate }: Props) {
           <div className="flex items-center gap-3 bg-primary/8 border border-primary/20 rounded-card px-4 py-3 flex-wrap">
             <span className="text-sm font-semibold text-primary">{selected.size} selected</span>
             <div className="flex gap-2 ml-auto flex-wrap">
-              <button className="flex items-center gap-1.5 h-8 px-3 bg-white border border-black/15 rounded-full text-xs font-semibold text-foreground hover:border-primary hover:text-primary transition-colors">
-                <Mail size={12} /> Email Selected
-              </button>
               <button className="flex items-center gap-1.5 h-8 px-3 bg-white border border-black/15 rounded-full text-xs font-semibold text-foreground hover:border-amber-400 hover:text-amber-600 transition-colors">
                 <UserX size={12} /> Deactivate
               </button>
               <button className="flex items-center gap-1.5 h-8 px-3 bg-white border border-red-200 rounded-full text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors">
                 <Trash2 size={12} /> Remove
               </button>
-              <button onClick={clearSelection} className="h-8 w-8 flex items-center justify-center text-muted hover:text-foreground rounded-full hover:bg-white transition-colors">
+              <button onClick={() => setSelected(new Set())} className="h-8 w-8 flex items-center justify-center text-muted hover:text-foreground rounded-full hover:bg-white transition-colors">
                 <X size={14} />
               </button>
             </div>
@@ -136,20 +194,14 @@ export default function UserManagementPage({ onNavigate }: Props) {
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-[200px]">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
+            <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search by name or email..."
-              className="w-full h-10 pl-9 pr-4 border border-black/15 rounded-input text-sm text-foreground placeholder:text-muted outline-none focus:border-primary"
-            />
+              className="w-full h-10 pl-9 pr-4 border border-black/15 rounded-input text-sm text-foreground placeholder:text-muted outline-none focus:border-primary" />
           </div>
           <div className="flex gap-1 bg-canvas rounded-card p-1">
-            {(['All', 'Student', 'Teacher', 'Parent'] as Role[]).map(r => (
-              <button
-                key={r}
-                onClick={() => { setRole(r); setSelected(new Set()) }}
-                className={`px-3 h-8 text-xs font-semibold rounded-md transition-colors ${role === r ? 'bg-white text-primary shadow-sm' : 'text-muted hover:text-foreground'}`}
-              >
+            {(['All', 'Student', 'Teacher', 'Parent'] as RoleFilter[]).map(r => (
+              <button key={r} onClick={() => { setRoleFilter(r); setSelected(new Set()) }}
+                className={`px-3 h-8 text-xs font-semibold rounded-md transition-colors ${roleFilter === r ? 'bg-white text-primary shadow-sm' : 'text-muted hover:text-foreground'}`}>
                 {r}
               </button>
             ))}
@@ -157,16 +209,12 @@ export default function UserManagementPage({ onNavigate }: Props) {
           <button className="flex items-center gap-1.5 h-10 px-3 border border-black/15 rounded-pill text-sm text-muted hover:text-foreground transition-colors">
             <Download size={13} /> <span className="hidden sm:inline">Export</span>
           </button>
-          <button
-            onClick={() => onNavigate('invite-users')}
-            className="flex items-center gap-1.5 h-10 px-4 border border-black/15 text-sm font-semibold text-foreground rounded-pill hover:border-primary hover:text-primary transition-colors"
-          >
-            <Mail size={13} /> <span className="hidden sm:inline">Invite</span>
+          <button onClick={() => onNavigate('invite-users')}
+            className="flex items-center gap-1.5 h-10 px-4 border border-black/15 text-sm font-semibold text-foreground rounded-pill hover:border-primary hover:text-primary transition-colors">
+            <Mail size={13} /> <span className="hidden sm:inline">Bulk Invite</span>
           </button>
-          <button
-            onClick={() => { setShowAddModal(true); setAddDone(false) }}
-            className="flex items-center gap-1.5 h-10 px-4 bg-primary text-white text-sm font-semibold rounded-pill hover:bg-primary-deep transition-colors shadow-primary"
-          >
+          <button onClick={() => { setShowModal(true); setInviteLink('') }}
+            className="flex items-center gap-1.5 h-10 px-4 bg-primary text-white text-sm font-semibold rounded-pill hover:bg-primary-deep transition-colors shadow-primary">
             <Plus size={13} /> Add User
           </button>
         </div>
@@ -178,12 +226,7 @@ export default function UserManagementPage({ onNavigate }: Props) {
               <thead>
                 <tr className="border-b border-black/6 bg-canvas/40">
                   <th className="px-4 md:px-6 py-3 w-10">
-                    <input
-                      type="checkbox"
-                      checked={allChecked}
-                      onChange={toggleAll}
-                      className="accent-primary"
-                    />
+                    <input type="checkbox" checked={allChecked} onChange={toggleAll} className="accent-primary" />
                   </th>
                   {['Name', 'Role', 'Class / Dept', 'Email', 'Status', 'Joined', ''].map(h => (
                     <th key={h} className="text-left px-4 md:px-6 py-3 text-xs font-semibold text-muted uppercase tracking-wider">{h}</th>
@@ -191,46 +234,42 @@ export default function UserManagementPage({ onNavigate }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((u, i) => (
-                  <tr
-                    key={i}
-                    className={`border-b border-black/4 last:border-0 hover:bg-canvas/40 transition-colors ${selected.has(i) ? 'bg-primary/[0.03]' : ''}`}
-                  >
+                {loading ? (
+                  <tr><td colSpan={8} className="px-6 py-12 text-center text-sm text-muted">Loading users...</td></tr>
+                ) : filtered.length === 0 ? (
+                  <tr><td colSpan={8} className="px-6 py-12 text-center text-sm text-muted">
+                    {search || roleFilter !== 'All' ? 'No users match your search.' : 'No users yet. Add your first user to get started.'}
+                  </td></tr>
+                ) : filtered.map(u => (
+                  <tr key={u.id} className={`border-b border-black/4 last:border-0 hover:bg-canvas/40 transition-colors ${selected.has(u.id) ? 'bg-primary/[0.03]' : ''}`}>
                     <td className="px-4 md:px-6 py-3.5">
-                      <input
-                        type="checkbox"
-                        checked={selected.has(i)}
-                        onChange={() => toggle(i)}
-                        className="accent-primary"
-                      />
+                      <input type="checkbox" checked={selected.has(u.id)} onChange={() => toggle(u.id)} className="accent-primary" />
                     </td>
                     <td className="px-4 md:px-6 py-3.5">
                       <div className="flex items-center gap-3">
                         <div className="size-8 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">
-                          {u.name.charAt(0)}
+                          {(u.full_name ?? u.email ?? '?').charAt(0).toUpperCase()}
                         </div>
-                        <span className="font-medium text-foreground">{u.name}</span>
+                        <span className="font-medium text-foreground">{u.full_name || u.email || '—'}</span>
                       </div>
                     </td>
                     <td className="px-4 md:px-6 py-3.5">
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                        u.role === 'Student' ? 'bg-primary/10 text-primary' :
-                        u.role === 'Teacher' ? 'bg-teal-50 text-teal-700' :
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full capitalize ${
+                        u.role === 'student' ? 'bg-primary/10 text-primary' :
+                        u.role === 'teacher' ? 'bg-teal-50 text-teal-700' :
                         'bg-canvas text-muted border border-black/10'
                       }`}>{u.role}</span>
                     </td>
-                    <td className="px-4 md:px-6 py-3.5 text-muted">{u.class}</td>
-                    <td className="px-4 md:px-6 py-3.5 text-muted text-xs hidden md:table-cell">{u.email}</td>
+                    <td className="px-4 md:px-6 py-3.5 text-muted text-sm">{getClassLabel(u)}</td>
+                    <td className="px-4 md:px-6 py-3.5 text-muted text-xs hidden md:table-cell">{u.email ?? '—'}</td>
                     <td className="px-4 md:px-6 py-3.5">
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-xs ${u.status === 'Active' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
-                        {u.status}
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-xs ${u.is_active ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+                        {u.is_active ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td className="px-4 md:px-6 py-3.5 text-muted text-xs hidden sm:table-cell">{u.joined}</td>
+                    <td className="px-4 md:px-6 py-3.5 text-muted text-xs hidden sm:table-cell">{formatDate(u.created_at)}</td>
                     <td className="px-4 md:px-6 py-3.5">
-                      <button className="text-muted hover:text-foreground transition-colors">
-                        <MoreHorizontal size={15} />
-                      </button>
+                      <button className="text-muted hover:text-foreground transition-colors"><MoreHorizontal size={15} /></button>
                     </td>
                   </tr>
                 ))}
@@ -238,173 +277,101 @@ export default function UserManagementPage({ onNavigate }: Props) {
             </table>
           </div>
         </div>
-
       </div>
 
-      {/* ── Add User Modal ── */}
-      {showAddModal && (
+      {/* Add User Modal */}
+      {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/40" onClick={closeModal} />
-
+          <div className="absolute inset-0 bg-black/40" onClick={resetModal} />
           <div className="relative z-10 bg-white rounded-card shadow-xl w-full max-w-[480px] overflow-hidden">
-            {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-black/8">
-              <h2 className="text-base font-bold text-foreground">
-                {addDone ? 'User Created' : 'Add New User'}
-              </h2>
-              <button onClick={closeModal} className="text-muted hover:text-foreground transition-colors">
-                <X size={18} />
-              </button>
+              <h2 className="text-base font-bold text-foreground">{inviteLink ? 'Invite Created' : 'Add New User'}</h2>
+              <button onClick={resetModal} className="text-muted hover:text-foreground transition-colors"><X size={18} /></button>
             </div>
 
-            {addDone ? (
-              /* ── Success state ── */
-              <div className="p-6 text-center">
+            {inviteLink ? (
+              <div className="p-6">
                 <div className="size-14 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-4">
                   <CheckCircle2 size={24} className="text-green-600" />
                 </div>
-                <h3 className="text-lg font-bold text-foreground mb-1">{newUser.name || 'User'} added!</h3>
-                <p className="text-sm text-muted mb-4 leading-relaxed">
-                  Login credentials have been{' '}
-                  {newUser.delivery === 'email' && <>sent to <strong>{newUser.email || 'their email'}</strong></>}
-                  {newUser.delivery === 'sms'   && <>sent via SMS to <strong>{newUser.phone || 'their phone'}</strong></>}
-                  {newUser.delivery === 'both'  && <>sent to <strong>{newUser.email || 'their email'}</strong> and <strong>{newUser.phone || 'their phone'}</strong></>}
-                  . They can log in with their temporary password and will be prompted to change it on first sign-in.
-                </p>
-                <div className="bg-canvas rounded-card p-4 text-left mb-6 text-sm">
-                  <div className="flex justify-between py-1.5 border-b border-black/6">
-                    <span className="text-muted">Name</span><span className="font-semibold text-foreground">{newUser.name}</span>
-                  </div>
-                  <div className="flex justify-between py-1.5 border-b border-black/6">
-                    <span className="text-muted">Role</span><span className="font-semibold text-foreground">{newUser.role}</span>
-                  </div>
-                  <div className="flex justify-between py-1.5 border-b border-black/6">
-                    <span className="text-muted">Class</span><span className="font-semibold text-foreground">{newUser.class}</span>
-                  </div>
-                  <div className="flex justify-between py-1.5">
-                    <span className="text-muted">Credentials sent via</span>
-                    <span className="font-semibold text-foreground capitalize">{newUser.delivery === 'both' ? 'Email & SMS' : newUser.delivery}</span>
-                  </div>
+                <h3 className="text-lg font-bold text-foreground text-center mb-1">{savedUser?.full_name} invited!</h3>
+                <p className="text-sm text-muted text-center mb-5">Share this link with them to set up their account.</p>
+
+                <div className="bg-canvas rounded-card p-3 flex items-center gap-2 mb-4">
+                  <Link size={13} className="text-muted shrink-0" />
+                  <span className="text-xs text-foreground flex-1 truncate">{inviteLink}</span>
+                  <button onClick={copyLink} className="shrink-0 text-primary hover:text-primary-deep transition-colors">
+                    <Copy size={14} />
+                  </button>
                 </div>
+
+                <button onClick={copyLink}
+                  className="w-full h-10 bg-primary/8 text-primary text-sm font-semibold rounded-pill hover:bg-primary/15 transition-colors mb-3">
+                  Copy Invite Link
+                </button>
+
                 <div className="flex gap-3">
-                  <button
-                    onClick={() => { setAddDone(false); setNewUser({ name: '', username: '', email: '', phone: '', role: 'Student', class: 'SS1A', delivery: 'email' }) }}
-                    className="flex-1 h-10 border border-black/15 text-sm font-semibold text-foreground rounded-pill hover:border-primary hover:text-primary transition-colors"
-                  >
+                  <button onClick={() => { setInviteLink(''); setSavedUser(null); setNewUser({ full_name: '', email: '', phone: '', role: 'Student' }); setClassId('') }}
+                    className="flex-1 h-10 border border-black/15 text-sm font-semibold text-foreground rounded-pill hover:border-primary hover:text-primary transition-colors">
                     Add Another
                   </button>
-                  <button onClick={closeModal} className="flex-1 h-10 bg-primary text-white text-sm font-semibold rounded-pill hover:bg-primary-deep transition-colors">
+                  <button onClick={() => { resetModal(); loadUsers() }} className="flex-1 h-10 bg-primary text-white text-sm font-semibold rounded-pill hover:bg-primary-deep transition-colors">
                     Done
                   </button>
                 </div>
               </div>
             ) : (
-              /* ── Form ── */
               <form onSubmit={handleCreate} className="p-6 flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-sm font-semibold text-foreground">Full Name <span className="text-red-500">*</span></label>
-                  <input
-                    required value={newUser.name} onChange={e => setField('name', e.target.value)}
+                  <input required value={newUser.full_name} onChange={e => setNewUser(u => ({ ...u, full_name: e.target.value }))}
                     placeholder="e.g. Amara Okafor"
-                    className="h-10 px-3 border border-black/20 rounded-input text-sm text-foreground placeholder:text-muted outline-none focus:border-primary"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-semibold text-foreground">Username <span className="text-red-500">*</span></label>
-                  <input
-                    required value={newUser.username} onChange={e => setField('username', e.target.value.toLowerCase().replace(/\s/g,''))}
-                    placeholder="e.g. amara.okafor"
-                    className="h-10 px-3 border border-black/20 rounded-input text-sm text-foreground placeholder:text-muted outline-none focus:border-primary"
-                  />
-                  <p className="text-xs text-muted">Used for login. Students can log in with username if they have no email.</p>
+                    className="h-10 px-3 border border-black/20 rounded-input text-sm text-foreground placeholder:text-muted outline-none focus:border-primary" />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-sm font-semibold text-foreground">Role <span className="text-red-500">*</span></label>
                     <div className="relative">
-                      <select
-                        value={newUser.role}
-                        onChange={e => setField('role', e.target.value as NewUser['role'])}
-                        className="w-full h-10 pl-3 pr-8 border border-black/20 rounded-input text-sm text-foreground bg-white outline-none focus:border-primary appearance-none"
-                      >
+                      <select value={newUser.role} onChange={e => setNewUser(u => ({ ...u, role: e.target.value as NewUser['role'] }))}
+                        className="w-full h-10 pl-3 pr-8 border border-black/20 rounded-input text-sm text-foreground bg-white outline-none focus:border-primary appearance-none">
                         {(['Student','Teacher','Parent'] as const).map(r => <option key={r}>{r}</option>)}
                       </select>
                       <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-semibold text-foreground">Class / Dept</label>
-                    <div className="relative">
-                      <select
-                        value={newUser.class}
-                        onChange={e => setField('class', e.target.value)}
-                        className="w-full h-10 pl-3 pr-8 border border-black/20 rounded-input text-sm text-foreground bg-white outline-none focus:border-primary appearance-none"
-                      >
-                        {classes.map(c => <option key={c}>{c}</option>)}
-                      </select>
-                      <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
+                  {newUser.role === 'Student' && (
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-sm font-semibold text-foreground">Class</label>
+                      <div className="relative">
+                        <select value={classId} onChange={e => setClassId(e.target.value)}
+                          className="w-full h-10 pl-3 pr-8 border border-black/20 rounded-input text-sm text-foreground bg-white outline-none focus:border-primary appearance-none">
+                          <option value="">— Select —</option>
+                          {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                        <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-sm font-semibold text-foreground">Email Address <span className="text-muted text-xs font-normal">(optional)</span></label>
-                  <input
-                    type="email" value={newUser.email} onChange={e => setField('email', e.target.value)}
-                    placeholder="user@greenfield.edu"
-                    className="h-10 px-3 border border-black/20 rounded-input text-sm text-foreground placeholder:text-muted outline-none focus:border-primary"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-semibold text-foreground">Phone Number</label>
-                  <input
-                    type="tel" value={newUser.phone} onChange={e => setField('phone', e.target.value)}
-                    placeholder="+234 800 000 0000"
-                    className="h-10 px-3 border border-black/20 rounded-input text-sm text-foreground placeholder:text-muted outline-none focus:border-primary"
-                  />
-                </div>
-
-                {/* Credential delivery */}
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-semibold text-foreground">Send login credentials via</label>
-                  <div className="flex gap-2">
-                    {([
-                      { id: 'email', label: 'Email',    icon: Mail           },
-                      { id: 'sms',   label: 'SMS',      icon: MessageSquare  },
-                      { id: 'both',  label: 'Both',     icon: CheckCircle2   },
-                    ] as const).map(opt => {
-                      const Icon = opt.icon
-                      const active = newUser.delivery === opt.id
-                      return (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => setField('delivery', opt.id)}
-                          className={`flex-1 flex items-center justify-center gap-1.5 h-9 rounded-input border text-xs font-semibold transition-colors ${
-                            active ? 'border-primary bg-primary/8 text-primary' : 'border-black/15 text-muted hover:border-primary/40 hover:text-foreground'
-                          }`}
-                        >
-                          <Icon size={12} /> {opt.label}
-                        </button>
-                      )
-                    })}
-                  </div>
-                  <p className="text-xs text-muted">A temporary password will be auto-generated and sent to the user. They'll be prompted to change it on first login.</p>
+                  <input type="email" value={newUser.email} onChange={e => setNewUser(u => ({ ...u, email: e.target.value }))}
+                    placeholder="user@school.edu"
+                    className="h-10 px-3 border border-black/20 rounded-input text-sm text-foreground placeholder:text-muted outline-none focus:border-primary" />
+                  <p className="text-xs text-muted">An invite link will be generated. Share it with the user so they can set up their account.</p>
                 </div>
 
                 <div className="flex gap-3 pt-1">
-                  <button type="button" onClick={closeModal}
+                  <button type="button" onClick={resetModal}
                     className="h-10 px-5 border border-black/15 text-sm font-semibold text-foreground rounded-pill hover:border-primary hover:text-primary transition-colors">
                     Cancel
                   </button>
-                  <button type="submit"
-                    className="flex-1 h-10 bg-primary text-white text-sm font-semibold rounded-pill hover:bg-primary-deep transition-colors shadow-primary">
-                    Create &amp; Send Credentials
+                  <button type="submit" disabled={saving}
+                    className="flex-1 h-10 bg-primary text-white text-sm font-semibold rounded-pill hover:bg-primary-deep transition-colors shadow-primary disabled:opacity-50">
+                    {saving ? 'Creating...' : 'Create Invite Link'}
                   </button>
                 </div>
               </form>
@@ -412,7 +379,6 @@ export default function UserManagementPage({ onNavigate }: Props) {
           </div>
         </div>
       )}
-
     </DashboardLayout>
   )
 }

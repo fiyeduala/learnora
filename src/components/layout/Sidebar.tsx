@@ -68,7 +68,6 @@ export const adminNav: NavItem[] = [
   { label: 'Timetable',     icon: LayoutGrid,      page: 'timetable'            },
   { label: 'Integrations',  icon: FolderOpen,      page: 'integrations'         },
   { label: 'Announcements', icon: Megaphone,       page: 'admin-announcements'  },
-  { label: 'Messages',      icon: MessageSquare,   page: 'messages'             },
   { label: 'Roles',         icon: Shield,          page: 'roles-permissions'    },
   { label: 'Audit Logs',    icon: ScrollText,      page: 'audit-logs'           },
   { label: 'Settings',      icon: Settings,        page: 'settings'             },

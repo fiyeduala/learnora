@@ -11,9 +11,21 @@ type Props = {
   user?:        SidebarUser
 }
 
+function roleNav(role: string | undefined) {
+  const isTeacher = role === 'Teacher'
+  const isAdmin   = role === 'School Admin'
+  return {
+    notifications: role === 'Super Admin' ? 'super-notifications' : 'notifications',
+    messages:  isTeacher ? 'teacher-messages' : isAdmin ? 'teacher-messages' : 'messages',
+    calendar:  isTeacher ? 'teacher-calendar' : isAdmin ? 'timetable'        : 'calendar',
+    settings:  isTeacher ? 'teacher-settings' : isAdmin ? 'settings'         : 'settings',
+  }
+}
+
 export default function TopBar({ title, subtitle, onMenuClick, onNavigate, user }: Props) {
   const [avatarOpen, setAvatarOpen] = useState(false)
-  const nav = onNavigate ?? (() => {})
+  const nav     = onNavigate ?? (() => {})
+  const routes  = roleNav(user?.role)
 
   return (
     <header className="flex items-center gap-3 md:gap-4 px-4 md:px-8 py-4 md:py-5 bg-surface border-b border-black/6 relative z-20">
@@ -46,7 +58,7 @@ export default function TopBar({ title, subtitle, onMenuClick, onNavigate, user 
       {/* Action icons */}
       <div className="flex items-center gap-1 md:gap-2">
         <button
-          onClick={() => nav(user?.role === 'Super Admin' ? 'super-notifications' : 'notifications')}
+          onClick={() => nav(routes.notifications)}
           className="relative p-2 text-muted hover:text-foreground transition-colors"
           aria-label="Notifications"
         >
@@ -54,14 +66,14 @@ export default function TopBar({ title, subtitle, onMenuClick, onNavigate, user 
           <span className="absolute top-1.5 right-1.5 size-2 bg-red-500 rounded-full" />
         </button>
         <button
-          onClick={() => nav('messages')}
+          onClick={() => nav(routes.messages)}
           className="hidden sm:block p-2 text-muted hover:text-foreground transition-colors"
           aria-label="Messages"
         >
           <MessageSquare size={20} />
         </button>
         <button
-          onClick={() => nav('calendar')}
+          onClick={() => nav(routes.calendar)}
           className="hidden sm:block p-2 text-muted hover:text-foreground transition-colors"
           aria-label="Calendar"
         >
@@ -96,9 +108,9 @@ export default function TopBar({ title, subtitle, onMenuClick, onNavigate, user 
                 )}
                 {([
                   { label: 'View Profile', icon: User,     page: 'profile-settings', danger: false },
-                  { label: 'Settings',     icon: Settings, page: 'settings',          danger: false },
-                  { label: 'Log out',      icon: LogOut,   page: 'logout',            danger: true  },
-                ] as const).map(item => {
+                  { label: 'Settings',     icon: Settings, page: routes.settings,    danger: false },
+                  { label: 'Log out',      icon: LogOut,   page: 'logout',           danger: true  },
+                ] satisfies { label: string; icon: typeof User; page: string; danger: boolean }[]).map(item => {
                   const Icon = item.icon
                   return (
                     <button
