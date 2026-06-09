@@ -1,7 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Upload, FileText, Video, Link, BookOpen, Clock, CheckCircle2, XCircle, Filter, Plus } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 type Status = 'approved' | 'pending' | 'rejected'
@@ -39,6 +40,7 @@ const subjects = ['All', 'Physics', 'Mathematics', 'English', 'Government']
 const classes  = ['All', 'SS1A', 'SS1B', 'SS2A', 'SS2B', 'SS3A', 'SS3B']
 
 export default function TeacherResourcesPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [filter,     setFilter]     = useState<Status | 'all'>('all')
   const [subject,    setSubject]    = useState('All')
   const [showUpload, setShowUpload] = useState(false)
@@ -73,7 +75,7 @@ export default function TeacherResourcesPage({ onNavigate }: Props) {
       title="Resources"
       subtitle="Upload teaching materials to the school library — approved by admin before students can access"
       nav={teacherNav}
-      user={{ name: 'Mr Johnson', role: 'Teacher', initials: 'MJ' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="max-w-[1000px] flex flex-col gap-6">
 

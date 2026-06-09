@@ -1,7 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Shield, Check, X, Save, CheckCircle2 } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 type Role  = 'admin' | 'teacher' | 'student' | 'parent'
@@ -56,6 +57,7 @@ const defaultMatrix: Matrix = {
 }
 
 export default function RolesPermissionsPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [matrix, setMatrix] = useState<Matrix>(defaultMatrix)
   const [role,   setRole]   = useState<Role>('teacher')
   const [saved,  setSaved]  = useState(false)
@@ -71,7 +73,7 @@ export default function RolesPermissionsPage({ onNavigate }: Props) {
       title="Roles & Permissions"
       subtitle="Control what each role can access and do"
       nav={adminNav}
-      user={{ name: 'Admin Okafor', role: 'School Admin', initials: 'A' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="flex flex-col gap-5 max-w-[820px]">
 

@@ -1,5 +1,6 @@
-import { ArrowLeft, BookOpen, Calendar, AlertCircle, MessageSquare, TrendingUp, Award, Clock } from 'lucide-react'
+﻿import { ArrowLeft, BookOpen, Calendar, AlertCircle, MessageSquare, TrendingUp, Award, Clock } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -49,6 +50,7 @@ function trendIcon(t: string) {
 }
 
 export default function StudentDetailViewPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   return (
     <DashboardLayout
       activePage="students"
@@ -62,7 +64,7 @@ export default function StudentDetailViewPage({ onNavigate }: Props) {
         { label: 'Behavior',    icon: AlertCircle,  page: 'behavior-analytics' },
         { label: 'Settings',    icon: Calendar,     page: 'settings'           },
       ]}
-      user={{ name: 'Mr Johnson', role: 'Teacher', initials: 'MJ' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="flex flex-col gap-5 max-w-[920px]">
         <button onClick={() => onNavigate('students')} className="flex items-center gap-2 text-sm text-muted hover:text-foreground transition-colors w-fit">

@@ -1,6 +1,7 @@
-import { Plus, Download, Clock, ChevronRight, FileBarChart } from 'lucide-react'
+﻿import { Plus, Download, Clock, ChevronRight, FileBarChart } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -28,6 +29,7 @@ const templates = [
 ]
 
 export default function ReportPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   return (
     <DashboardLayout
       activePage="reports"
@@ -35,7 +37,7 @@ export default function ReportPage({ onNavigate }: Props) {
       title="Reports Center"
       subtitle="Generate, export and schedule academic reports"
       nav={teacherNav}
-      user={{ name: 'Daniel Johnson', role: 'Teacher', initials: 'D' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="flex flex-col gap-6 max-w-[1200px]">
 

@@ -1,7 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Plus, Trash2, Save, CheckCircle2, GripVertical, ChevronDown } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 type QType = 'mcq' | 'truefalse' | 'short'
@@ -29,6 +30,7 @@ const typeLabels: Record<QType, string> = {
 }
 
 export default function QuizBuilderPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [title,     setTitle]     = useState('Physics — End of Topic Quiz')
   const [subject,   setSubject]   = useState('Physics')
   const [timeLimit, setTimeLimit] = useState(30)
@@ -75,7 +77,7 @@ export default function QuizBuilderPage({ onNavigate }: Props) {
       title="Quiz Builder"
       subtitle="Create and configure quizzes for your students"
       nav={teacherNav}
-      user={{ name: 'Mr Johnson', role: 'Teacher', initials: 'MJ' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="flex flex-col gap-5 max-w-[820px]">
 

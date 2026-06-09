@@ -1,7 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Plus, Search, Filter, Trash2, Copy, ChevronDown } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -30,6 +31,7 @@ const diffColor: Record<string, string> = {
 }
 
 export default function QuestionBankPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [search, setSearch] = useState('')
   const [subject, setSubject] = useState('All')
 
@@ -45,7 +47,7 @@ export default function QuestionBankPage({ onNavigate }: Props) {
       title="Question Bank"
       subtitle="Manage and reuse questions across assessments"
       nav={teacherNav}
-      user={{ name: 'Daniel Johnson', role: 'Teacher', initials: 'D' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="max-w-[1000px] flex flex-col gap-6">
 

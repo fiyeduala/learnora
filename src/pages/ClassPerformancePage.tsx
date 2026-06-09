@@ -1,7 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Users, TrendingUp, Award, AlertCircle, BarChart2, ChevronDown } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -46,6 +47,7 @@ function trendIcon(trend: string) {
 }
 
 export default function ClassPerformancePage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [activeClass,   setActiveClass]   = useState('SS2A')
   const [activeSubject, setActiveSubject] = useState('Mathematics')
 
@@ -56,7 +58,7 @@ export default function ClassPerformancePage({ onNavigate }: Props) {
       title="Class Performance"
       subtitle="Subject-level analytics for your classes"
       nav={teacherNav}
-      user={{ name: 'Mr Johnson', role: 'Teacher', initials: 'MJ' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="flex flex-col gap-5">
 

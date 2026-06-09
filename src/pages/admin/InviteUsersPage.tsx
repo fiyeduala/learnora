@@ -1,7 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Plus, Trash2, Upload, Send, ChevronDown } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -10,6 +11,7 @@ type Invite = { id: number; email: string; role: string; class: string }
 let nextId = 3
 
 export default function InviteUsersPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [invites, setInvites] = useState<Invite[]>([
     { id: 1, email: '', role: 'Student', class: 'SS1A' },
     { id: 2, email: '', role: 'Student', class: 'SS1A' },
@@ -38,7 +40,7 @@ export default function InviteUsersPage({ onNavigate }: Props) {
       title="Invite Users"
       subtitle="Send email invitations to join the school platform"
       nav={adminNav}
-      user={{ name: 'Admin Okafor', role: 'School Admin', initials: 'A' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="max-w-[860px] flex flex-col gap-6">
 

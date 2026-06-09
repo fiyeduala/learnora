@@ -1,7 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { MessageSquare, HelpCircle, FileText, ChevronRight, Send, CheckCircle2 } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -22,6 +23,7 @@ const adminMessages = [
 ]
 
 export default function TeacherSupportPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [tab,     setTab]     = useState<Tab>('faq')
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [subject, setSubject] = useState('')
@@ -48,7 +50,7 @@ export default function TeacherSupportPage({ onNavigate }: Props) {
       title="Support Centre"
       subtitle="Help, FAQs and communication with admin"
       nav={teacherNav}
-      user={{ name: 'Mr Johnson', role: 'Teacher', initials: 'MJ' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="max-w-[820px] flex flex-col gap-6">
 

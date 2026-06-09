@@ -1,7 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { FileBarChart, Download, Play, ChevronDown } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -55,6 +56,7 @@ function feeStyle(val: string) {
 }
 
 export default function ReportBuilderPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [metric,    setMetric]    = useState<Metric>('grades')
   const [classFilter, setClass]   = useState('All')
   const [termFilter,  setTerm]    = useState('2025/2026')
@@ -67,7 +69,7 @@ export default function ReportBuilderPage({ onNavigate }: Props) {
       title="Report Builder"
       subtitle="Build, filter, and export custom school reports"
       nav={adminNav}
-      user={{ name: 'Admin Okafor', role: 'School Admin', initials: 'A' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="flex flex-col gap-5 max-w-[1200px]">
 

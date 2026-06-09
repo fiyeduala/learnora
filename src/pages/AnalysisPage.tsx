@@ -1,6 +1,7 @@
-import { TrendingUp, TrendingDown, Minus, Users2 } from 'lucide-react'
+﻿import { TrendingUp, TrendingDown, Minus, Users2 } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -29,6 +30,7 @@ const scoreBands = [
 ]
 
 export default function AnalysisPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   return (
     <DashboardLayout
       activePage="analytics"
@@ -36,7 +38,7 @@ export default function AnalysisPage({ onNavigate }: Props) {
       title="Academic Analysis"
       subtitle="Class performance insights and student progress"
       nav={teacherNav}
-      user={{ name: 'Daniel Johnson', role: 'Teacher', initials: 'D' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="flex flex-col gap-6 max-w-[1200px]">
 

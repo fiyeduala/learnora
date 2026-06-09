@@ -1,6 +1,7 @@
-import { TrendingUp, Users, BookOpen, Award, Download, ArrowUp, ArrowDown } from 'lucide-react'
+﻿import { TrendingUp, Users, BookOpen, Award, Download, ArrowUp, ArrowDown } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -25,6 +26,7 @@ const termTrend: TermRow[] = []
 const maxGpa = 4.0
 
 export default function SchoolAnalyticsPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   return (
     <DashboardLayout
       activePage="school-analytics"
@@ -32,7 +34,7 @@ export default function SchoolAnalyticsPage({ onNavigate }: Props) {
       title="School Analytics"
       subtitle="Academic performance overview across all classes"
       nav={adminNav}
-      user={{ name: 'Admin Okafor', role: 'School Admin', initials: 'A' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="flex flex-col gap-6">
         {/* Export button */}

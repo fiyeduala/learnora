@@ -1,7 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { FileBarChart, Users, TrendingUp, BookOpen, Download, Calendar, ChevronDown, CheckCircle2 } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -49,6 +50,7 @@ const recentReports = [
 ]
 
 export default function AdminReportsPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [selected, setSelected] = useState<ReportType>('attendance')
   const [term, setTerm] = useState(terms[0])
   const [cls, setCls] = useState(classes[0])
@@ -61,7 +63,7 @@ export default function AdminReportsPage({ onNavigate }: Props) {
       title="Reports"
       subtitle="Generate and download school reports"
       nav={adminNav}
-      user={{ name: 'Admin Okafor', role: 'School Admin', initials: 'A' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="flex flex-col gap-6 max-w-[900px]">
 

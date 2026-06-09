@@ -1,7 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { ChevronDown, Check } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -112,6 +113,7 @@ function Step3() {
 }
 
 export default function CreateAssessmentPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [currentStep, setCurrentStep] = useState(0)
 
   const stepIndex = currentStep
@@ -132,7 +134,7 @@ export default function CreateAssessmentPage({ onNavigate }: Props) {
       title="Create Assessment"
       subtitle="Set up a new assessment for grading and performance tracking."
       nav={teacherNav}
-      user={{ name: 'Daniel Johnson', role: 'Teacher', initials: 'D' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="flex justify-center">
         <div className="w-full max-w-[1088px] bg-surface rounded-card shadow-sm p-10">

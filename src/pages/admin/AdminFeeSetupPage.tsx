@@ -1,10 +1,11 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import {
   DollarSign, Building2, CreditCard, Plus, Trash2,
   CheckCircle2, Eye, EyeOff, Save, AlertCircle, Info,
 } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 type Tab = 'structure' | 'bank' | 'paystack'
@@ -28,6 +29,7 @@ function fmt(n: number) {
 }
 
 export default function AdminFeeSetupPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [tab,       setTab]       = useState<Tab>('structure')
   const [selLevel,  setSelLevel]  = useState('SS1')
   const [selTerm,   setSelTerm]   = useState('First Term')
@@ -93,7 +95,7 @@ export default function AdminFeeSetupPage({ onNavigate }: Props) {
       title="Fee Setup"
       subtitle="Configure school fees, payment accounts, and Paystack integration"
       nav={adminNav}
-      user={{ name: 'Admin Okafor', role: 'School Admin', initials: 'A' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="max-w-[820px] flex flex-col gap-6">
 

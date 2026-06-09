@@ -1,7 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Upload, File, Video, FileText, Headphones, X, CheckCircle2, ChevronDown } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 type ContentType = 'video' | 'pdf' | 'audio' | 'document'
@@ -16,6 +17,7 @@ const typeConfig: Record<ContentType, { label: string; icon: typeof Video; accep
 type UploadFile = { name: string; size: string; type: ContentType; progress: number }
 
 export default function LessonUploadPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [contentType, setContentType] = useState<ContentType>('video')
   const [title, setTitle]             = useState('')
   const [module, setModule]           = useState('Module 1: Introduction')
@@ -38,7 +40,7 @@ export default function LessonUploadPage({ onNavigate }: Props) {
       title="Upload Lesson Content"
       subtitle="Add materials to your course"
       nav={teacherNav}
-      user={{ name: 'Daniel Johnson', role: 'Teacher', initials: 'D' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="max-w-[800px] flex flex-col gap-6">
 

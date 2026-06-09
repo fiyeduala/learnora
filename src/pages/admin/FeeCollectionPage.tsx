@@ -1,10 +1,11 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import {
   Search, Filter, Download, Plus, CheckCircle2,
   AlertCircle, Clock, XCircle, ChevronDown, X, Send,
 } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -49,6 +50,7 @@ const OFFLINE_METHODS = ['Cash', 'Bank Transfer', 'Cheque', 'POS']
 function fmt(n: number) { return '₦' + n.toLocaleString('en-NG') }
 
 export default function FeeCollectionPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [search,      setSearch]      = useState('')
   const [filter,      setFilter]      = useState<PayStatus | 'All'>('All')
   const [selClass,    setSelClass]    = useState('All Classes')
@@ -100,7 +102,7 @@ export default function FeeCollectionPage({ onNavigate }: Props) {
       title="Fee Collection"
       subtitle="Track payments, record offline collections, and manage balances"
       nav={adminNav}
-      user={{ name: 'Admin Okafor', role: 'School Admin', initials: 'A' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="max-w-[1100px] flex flex-col gap-6">
 

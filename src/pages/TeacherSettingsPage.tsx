@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { User, Bell, Lock, Palette, Globe, Smartphone } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -24,6 +25,7 @@ const notifItems = [
 ]
 
 export default function TeacherSettingsPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [active, setActive]   = useState('account')
   const [name,   setName]     = useState('Mr Johnson')
   const [email,  setEmail]    = useState('johnson@school.edu.ng')
@@ -209,7 +211,7 @@ export default function TeacherSettingsPage({ onNavigate }: Props) {
       title="Settings"
       subtitle="Manage your account and preferences"
       nav={teacherNav}
-      user={{ name: 'Mr Johnson', role: 'Teacher', initials: 'MJ' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="max-w-[900px] flex flex-col md:flex-row gap-6">
 

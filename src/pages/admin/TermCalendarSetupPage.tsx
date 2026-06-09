@@ -1,7 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Calendar, Plus, Trash2, Save, CheckCircle2 } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -23,6 +24,7 @@ const initialHolidays: Holiday[] = [
 ]
 
 export default function TermCalendarSetupPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [terms,    setTerms]    = useState<Term[]>(initialTerms)
   const [holidays, setHolidays] = useState<Holiday[]>(initialHolidays)
   const [saved,    setSaved]    = useState(false)
@@ -44,7 +46,7 @@ export default function TermCalendarSetupPage({ onNavigate }: Props) {
       title="Term & Calendar Setup"
       subtitle="Configure academic terms and school holidays"
       nav={adminNav}
-      user={{ name: 'Admin Okafor', role: 'School Admin', initials: 'A' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="max-w-[820px] flex flex-col gap-6">
 

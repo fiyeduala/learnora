@@ -1,7 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Users, BookOpen, BarChart2, Plus, ChevronLeft } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -15,6 +16,7 @@ const roster: RosterEntry[] = []
 const content: ContentEntry[] = []
 
 export default function ClassDetailsPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [tab, setTab] = useState<Tab>('roster')
 
   return (
@@ -24,7 +26,7 @@ export default function ClassDetailsPage({ onNavigate }: Props) {
       title="Class Details"
       subtitle="Physics 101 — SS1A · 32 students"
       nav={teacherNav}
-      user={{ name: 'Daniel Johnson', role: 'Teacher', initials: 'D' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="max-w-[1100px] flex flex-col gap-6">
 

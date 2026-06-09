@@ -1,7 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Megaphone, Search, ChevronRight, Pin, Plus } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -21,6 +22,7 @@ const categoryColor: Record<string, string> = {
 }
 
 export default function TeacherAnnouncementsPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [search, setSearch] = useState('')
 
   const filtered = announcements.filter(a =>
@@ -35,7 +37,7 @@ export default function TeacherAnnouncementsPage({ onNavigate }: Props) {
       title="Announcements"
       subtitle="School notices from administration"
       nav={teacherNav}
-      user={{ name: 'Mr Johnson', role: 'Teacher', initials: 'MJ' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="max-w-[860px] flex flex-col gap-6">
 

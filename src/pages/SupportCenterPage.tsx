@@ -1,7 +1,8 @@
-import { MessageSquare, AlertTriangle, BookOpen, Lightbulb, ChevronDown, Search } from 'lucide-react'
+﻿import { MessageSquare, AlertTriangle, BookOpen, Lightbulb, ChevronDown, Search } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
 import { useState } from 'react'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -45,6 +46,7 @@ const faqs = [
 ]
 
 export default function SupportCenterPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [openFaq, setOpenFaq] = useState<number | null>(null)
 
   return (
@@ -54,7 +56,7 @@ export default function SupportCenterPage({ onNavigate }: Props) {
       title="Support Center"
       subtitle="Get help, access resources, report issues, and find answers to common questions."
       nav={teacherNav}
-      user={{ name: 'Daniel Johnson', role: 'Teacher', initials: 'D' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="flex flex-col gap-6 max-w-[1300px]">
 

@@ -1,7 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Megaphone, Plus, Search, ChevronRight, Pin, Send, X, CheckCircle2, Users, BookOpen, User } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 type Audience = 'school-wide' | 'students' | 'teachers' | 'parents' | 'class'
@@ -31,6 +32,7 @@ const audienceLabel: Record<string, string> = {
 const classes = ['SS1A','SS1B','SS2A','SS2B','SS3A','SS3B','JSS1','JSS2','JSS3']
 
 export default function AdminAnnouncementsPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [search,    setSearch]    = useState('')
   const [showCompose, setShowCompose] = useState(false)
   const [sent,      setSent]      = useState(false)
@@ -77,7 +79,7 @@ export default function AdminAnnouncementsPage({ onNavigate }: Props) {
       title="Announcements"
       subtitle="Send school-wide notices to students, teachers, and parents"
       nav={adminNav}
-      user={{ name: 'Admin Okafor', role: 'School Admin', initials: 'A' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="max-w-[900px] flex flex-col gap-6">
 

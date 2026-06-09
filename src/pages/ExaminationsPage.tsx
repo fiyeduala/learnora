@@ -1,6 +1,7 @@
-import { Plus, Search } from 'lucide-react'
+﻿import { Plus, Search } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -23,6 +24,7 @@ const actionStyle: Record<string, string> = {
 }
 
 export default function ExaminationsPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   return (
     <DashboardLayout
       activePage="examinations"
@@ -30,7 +32,7 @@ export default function ExaminationsPage({ onNavigate }: Props) {
       title="Examinations"
       subtitle="Manage assessments and track student submissions"
       nav={teacherNav}
-      user={{ name: 'Daniel Johnson', role: 'Teacher', initials: 'D' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="flex flex-col gap-6 max-w-[1200px]">
 

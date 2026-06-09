@@ -1,7 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { CheckCircle2, ExternalLink, RefreshCw, AlertCircle } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -37,6 +38,7 @@ const statusStyle: Record<string, string> = {
 }
 
 export default function AdminIntegrationsPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [items,    setItems]    = useState(integrations)
   const [category, setCategory] = useState('All')
 
@@ -57,7 +59,7 @@ export default function AdminIntegrationsPage({ onNavigate }: Props) {
       title="Integrations"
       subtitle="Connect third-party tools to your school"
       nav={adminNav}
-      user={{ name: 'Admin Okafor', role: 'School Admin', initials: 'A' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="flex flex-col gap-5">
 

@@ -1,6 +1,7 @@
-import { CheckCircle2, ChevronRight, CreditCard, RefreshCw } from 'lucide-react'
+﻿import { CheckCircle2, ChevronRight, CreditCard, RefreshCw } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -16,6 +17,7 @@ const planFeatures = [
 ]
 
 export default function SubscriptionBillingPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   return (
     <DashboardLayout
       activePage="subscription"
@@ -23,7 +25,7 @@ export default function SubscriptionBillingPage({ onNavigate }: Props) {
       title="Subscription & Billing"
       subtitle="Manage your school's Learnora subscription"
       nav={adminNav}
-      user={{ name: 'Admin Okafor', role: 'School Admin', initials: 'A' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="max-w-[900px] flex flex-col gap-6">
 

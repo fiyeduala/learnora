@@ -1,7 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Video, Plus, Play, Clock, Users, Calendar, Mic, MicOff } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -26,6 +27,7 @@ const subjectColor: Record<string, string> = {
 }
 
 export default function TeacherLiveClassesPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [tab, setTab] = useState<'upcoming' | 'recordings'>('upcoming')
 
   const liveClass = myClasses.find(c => c.status === 'live')
@@ -38,7 +40,7 @@ export default function TeacherLiveClassesPage({ onNavigate }: Props) {
       title="Live Classes"
       subtitle="Manage and host your live teaching sessions"
       nav={teacherNav}
-      user={{ name: 'Mr Johnson', role: 'Teacher', initials: 'MJ' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="max-w-[1000px] flex flex-col gap-6">
 

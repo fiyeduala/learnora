@@ -1,7 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Search, Download, CheckCircle2, ChevronDown, Save } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -53,6 +54,7 @@ const classes  = ['SS2A', 'SS1A', 'SS2B', 'SS3A']
 const subjects = ['Mathematics', 'Physics', 'English', 'Government']
 
 export default function GradeBookPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [students, setStudents] = useState<StudentRow[]>(initStudents)
   const [search,   setSearch]   = useState('')
   const [saved,    setSaved]    = useState(false)
@@ -99,7 +101,7 @@ export default function GradeBookPage({ onNavigate }: Props) {
       title="Gradebook"
       subtitle="Enter and track scores by category for each student"
       nav={teacherNav}
-      user={{ name: 'Mr Johnson', role: 'Teacher', initials: 'MJ' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="flex flex-col gap-5 max-w-[1200px]">
 

@@ -1,11 +1,13 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Save, CheckCircle2, Upload, Globe, Mail, Phone, Building2 } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
 export default function SchoolSystemSettingsPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [saved, setSaved] = useState(false)
 
   const [school, setSchool] = useState({
@@ -39,7 +41,7 @@ export default function SchoolSystemSettingsPage({ onNavigate }: Props) {
       title="School Settings"
       subtitle="Manage your school's profile, branding, and system configuration"
       nav={adminNav}
-      user={{ name: 'Admin Okafor', role: 'School Admin', initials: 'A' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="max-w-[760px] flex flex-col gap-6">
 

@@ -1,7 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { CreditCard, CheckCircle2, AlertCircle, Save, ExternalLink } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -12,6 +13,7 @@ const gateways = [
 ]
 
 export default function PaymentIntegrationPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [active,    setActive]    = useState('paystack')
   const [pubKey,    setPubKey]    = useState('pk_live_...')
   const [secKey,    setSecKey]    = useState('sk_live_...')
@@ -26,7 +28,7 @@ export default function PaymentIntegrationPage({ onNavigate }: Props) {
       title="Payment Integration"
       subtitle="Configure your school's payment gateway"
       nav={adminNav}
-      user={{ name: 'Admin Okafor', role: 'School Admin', initials: 'A' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="max-w-[720px] flex flex-col gap-6">
 

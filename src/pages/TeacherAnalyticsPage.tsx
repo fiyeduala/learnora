@@ -1,6 +1,7 @@
-import { Users, TrendingUp, Award, BookOpen, BarChart2, AlertCircle } from 'lucide-react'
+﻿import { Users, TrendingUp, Award, BookOpen, BarChart2, AlertCircle } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -30,6 +31,7 @@ const subjectAvgs = [
 const gradingQueue = 14
 
 export default function TeacherAnalyticsPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const totalStudents = classStats.reduce((s, c) => s + c.students, 0)
   const overallAvg    = Math.round(classStats.reduce((s, c) => s + c.avgGrade, 0) / classStats.length)
   const totalAtRisk   = classStats.reduce((s, c) => s + c.atRisk, 0)
@@ -41,7 +43,7 @@ export default function TeacherAnalyticsPage({ onNavigate }: Props) {
       title="My Analytics"
       subtitle="Performance overview across all your classes"
       nav={teacherNav}
-      user={{ name: 'Mr Johnson', role: 'Teacher', initials: 'MJ' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="flex flex-col gap-5">
 

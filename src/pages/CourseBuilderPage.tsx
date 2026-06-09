@@ -1,7 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Plus, GripVertical, Trash2, ChevronDown, Eye } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -10,6 +11,7 @@ type Module = { id: number; title: string; lessons: string[] }
 let nextId = 3
 
 export default function CourseBuilderPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [courseTitle, setCourseTitle] = useState('Physics 101')
   const [description, setDescription] = useState('')
   const [modules, setModules] = useState<Module[]>([
@@ -40,7 +42,7 @@ export default function CourseBuilderPage({ onNavigate }: Props) {
       title="Course Builder"
       subtitle="Build and organise your course content"
       nav={teacherNav}
-      user={{ name: 'Daniel Johnson', role: 'Teacher', initials: 'D' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="max-w-[900px] flex flex-col gap-6">
 

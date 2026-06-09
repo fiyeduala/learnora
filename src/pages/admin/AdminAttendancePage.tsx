@@ -1,7 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Users, ChevronDown, Search, Download, TrendingDown, CheckCircle2, XCircle, Clock } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -35,6 +36,7 @@ const statusStyle: Record<string, string> = {
 const terms = ['Term 1, 2025/2026', 'Term 2, 2025/2026', 'Term 3, 2024/2025']
 
 export default function AdminAttendancePage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [tab,            setTab]            = useState<'overview' | 'students'>('overview')
   const [term,           setTerm]           = useState(terms[0])
   const [search,         setSearch]         = useState('')
@@ -58,7 +60,7 @@ export default function AdminAttendancePage({ onNavigate }: Props) {
       title="Attendance Records"
       subtitle="School-wide attendance by class and student"
       nav={adminNav}
-      user={{ name: 'Admin Okafor', role: 'School Admin', initials: 'A' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="max-w-[1200px] flex flex-col gap-6">
 

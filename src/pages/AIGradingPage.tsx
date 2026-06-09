@@ -1,7 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Send, Upload, Mic, Sparkles } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -23,6 +24,7 @@ const recentChats = [
 type Message = { role: 'user' | 'ai'; text: string }
 
 export default function AIGradingPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
 
@@ -48,7 +50,7 @@ export default function AIGradingPage({ onNavigate }: Props) {
       title="Learnova AI Review"
       subtitle="AI analyzed this assignment and generated grading suggestions"
       nav={teacherNav}
-      user={{ name: 'Daniel Johnson', role: 'Teacher', initials: 'D' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="flex flex-col gap-5 max-w-[1200px]">
 

@@ -1,7 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { ArrowLeft, MessageSquare, FileBarChart, Bell, Download } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -82,6 +83,7 @@ function LineChart({ points }: { points: number[] }) {
 }
 
 export default function StudentProfilePage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [activeTab, setActiveTab] = useState<Tab>('Monthly')
 
   return (
@@ -91,7 +93,7 @@ export default function StudentProfilePage({ onNavigate }: Props) {
       title="Students"
       subtitle="Manage and monitor student performance and activity."
       nav={teacherNav}
-      user={{ name: 'Daniel Johnson', role: 'Teacher', initials: 'D' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="flex flex-col gap-6 max-w-[1400px]">
 

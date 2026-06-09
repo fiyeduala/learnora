@@ -1,7 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Plus, Save, ChevronDown } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -44,6 +45,7 @@ const seedGrid: Grid = {
 }
 
 export default function TimetableManagementPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [cls,   setCls]   = useState(classes[0])
   const [grid,  setGrid]  = useState<Grid>(seedGrid)
   const [saved, setSaved] = useState(false)
@@ -63,7 +65,7 @@ export default function TimetableManagementPage({ onNavigate }: Props) {
       title="Timetable Management"
       subtitle="Manage class schedules across all periods"
       nav={adminNav}
-      user={{ name: 'Admin Okafor', role: 'School Admin', initials: 'A' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="flex flex-col gap-5">
         {/* Controls */}

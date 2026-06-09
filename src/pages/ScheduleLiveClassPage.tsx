@@ -1,7 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Video, CheckCircle2 } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -11,6 +12,7 @@ const durations = ['30 minutes', '45 minutes', '60 minutes', '90 minutes']
 const platforms = ['Built-in (Learnora Live)', 'Zoom', 'Google Meet']
 
 export default function ScheduleLiveClassPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [done, setDone] = useState(false)
   const [form, setForm] = useState({
     title: '', subject: subjects[0], cls: classes[0],
@@ -29,7 +31,7 @@ export default function ScheduleLiveClassPage({ onNavigate }: Props) {
         onNavigate={onNavigate}
         title="Class Scheduled"
         nav={teacherNav}
-        user={{ name: 'Daniel Johnson', role: 'Teacher', initials: 'D' }}
+        user={profileToSidebarUser(profile)}
       >
         <div className="flex flex-col items-center justify-center min-h-[55vh] text-center px-4">
           <div className="size-24 rounded-full bg-green-50 flex items-center justify-center mb-6">
@@ -67,7 +69,7 @@ export default function ScheduleLiveClassPage({ onNavigate }: Props) {
       title="Schedule Live Class"
       subtitle="Set up an upcoming live session for your students"
       nav={teacherNav}
-      user={{ name: 'Daniel Johnson', role: 'Teacher', initials: 'D' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="max-w-[680px] flex flex-col gap-6">
 

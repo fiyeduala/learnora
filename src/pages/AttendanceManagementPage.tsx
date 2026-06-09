@@ -1,7 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { CheckCircle2, XCircle, Clock, ChevronDown, Save } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 type Status = 'present' | 'absent' | 'late' | null
@@ -15,6 +16,7 @@ const students = [
 const classes = ['Physics 101 · SS1A', 'Mathematics · SS2B', 'Physics 101 · SS3A']
 
 export default function AttendanceManagementPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [selectedClass, setSelectedClass] = useState(classes[0])
   const [attendance, setAttendance] = useState<Record<string, Status>>({})
   const [saved, setSaved] = useState(false)
@@ -42,7 +44,7 @@ export default function AttendanceManagementPage({ onNavigate }: Props) {
       title="Attendance"
       subtitle="Record and manage class attendance"
       nav={teacherNav}
-      user={{ name: 'Daniel Johnson', role: 'Teacher', initials: 'D' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="max-w-[900px] flex flex-col gap-6">
 

@@ -1,7 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { HelpCircle, MessageSquare, FileText, ChevronRight, Send, CheckCircle2, Search } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 type Tab = 'faq' | 'messages' | 'contact'
@@ -45,6 +46,7 @@ const teacherMessages: Record<string, Message[]> = {
 }
 
 export default function AdminSupportPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [tab,      setTab]      = useState<Tab>('faq')
   const [openFaq,  setOpenFaq]  = useState<number | null>(null)
   const [thread,   setThread]   = useState<Thread>(null)
@@ -78,7 +80,7 @@ export default function AdminSupportPage({ onNavigate }: Props) {
       title="Support Centre"
       subtitle="Help, FAQs, and messaging with Learnora and your teachers"
       nav={adminNav}
-      user={{ name: 'Admin Okafor', role: 'School Admin', initials: 'A' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="max-w-[860px] flex flex-col gap-6">
 

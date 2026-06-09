@@ -1,7 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Award, CheckCircle2, Clock, AlertCircle, Eye, Globe, X } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -51,6 +52,7 @@ function Modal({ onClose, title, children }: { onClose: () => void; title: strin
 }
 
 export default function AdminResultsPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [classes,    setClasses]    = useState<ClassResult[]>(initialClasses)
   const [reviewing,  setReviewing]  = useState<ClassResult | null>(null)
   const [publishing, setPublishing] = useState<ClassResult | null>(null)
@@ -85,7 +87,7 @@ export default function AdminResultsPage({ onNavigate }: Props) {
       title="Results Management"
       subtitle="Review and publish end-of-term results"
       nav={adminNav}
-      user={{ name: 'Admin Okafor', role: 'School Admin', initials: 'A' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="max-w-[1100px] flex flex-col gap-6">
 

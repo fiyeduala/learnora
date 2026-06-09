@@ -1,7 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { ChevronDown, Save, CheckCircle2, Download } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -34,6 +35,7 @@ function gradeTag(score: number | null) {
 }
 
 export default function BulkGradePage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [assignment, setAssignment] = useState('Physics — Lab Report: Gravity')
   const [totalMarks, setTotalMarks] = useState(30)
   const [rows, setRows] = useState<StudentRow[]>(initialRows)
@@ -56,7 +58,7 @@ export default function BulkGradePage({ onNavigate }: Props) {
       title="Bulk Grade"
       subtitle="Enter scores for all students in one go"
       nav={teacherNav}
-      user={{ name: 'Mr Johnson', role: 'Teacher', initials: 'MJ' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="flex flex-col gap-5 max-w-[860px]">
 

@@ -1,7 +1,8 @@
-import { AlertTriangle, CheckCircle2, TrendingDown, Users, ChevronRight, Flag } from 'lucide-react'
+﻿import { AlertTriangle, CheckCircle2, TrendingDown, Users, ChevronRight, Flag } from 'lucide-react'
 import { useState } from 'react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 
 type Props   = { onNavigate: (page: string) => void }
 type Risk    = 'high' | 'medium' | 'low'
@@ -32,6 +33,7 @@ const riskIcon: Record<Risk, typeof AlertTriangle> = {
 }
 
 export default function BehaviorAnalyticsPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [filter, setFilter] = useState<Risk | 'all'>('all')
 
   const filtered = filter === 'all' ? students : students.filter(s => s.risk === filter)
@@ -47,7 +49,7 @@ export default function BehaviorAnalyticsPage({ onNavigate }: Props) {
       title="At-Risk Students"
       subtitle="Behavior analytics and early-warning flags"
       nav={teacherNav}
-      user={{ name: 'Daniel Johnson', role: 'Teacher', initials: 'D' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="flex flex-col gap-5">
 

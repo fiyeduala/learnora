@@ -1,6 +1,7 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Plus, Trash2, Save, CheckCircle2, BookOpen, ChevronDown } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -46,6 +47,7 @@ const initLessons: Lesson[] = [
 ]
 
 export default function LessonPlannerPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [lessons,  setLessons]  = useState<Lesson[]>(initLessons)
   const [expanded, setExpanded] = useState<number | null>(1)
   const [saved,    setSaved]    = useState(false)
@@ -86,7 +88,7 @@ export default function LessonPlannerPage({ onNavigate }: Props) {
         { label: 'Planner',    icon: BookOpen, page: 'lesson-planner'    },
         { label: 'Settings',   icon: BookOpen, page: 'settings'          },
       ]}
-      user={{ name: 'Mr Johnson', role: 'Teacher', initials: 'MJ' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="flex flex-col gap-5 max-w-[840px]">
 

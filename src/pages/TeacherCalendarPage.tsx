@@ -1,7 +1,8 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { ChevronLeft, ChevronRight, Plus, Video, FileText, ClipboardCheck, Calendar } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -48,6 +49,7 @@ const monthName = 'June 2026'
 const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 export default function TeacherCalendarPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
   const [selectedDay, setSelectedDay] = useState<number | null>(today)
   const [view, setView] = useState<'month' | 'week'>('month')
 
@@ -61,7 +63,7 @@ export default function TeacherCalendarPage({ onNavigate }: Props) {
       title="Calendar"
       subtitle="Your teaching schedule and upcoming events"
       nav={teacherNav}
-      user={{ name: 'Mr Johnson', role: 'Teacher', initials: 'MJ' }}
+      user={profileToSidebarUser(profile)}
     >
       <div className="flex flex-col gap-5 max-w-[1100px]">
 
