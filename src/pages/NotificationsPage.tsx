@@ -1,23 +1,25 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Bell, CheckCircle2, AlertCircle, BookOpen, DollarSign,
   Video, Megaphone, UserPlus, Clock, Check,
 } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
-import { studentNav } from '../components/layout/Sidebar'
+import { teacherNav, adminNav, studentNav } from '../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 
 type Props = { onNavigate: (page: string) => void }
+type NType = 'fee' | 'assignment' | 'grade' | 'announcement' | 'live' | 'system' | 'invite' | 'general'
+type Filter = 'All' | 'Unread' | 'Fee' | 'Assignments' | 'Grades' | 'Announcements'
 
-type NType = 'fee' | 'assignment' | 'grade' | 'announcement' | 'live' | 'system' | 'invite'
-
-type Notif = {
-  id:    number
+interface Notif {
+  id:    string
   type:  NType
   title: string
   body:  string
   time:  string
   read:  boolean
-  page?: string
+  link?: string | null
 }
 
 const iconMap: Record<NType, { icon: typeof Bell; bg: string; color: string }> = {
@@ -27,23 +29,9 @@ const iconMap: Record<NType, { icon: typeof Bell; bg: string; color: string }> =
   announcement: { icon: Megaphone,    bg: 'bg-primary/10', color: 'text-primary'   },
   live:         { icon: Video,        bg: 'bg-red-50',     color: 'text-red-500'   },
   system:       { icon: AlertCircle,  bg: 'bg-canvas',     color: 'text-muted'     },
+  general:      { icon: Bell,         bg: 'bg-canvas',     color: 'text-muted'     },
   invite:       { icon: UserPlus,     bg: 'bg-teal-50',    color: 'text-teal-600'  },
 }
-
-const initNotifs: Notif[] = [
-  { id: 1,  type: 'fee',          title: 'School Fee Due',             body: '₦17,500 outstanding for Second Term 2025/2026. Due Jun 30, 2026.',                  time: '2 hr ago',   read: false, page: 'parent/fees'         },
-  { id: 2,  type: 'live',         title: 'Live Class Starting',        body: 'Physics 101 (SS1A) with Mr. Daniel is starting in 10 minutes.',                    time: '4 hr ago',   read: false, page: 'live-classes'        },
-  { id: 3,  type: 'assignment',   title: 'New Assignment Posted',      body: 'Algebra Quiz due tomorrow. Class: SS1A Mathematics.',                               time: 'Yesterday',  read: false, page: 'assignments'         },
-  { id: 4,  type: 'grade',        title: 'Assignment Graded',          body: 'Your Physics Report was graded: 87/100. View your feedback.',                      time: 'Yesterday',  read: true,  page: 'gradebook'           },
-  { id: 5,  type: 'announcement', title: 'School Announcement',        body: 'End-of-term examination timetable has been released. Check the calendar.',         time: '2 days ago', read: true,  page: 'announcements'       },
-  { id: 6,  type: 'system',       title: 'Password Changed',           body: "Your Learnora account password was changed. If this wasn't you, contact support.", time: '3 days ago', read: true                              },
-  { id: 7,  type: 'grade',        title: 'Term Report Ready',          body: 'Your Second Term 2025/2026 report card is now available.',                         time: '4 days ago', read: true,  page: 'academic-history'    },
-  { id: 8,  type: 'assignment',   title: 'Submission Deadline Passed', body: 'Chemistry Notes (SS3A) deadline passed. 32/32 students submitted.',                time: '5 days ago', read: true,  page: 'teacher-assignments' },
-  { id: 9,  type: 'invite',       title: 'Parent Joined',              body: 'Mr. Olive Johnson accepted the invite and joined as a parent.',                    time: '1 week ago', read: true,  page: 'user-management'     },
-  { id: 10, type: 'announcement', title: 'Platform Maintenance',       body: 'Learnora will undergo scheduled maintenance Jun 14, 02:00–04:00 WAT.',             time: '1 week ago', read: true                              },
-]
-
-type Filter = 'All' | 'Unread' | 'Fee' | 'Assignments' | 'Grades' | 'Announcements'
 
 const filterTypes: Record<Filter, NType[] | null> = {
   'All':           null,
@@ -54,24 +42,77 @@ const filterTypes: Record<Filter, NType[] | null> = {
   'Announcements': ['announcement', 'live'],
 }
 
+function fmtNotifTime(iso: string) {
+  const d   = new Date(iso)
+  const now = new Date()
+  const diffMs   = now.getTime() - d.getTime()
+  const diffHrs  = diffMs / (1000 * 60 * 60)
+  const diffDays = diffMs / (1000 * 60 * 60 * 24)
+  if (diffHrs  <  1) return 'Just now'
+  if (diffHrs  < 24) return `${Math.floor(diffHrs)} hr ago`
+  if (diffDays <  2) return 'Yesterday'
+  if (diffDays <  7) return `${Math.floor(diffDays)} days ago`
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+}
+
 export default function NotificationsPage({ onNavigate }: Props) {
-  const [notifs, setNotifs] = useState<Notif[]>(initNotifs)
-  const [filter, setFilter] = useState<Filter>('All')
+  const { profile }  = useAuth()
+  const sidebarUser  = profileToSidebarUser(profile)
 
-  const unreadCount = notifs.filter(n => !n.read).length
+  const [notifs,   setNotifs]   = useState<Notif[]>([])
+  const [loading,  setLoading]  = useState(true)
+  const [filter,   setFilter]   = useState<Filter>('All')
 
-  function markRead(id: number) {
-    setNotifs(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
+  const nav = profile?.role === 'teacher'  ? teacherNav
+            : profile?.role === 'admin'    ? adminNav
+            : studentNav
+
+  useEffect(() => { if (profile?.id) loadNotifs() }, [profile?.id])
+
+  async function loadNotifs() {
+    setLoading(true)
+    const { data } = await supabase
+      .from('notifications')
+      .select('id, title, body, type, read, link, created_at')
+      .eq('user_id', profile!.id)
+      .order('created_at', { ascending: false })
+      .limit(50)
+
+    setNotifs((data ?? []).map((n: {
+      id: string; title: string; body: string | null; type: string | null
+      read: boolean | null; link: string | null; created_at: string
+    }) => ({
+      id:    n.id,
+      type:  (n.type as NType) ?? 'general',
+      title: n.title,
+      body:  n.body ?? '',
+      time:  fmtNotifTime(n.created_at),
+      read:  n.read ?? false,
+      link:  n.link,
+    })))
+    setLoading(false)
   }
 
-  function markAllRead() {
+  async function markRead(id: string) {
+    setNotifs(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
+    await supabase.from('notifications').update({ read: true }).eq('id', id)
+  }
+
+  async function markAllRead() {
     setNotifs(prev => prev.map(n => ({ ...n, read: true })))
+    await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('user_id', profile!.id)
+      .eq('read', false)
   }
 
   function handleClick(n: Notif) {
-    markRead(n.id)
-    if (n.page) onNavigate(n.page)
+    if (!n.read) markRead(n.id)
+    if (n.link) onNavigate(n.link)
   }
+
+  const unreadCount = notifs.filter(n => !n.read).length
 
   const visible = notifs.filter(n => {
     if (filter === 'Unread') return !n.read
@@ -85,12 +126,11 @@ export default function NotificationsPage({ onNavigate }: Props) {
       onNavigate={onNavigate}
       title="Notifications"
       subtitle={unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
-      nav={studentNav}
-      user={{ name: 'Olive Princely', role: 'Student', initials: 'O' }}
+      nav={nav}
+      user={sidebarUser}
     >
       <div className="max-w-[720px] flex flex-col gap-4">
 
-        {/* Controls */}
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex gap-1 bg-canvas rounded-card p-1 overflow-x-auto">
             {(['All', 'Unread', 'Fee', 'Assignments', 'Grades', 'Announcements'] as Filter[]).map(f => (
@@ -111,8 +151,11 @@ export default function NotificationsPage({ onNavigate }: Props) {
           )}
         </div>
 
-        {/* List */}
-        {visible.length === 0 ? (
+        {loading ? (
+          <div className="bg-surface rounded-card shadow-sm p-12 text-center">
+            <p className="text-sm text-muted">Loading…</p>
+          </div>
+        ) : visible.length === 0 ? (
           <div className="bg-surface rounded-card shadow-sm p-12 text-center">
             <Bell size={32} className="text-muted mx-auto mb-3 opacity-40" />
             <p className="text-sm text-muted">No notifications here.</p>
@@ -121,7 +164,7 @@ export default function NotificationsPage({ onNavigate }: Props) {
           <div className="bg-surface rounded-card shadow-sm overflow-hidden">
             <div className="divide-y divide-black/4">
               {visible.map(n => {
-                const meta = iconMap[n.type]
+                const meta = iconMap[n.type] ?? iconMap.general
                 const Icon = meta.icon
                 return (
                   <div key={n.id} onClick={() => handleClick(n)}
@@ -142,7 +185,7 @@ export default function NotificationsPage({ onNavigate }: Props) {
                         </div>
                       </div>
                       <p className="text-xs text-muted mt-0.5 leading-relaxed">{n.body}</p>
-                      {n.page && <p className="text-xs text-primary font-semibold mt-1.5">Tap to view →</p>}
+                      {n.link && <p className="text-xs text-primary font-semibold mt-1.5">Tap to view →</p>}
                     </div>
                   </div>
                 )

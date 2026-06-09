@@ -1,102 +1,147 @@
-import { ArrowLeft, Pin, Paperclip, Calendar, User, Download } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { ArrowLeft, Paperclip, Calendar, User, AlertCircle } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
+import { teacherNav } from '../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 
 type Props = { onNavigate: (page: string) => void }
 
-const announcement = {
-  title: 'Second Term Examination Schedule — 2025/2026',
-  category: 'Examinations',
-  categoryColor: 'bg-red-50 text-red-600',
-  author: 'Admin Okafor',
-  authorRole: 'School Admin',
-  date: 'June 5, 2026',
-  pinned: true,
-  audience: 'All Students & Parents',
-  body: `Dear Students and Parents,
-
-The Second Term Examinations for the 2025/2026 academic session are scheduled to commence on Monday, June 15, 2026, and will run through Friday, June 26, 2026.
-
-All students are required to report to school by 7:45 AM on each examination day. Late arrivals will not be granted additional time.
-
-Please note the following important guidelines:
-
-1. Students must bring their examination ID cards to every paper.
-2. Calculators are permitted only in Mathematics, Physics, and Further Mathematics papers.
-3. Mobile phones and electronic devices are strictly prohibited in the examination hall.
-4. Students should come prepared with two blue or black ballpoint pens, pencils, and a ruler.
-5. The examination timetable has been attached to this announcement — please review it carefully.
-
-Parents are advised to ensure their wards are well-rested and arrive on time. For any concerns, please contact the school admin office via the messaging feature.
-
-We wish all students the very best as they prepare. Study hard and remain focused!
-
-Warm regards,
-School Administration
-Greenfield Academy`,
-  attachments: [
-    { name: 'Exam_Timetable_Term2_2026.pdf', size: '312 KB' },
-    { name: 'Exam_Guidelines.pdf', size: '95 KB' },
-  ],
+interface AnnouncementData {
+  id:         string
+  title:      string
+  body:       string
+  authorName: string
+  authorRole: string
+  date:       string
+  audience:   string
 }
 
-const categoryMap: Record<string, string> = {
-  Examinations: 'bg-red-50 text-red-600',
-  Assignments: 'bg-amber-50 text-amber-600',
-  General: 'bg-primary/10 text-primary',
-  Events: 'bg-accent-mint/10 text-accent-mint',
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+function audienceLabel(roles: string[] | null) {
+  if (!roles?.length) return 'All'
+  return roles.map(r => r.charAt(0).toUpperCase() + r.slice(1) + 's').join(', ')
 }
 
 export default function AnnouncementDetailsPage({ onNavigate }: Props) {
-  const catColor = categoryMap[announcement.category] ?? 'bg-canvas text-muted'
+  const { profile }     = useAuth()
+  const sidebarUser     = profileToSidebarUser(profile)
+
+  const [ann,     setAnn]     = useState<AnnouncementData | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  const isTeacher = profile?.role === 'teacher'
+  const backPage  = isTeacher ? 'teacher-announcements' : 'announcements'
+
+  useEffect(() => { if (profile?.id) loadAnnouncement() }, [profile?.id])
+
+  async function loadAnnouncement() {
+    setLoading(true)
+    let annId = localStorage.getItem('learnora_selected_announcement')
+
+    if (!annId && profile?.school_id) {
+      const { data: latest } = await supabase
+        .from('announcements')
+        .select('id')
+        .eq('school_id', profile.school_id)
+        .order('published_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (latest) annId = (latest as { id: string }).id
+    }
+
+    if (!annId) { setLoading(false); return }
+
+    const { data } = await supabase
+      .from('announcements')
+      .select('id, title, body, published_at, target_roles, profiles!author_id(full_name, role)')
+      .eq('id', annId)
+      .maybeSingle()
+
+    if (!data) { setLoading(false); return }
+
+    const raw = data as unknown as {
+      id: string; title: string; body: string | null
+      published_at: string | null; target_roles: string[] | null
+      profiles: { full_name: string | null; role: string | null } | null
+    }
+
+    setAnn({
+      id:         raw.id,
+      title:      raw.title,
+      body:       raw.body ?? '',
+      authorName: raw.profiles?.full_name ?? 'School Admin',
+      authorRole: raw.profiles?.role
+        ? raw.profiles.role.charAt(0).toUpperCase() + raw.profiles.role.slice(1)
+        : 'Admin',
+      date:       raw.published_at ? fmtDate(raw.published_at) : '—',
+      audience:   audienceLabel(raw.target_roles),
+    })
+    setLoading(false)
+  }
+
+  if (loading) {
+    return (
+      <DashboardLayout activePage="announcements" onNavigate={onNavigate} title="Announcement"
+        nav={isTeacher ? teacherNav : undefined} user={sidebarUser}>
+        <p className="text-sm text-muted py-8">Loading…</p>
+      </DashboardLayout>
+    )
+  }
+
+  if (!ann) {
+    return (
+      <DashboardLayout activePage="announcements" onNavigate={onNavigate} title="Announcement"
+        nav={isTeacher ? teacherNav : undefined} user={sidebarUser}>
+        <div className="flex flex-col items-center gap-4 py-16 text-center">
+          <AlertCircle size={32} className="text-muted opacity-40" />
+          <p className="text-sm text-muted">Announcement not found.</p>
+          <button onClick={() => onNavigate(backPage)}
+            className="h-10 px-5 bg-primary text-white text-sm font-semibold rounded-pill">
+            Back to Announcements
+          </button>
+        </div>
+      </DashboardLayout>
+    )
+  }
 
   return (
-    <DashboardLayout activePage="announcements" onNavigate={onNavigate} title="Announcement">
+    <DashboardLayout activePage="announcements" onNavigate={onNavigate} title="Announcement"
+      nav={isTeacher ? teacherNav : undefined} user={sidebarUser}>
       <div className="max-w-[780px] flex flex-col gap-5">
         <button
-          onClick={() => onNavigate('announcements')}
+          onClick={() => onNavigate(backPage)}
           className="flex items-center gap-2 text-sm text-muted hover:text-foreground transition-colors w-fit"
         >
           <ArrowLeft size={16} /> Back to Announcements
         </button>
 
-        {/* Header */}
         <div className="bg-surface rounded-card shadow-sm p-6">
-          <div className="flex items-start justify-between gap-4 mb-4">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className={`text-xs font-semibold px-3 py-1 rounded-full ${catColor}`}>
-                {announcement.category}
-              </span>
-              {announcement.pinned && (
-                <span className="flex items-center gap-1 text-xs font-semibold text-primary bg-primary/10 px-3 py-1 rounded-full">
-                  <Pin size={10} /> Pinned
-                </span>
-              )}
-            </div>
-          </div>
-
-          <h1 className="text-xl font-bold text-foreground leading-snug mb-4">{announcement.title}</h1>
+          <h1 className="text-xl font-bold text-foreground leading-snug mb-4">{ann.title}</h1>
 
           <div className="flex flex-wrap items-center gap-4 pb-4 border-b border-black/6">
             <div className="flex items-center gap-2 text-sm text-muted">
               <div className="size-7 rounded-full bg-primary/10 flex items-center justify-center">
                 <User size={13} className="text-primary" />
               </div>
-              <span className="font-medium text-foreground">{announcement.author}</span>
+              <span className="font-medium text-foreground">{ann.authorName}</span>
               <span>·</span>
-              <span>{announcement.authorRole}</span>
+              <span>{ann.authorRole}</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-muted">
               <Calendar size={13} />
-              <span>{announcement.date}</span>
+              <span>{ann.date}</span>
             </div>
             <div className="text-sm text-muted">
-              <span>To: <span className="font-medium text-foreground">{announcement.audience}</span></span>
+              <span>To: <span className="font-medium text-foreground">{ann.audience}</span></span>
             </div>
           </div>
 
-          {/* Body */}
           <div className="mt-5">
-            {announcement.body.split('\n\n').map((para, i) => (
+            {ann.body.split('\n\n').map((para, i) => (
               <p key={i} className="text-sm text-foreground leading-relaxed mb-4 last:mb-0 whitespace-pre-line">
                 {para}
               </p>
@@ -104,30 +149,13 @@ export default function AnnouncementDetailsPage({ onNavigate }: Props) {
           </div>
         </div>
 
-        {/* Attachments */}
-        {announcement.attachments.length > 0 && (
-          <div className="bg-surface rounded-card shadow-sm p-6">
-            <h2 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
-              <Paperclip size={14} className="text-muted" /> Attachments
-            </h2>
-            <div className="flex flex-col gap-2">
-              {announcement.attachments.map((a, i) => (
-                <div key={i} className="flex items-center gap-3 bg-canvas rounded-card px-4 py-3">
-                  <div className="size-9 rounded-card bg-primary/10 flex items-center justify-center shrink-0">
-                    <Paperclip size={14} className="text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">{a.name}</p>
-                    <p className="text-xs text-muted">{a.size}</p>
-                  </div>
-                  <button className="flex items-center gap-1.5 h-8 px-3 bg-primary/10 text-primary text-xs font-semibold rounded-full hover:bg-primary/20 transition-colors">
-                    <Download size={12} /> Download
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Attachment placeholder — no storage table yet */}
+        <div className="bg-surface rounded-card shadow-sm p-5">
+          <p className="text-sm font-bold text-foreground mb-2 flex items-center gap-2">
+            <Paperclip size={14} className="text-muted" /> Attachments
+          </p>
+          <p className="text-xs text-muted">No attachments for this announcement.</p>
+        </div>
       </div>
     </DashboardLayout>
   )
