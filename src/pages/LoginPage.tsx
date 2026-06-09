@@ -139,6 +139,7 @@ export default function LoginPage({ onNavigate }: Props) {
 
               <button
                 type="button"
+                onClick={() => onNavigate('forgot-password')}
                 className="text-sm font-normal text-foreground hover:text-primary transition-colors"
               >
                 Forgot password?

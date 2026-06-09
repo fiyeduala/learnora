@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import AuthHeroPanel from '../components/auth/AuthHeroPanel'
+import { supabase } from '../lib/supabase'
 
 type Role = 'student' | 'teacher' | 'parent' | ''
 type Props = { onNavigate: (page: string) => void }
@@ -16,6 +17,7 @@ export default function SignUpPage({ onNavigate }: Props) {
   const [inviteCode, setInviteCode] = useState('')
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [loading, setLoading] = useState(false)
 
   const roles: { value: Role; label: string }[] = [
     { value: 'student', label: 'Student' },
@@ -41,9 +43,15 @@ export default function SignUpPage({ onNavigate }: Props) {
             Join thousands of learners on Learnora
           </p>
 
+          {errors.general && (
+            <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+              {errors.general}
+            </div>
+          )}
+
           <form
             className="flex flex-col gap-5"
-            onSubmit={e => {
+            onSubmit={async e => {
               e.preventDefault()
               const errs: Record<string, string> = {}
               if (!fullName.trim())                        errs.fullName = 'Full name is required'
@@ -54,7 +62,22 @@ export default function SignUpPage({ onNavigate }: Props) {
               if (!acceptedTerms)                          errs.terms    = 'You must accept the terms to continue'
               if (Object.keys(errs).length) { setErrors(errs); return }
               setErrors({})
-              onNavigate('otp-verify')
+              setLoading(true)
+              try {
+                const { error } = await supabase.auth.signUp({
+                  email,
+                  password,
+                  options: { data: { full_name: fullName } },
+                })
+                if (error) { setErrors({ general: error.message }); return }
+                // Email confirmation is disabled — session is live immediately.
+                // Store the intended role & invite code for CompleteProfilePage to pick up.
+                localStorage.setItem('learnora_pending_role', role)
+                if (inviteCode.trim()) localStorage.setItem('learnora_pending_invite', inviteCode.trim())
+                onNavigate('role-select')
+              } finally {
+                setLoading(false)
+              }
             }}
           >
             {/* Full name */}
@@ -250,14 +273,16 @@ export default function SignUpPage({ onNavigate }: Props) {
             {/* Primary CTA */}
             <button
               type="submit"
+              disabled={loading}
               className="
                 w-full h-14 bg-primary text-white text-base font-bold
                 rounded-pill border border-white
                 hover:bg-primary-deep transition-colors shadow-primary
                 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary
+                disabled:opacity-60 disabled:cursor-not-allowed
               "
             >
-              Create Account
+              {loading ? 'Creating account…' : 'Create Account'}
             </button>
 
             {/* Log in link */}

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useAuth } from '../../contexts/AuthContext'
 import {
   LayoutDashboard,
   BookOpen,
@@ -134,6 +135,7 @@ export default function Sidebar({
   onClose,
   showClose,
 }: Props) {
+  const { signOut } = useAuth()
   const [logoutOpen, setLogoutOpen] = useState(false)
 
   function handleNavClick(page: string) {
@@ -206,7 +208,7 @@ export default function Sidebar({
         confirmLabel="Log out"
         cancelLabel="Stay"
         danger
-        onConfirm={() => { setLogoutOpen(false); onNavigate('login') }}
+        onConfirm={async () => { setLogoutOpen(false); await signOut(); onNavigate('login') }}
         onCancel={() => setLogoutOpen(false)}
       />
     </>
