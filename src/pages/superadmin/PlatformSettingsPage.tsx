@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Globe, Mail, Bell, Shield, Wrench, AlertTriangle, Save } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { superAdminNav } from '../../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -25,6 +26,8 @@ function ToggleRow({ label, description, value, onChange }: {
 }
 
 export default function PlatformSettingsPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
+  const sidebarUser  = profileToSidebarUser(profile)
   const [platformName, setPlatformName] = useState('Learnora')
   const [supportEmail, setSupportEmail] = useState('support@learnora.io')
   const [fromName, setFromName] = useState('Learnora Platform')
@@ -52,7 +55,7 @@ export default function PlatformSettingsPage({ onNavigate }: Props) {
       title="Platform Settings"
       subtitle="Configure global platform behaviour and preferences"
       nav={superAdminNav}
-      user={{ name: 'Learnora Admin', role: 'Super Admin', initials: 'LA' }}
+      user={sidebarUser}
     >
       <div className="max-w-[760px] flex flex-col gap-6">
 

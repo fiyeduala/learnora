@@ -1,6 +1,7 @@
 import { TrendingUp, Download, ArrowUp, Users, Building2, CreditCard, AlertCircle } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { superAdminNav } from '../../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -35,6 +36,8 @@ const statusStyle: Record<InvStatus, string> = {
 const fmt = (n: number) => '₦' + n.toLocaleString('en-NG')
 
 export default function PlatformBillingPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
+  const sidebarUser  = profileToSidebarUser(profile)
   return (
     <DashboardLayout
       activePage="platform-billing"
@@ -42,7 +45,7 @@ export default function PlatformBillingPage({ onNavigate }: Props) {
       title="Platform Billing"
       subtitle="Per-student, per-term revenue and payment history"
       nav={superAdminNav}
-      user={{ name: 'Learnora Admin', role: 'Super Admin', initials: 'LA' }}
+      user={sidebarUser}
     >
       <div className="flex flex-col gap-6 max-w-[1200px]">
 

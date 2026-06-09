@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Search, Shield, Download, User, Settings, FileText, Trash2, LogIn } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
-import { adminNav } from '../../components/layout/Sidebar'
+import { adminNav, superAdminNav } from '../../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -25,6 +26,9 @@ const typeStyle: Record<string, { color: string; Icon: typeof Shield }> = {
 }
 
 export default function AuditLogsPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
+  const sidebarUser  = profileToSidebarUser(profile)
+  const isSuperAdmin = profile?.role === 'super_admin'
   const [query, setQuery] = useState('')
 
   const filtered = query
@@ -33,12 +37,12 @@ export default function AuditLogsPage({ onNavigate }: Props) {
 
   return (
     <DashboardLayout
-      activePage="settings"
+      activePage="audit-logs"
       onNavigate={onNavigate}
       title="Audit Logs"
       subtitle="Full history of admin and system actions"
-      nav={adminNav}
-      user={{ name: 'Admin Okafor', role: 'School Admin', initials: 'A' }}
+      nav={isSuperAdmin ? superAdminNav : adminNav}
+      user={sidebarUser}
     >
       <div className="flex flex-col gap-5">
         <div className="flex items-center gap-3 flex-wrap">

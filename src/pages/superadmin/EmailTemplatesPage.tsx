@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Mail, Edit2, Save, CheckCircle2, ChevronRight, Eye } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { superAdminNav } from '../../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -73,6 +74,8 @@ const categoryColors: Record<string, string> = {
 }
 
 export default function EmailTemplatesPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
+  const sidebarUser  = profileToSidebarUser(profile)
   const [selected, setSelected] = useState<Template>(templates[0])
   const [editing,  setEditing]  = useState(false)
   const [body,     setBody]     = useState(selected.body)
@@ -104,7 +107,7 @@ export default function EmailTemplatesPage({ onNavigate }: Props) {
       title="Email Templates"
       subtitle="Manage transactional and notification emails"
       nav={superAdminNav}
-      user={{ name: 'Learnora Admin', role: 'Super Admin', initials: 'LA' }}
+      user={sidebarUser}
     >
       <div className="flex gap-5 h-[calc(100vh-160px)] min-h-0">
 

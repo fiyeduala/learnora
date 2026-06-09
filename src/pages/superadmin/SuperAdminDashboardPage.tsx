@@ -1,19 +1,54 @@
+import { useState, useEffect } from 'react'
 import { AlertCircle, ChevronRight, Plus } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { superAdminNav } from '../../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
+import { supabase } from '../../lib/supabase'
 
 type Props = { onNavigate: (page: string) => void }
 
-const stats = [
-  { label: 'MRR',            value: '—', change: '+12%',  color: 'text-primary'   },
-  { label: 'Active Schools', value: '—', change: '+8',    color: 'text-accent-mint'},
-  { label: 'Total Students', value: '—', change: '+1,204',color: 'text-foreground' },
-  { label: 'Churn Rate',     value: '—', change: '-0.3%', color: 'text-green-600' },
-]
+interface School {
+  id: string
+  name: string
+  state: string | null
+  subscription_plan: string
+  subscription_status: string
+  student_count: number
+  created_at: string
+}
 
-const recentSchools: { name: string; location: string; plan: string; students: number; mrr: string; status: string }[] = []
+function fmtStatus(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
 
 export default function SuperAdminDashboardPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
+  const sidebarUser  = profileToSidebarUser(profile)
+  const [schools,  setSchools]  = useState<School[]>([])
+  const [loading,  setLoading]  = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      const { data } = await supabase
+        .from('schools')
+        .select('id, name, state, subscription_plan, subscription_status, student_count, created_at')
+        .order('created_at', { ascending: false })
+      setSchools((data as School[]) ?? [])
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  const activeSchools = schools.filter(s => s.subscription_status === 'active').length
+  const totalStudents = schools.reduce((sum, s) => sum + (s.student_count ?? 0), 0)
+
+  const stats = [
+    { label: 'MRR',            value: '—',                   color: 'text-primary'    },
+    { label: 'Active Schools', value: loading ? '…' : String(activeSchools), color: 'text-accent-mint' },
+    { label: 'Total Students', value: loading ? '…' : totalStudents.toLocaleString(), color: 'text-foreground' },
+    { label: 'Churn Rate',     value: '—',                   color: 'text-green-600'  },
+  ]
+
   return (
     <DashboardLayout
       activePage="super-dashboard"
@@ -21,7 +56,7 @@ export default function SuperAdminDashboardPage({ onNavigate }: Props) {
       title="Platform Dashboard"
       subtitle="Learnora — All Schools Overview"
       nav={superAdminNav}
-      user={{ name: 'Learnora Admin', role: 'Super Admin', initials: 'LA' }}
+      user={sidebarUser}
     >
       <div className="max-w-[1300px] flex flex-col gap-6">
 
@@ -31,17 +66,8 @@ export default function SuperAdminDashboardPage({ onNavigate }: Props) {
             <div key={s.label} className="bg-surface rounded-card shadow-sm p-5">
               <p className={`text-3xl font-bold ${s.color}`}>{s.value}</p>
               <p className="text-sm text-muted mt-1">{s.label}</p>
-              <p className={`text-xs font-semibold mt-1 ${s.change.startsWith('+') ? 'text-green-600' : s.change.startsWith('-') && s.label === 'Churn Rate' ? 'text-green-600' : 'text-red-500'}`}>
-                {s.change} this month
-              </p>
             </div>
           ))}
-        </div>
-
-        {/* Alert */}
-        <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-card px-5 py-3.5 text-sm">
-          <AlertCircle size={16} className="text-amber-600 shrink-0" />
-          <p className="text-foreground">Unity Academy subscription is suspended due to missed payment. <button onClick={() => onNavigate('schools-list')} className="text-primary font-semibold hover:underline">View details</button></p>
         </div>
 
         {/* Schools table */}
@@ -61,39 +87,45 @@ export default function SuperAdminDashboardPage({ onNavigate }: Props) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-black/6 bg-canvas/40">
-                  {['School', 'Location', 'Plan', 'Students', 'MRR', 'Status'].map(h => (
+                  {['School', 'Location', 'Plan', 'Students', 'Status'].map(h => (
                     <th key={h} className="text-left px-6 py-3 text-xs font-semibold text-muted uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {recentSchools.length === 0 ? (
+                {loading ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-10 text-center text-sm text-muted">No data yet.</td>
+                    <td colSpan={5} className="px-6 py-10 text-center text-sm text-muted">Loading…</td>
                   </tr>
-                ) : recentSchools.map((s, i) => (
-                  <tr key={i} className="border-b border-black/4 last:border-0 hover:bg-canvas/40 transition-colors cursor-pointer" onClick={() => onNavigate('school-detail')}>
-                    <td className="px-6 py-3.5">
-                      <div className="flex items-center gap-3">
-                        <div className="size-8 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">{s.name.charAt(0)}</div>
-                        <span className="font-medium text-foreground">{s.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-3.5 text-muted">{s.location}</td>
-                    <td className="px-6 py-3.5">
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${s.plan === 'Professional' ? 'bg-primary/10 text-primary' : 'bg-canvas text-muted border border-black/10'}`}>{s.plan}</span>
-                    </td>
-                    <td className="px-6 py-3.5 text-foreground">{s.students.toLocaleString()}</td>
-                    <td className="px-6 py-3.5 font-semibold text-foreground">{s.mrr}</td>
-                    <td className="px-6 py-3.5">
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-xs ${
-                        s.status === 'Active' ? 'bg-green-50 text-green-700' :
-                        s.status === 'Trial'  ? 'bg-amber-50 text-amber-700' :
-                        'bg-red-50 text-red-600'
-                      }`}>{s.status}</span>
-                    </td>
+                ) : schools.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-10 text-center text-sm text-muted">No schools yet.</td>
                   </tr>
-                ))}
+                ) : schools.slice(0, 10).map(s => {
+                  const displayStatus = fmtStatus(s.subscription_status)
+                  return (
+                    <tr key={s.id} className="border-b border-black/4 last:border-0 hover:bg-canvas/40 transition-colors cursor-pointer" onClick={() => onNavigate('school-detail')}>
+                      <td className="px-6 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <div className="size-8 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">{s.name.charAt(0)}</div>
+                          <span className="font-medium text-foreground">{s.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-3.5 text-muted">{s.state ?? '—'}</td>
+                      <td className="px-6 py-3.5">
+                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full capitalize ${s.subscription_plan === 'professional' ? 'bg-primary/10 text-primary' : 'bg-canvas text-muted border border-black/10'}`}>{s.subscription_plan}</span>
+                      </td>
+                      <td className="px-6 py-3.5 text-foreground">{s.student_count.toLocaleString()}</td>
+                      <td className="px-6 py-3.5">
+                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                          displayStatus === 'Active' ? 'bg-green-50 text-green-700' :
+                          displayStatus === 'Trial'  ? 'bg-amber-50 text-amber-700' :
+                          'bg-red-50 text-red-600'
+                        }`}>{displayStatus}</span>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

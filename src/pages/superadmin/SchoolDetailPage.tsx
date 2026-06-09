@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { superAdminNav } from '../../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 type Tab = 'overview' | 'students' | 'finance' | 'modules' | 'actions' | 'support'
@@ -188,6 +189,8 @@ function Modal({ onClose, children, width = 'max-w-[480px]' }: { onClose: () => 
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function SchoolDetailPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
+  const sidebarUser  = profileToSidebarUser(profile)
   const [tab,           setTab]          = useState<Tab>('overview')
   const [moduleStates,  setModuleStates] = useState<Record<string, boolean>>(
     Object.fromEntries(allModules.map(m => [m.name, m.enabled]))
@@ -280,7 +283,7 @@ export default function SchoolDetailPage({ onNavigate }: Props) {
       onNavigate={onNavigate}
       title="School Dashboard"
       nav={superAdminNav}
-      user={{ name: 'Learnora Admin', role: 'Super Admin', initials: 'LA' }}
+      user={sidebarUser}
     >
       <div className="flex flex-col gap-5 max-w-[1100px]">
 

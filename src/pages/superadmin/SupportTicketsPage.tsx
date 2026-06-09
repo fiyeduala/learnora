@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Search, MessageSquare, Clock, CheckCircle2, AlertCircle, ChevronRight } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { superAdminNav } from '../../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 type Status = 'all' | 'open' | 'in-progress' | 'resolved'
@@ -45,6 +46,8 @@ const tabs: { id: Status; label: string }[] = [
 ]
 
 export default function SupportTicketsPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
+  const sidebarUser  = profileToSidebarUser(profile)
   const [filter, setFilter] = useState<Status>('all')
   const [query, setQuery] = useState('')
 
@@ -65,7 +68,7 @@ export default function SupportTicketsPage({ onNavigate }: Props) {
       title="Support Tickets"
       subtitle="School support requests and issue tracking"
       nav={superAdminNav}
-      user={{ name: 'Learnora Admin', role: 'Super Admin', initials: 'LA' }}
+      user={sidebarUser}
     >
       <div className="flex flex-col gap-5">
 

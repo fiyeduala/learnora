@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Megaphone, Send, Users, Building2, CheckCircle2, Clock, Filter } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { superAdminNav } from '../../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -35,6 +36,8 @@ const AUDIENCE_OPTIONS: { value: Audience; label: string; desc: string }[] = [
 ]
 
 export default function BroadcastPage({ onNavigate: _onNavigate }: Props) {
+  const { profile } = useAuth()
+  const sidebarUser  = profileToSidebarUser(profile)
   const [tab, setTab]           = useState<'compose' | 'sent'>('compose')
   const [title, setTitle]       = useState('')
   const [body, setBody]         = useState('')
@@ -79,7 +82,7 @@ export default function BroadcastPage({ onNavigate: _onNavigate }: Props) {
       title="Broadcast"
       subtitle="Send platform-wide announcements to schools"
       nav={superAdminNav}
-      user={{ name: 'Learnora Admin', role: 'Super Admin', initials: 'LA' }}
+      user={sidebarUser}
     >
       <div className="max-w-[900px] flex flex-col gap-5">
 

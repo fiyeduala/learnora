@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { superAdminNav } from '../../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -33,6 +34,8 @@ const initNotifs: Notif[] = []
 type Filter = 'All' | 'Unread' | 'Schools' | 'Billing' | 'System'
 
 export default function SuperAdminNotificationsPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
+  const sidebarUser  = profileToSidebarUser(profile)
   const [notifs, setNotifs] = useState<Notif[]>(initNotifs)
   const [filter, setFilter] = useState<Filter>('All')
 
@@ -72,7 +75,7 @@ export default function SuperAdminNotificationsPage({ onNavigate }: Props) {
       title="Notifications"
       subtitle={unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
       nav={superAdminNav}
-      user={{ name: 'Learnora Admin', role: 'Super Admin', initials: 'LA' }}
+      user={sidebarUser}
     >
       <div className="max-w-[720px] flex flex-col gap-4">
 

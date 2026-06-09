@@ -1,6 +1,7 @@
 import { Building2, Users, Activity, BookOpen, ArrowUp, Download } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { superAdminNav } from '../../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -23,6 +24,8 @@ const maxSchools = 150
 const maxMau = 100
 
 export default function PlatformAnalyticsPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
+  const sidebarUser  = profileToSidebarUser(profile)
   return (
     <DashboardLayout
       activePage="platform-analytics"
@@ -30,7 +33,7 @@ export default function PlatformAnalyticsPage({ onNavigate }: Props) {
       title="Platform Analytics"
       subtitle="Platform-wide usage, growth, and engagement"
       nav={superAdminNav}
-      user={{ name: 'Learnora Admin', role: 'Super Admin', initials: 'LA' }}
+      user={sidebarUser}
     >
       <div className="flex flex-col gap-6">
 

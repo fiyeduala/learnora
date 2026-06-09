@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Flag, Search, Save, CheckCircle2 } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { superAdminNav } from '../../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -30,6 +31,8 @@ const initialFlags: FeatureFlag[] = [
 const categories = ['All', 'AI', 'LMS', 'Analytics', 'Engagement', 'Finance', 'Auth', 'Settings']
 
 export default function FeatureFlagsPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
+  const sidebarUser  = profileToSidebarUser(profile)
   const [flags,    setFlags]    = useState<FeatureFlag[]>(initialFlags)
   const [query,    setQuery]    = useState('')
   const [category, setCategory] = useState('All')
@@ -52,7 +55,7 @@ export default function FeatureFlagsPage({ onNavigate }: Props) {
       title="Feature Flags"
       subtitle="Toggle platform features globally or per school"
       nav={superAdminNav}
-      user={{ name: 'Learnora Admin', role: 'Super Admin', initials: 'LA' }}
+      user={sidebarUser}
     >
       <div className="flex flex-col gap-5">
 

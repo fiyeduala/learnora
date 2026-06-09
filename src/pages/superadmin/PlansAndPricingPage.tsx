@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Check, Pencil, Save, Info, Users, Building2, X } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { superAdminNav } from '../../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -88,6 +89,8 @@ function calcExample(tiers: Tier['volumeTiers'], count: number): number {
 }
 
 export default function PlansAndPricingPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
+  const sidebarUser  = profileToSidebarUser(profile)
   const [plans,   setPlans]   = useState<Tier[]>(defaultTiers)
   const [editing, setEditing] = useState<string | null>(null)
   const [exCount, setExCount] = useState(250)
@@ -115,7 +118,7 @@ export default function PlansAndPricingPage({ onNavigate }: Props) {
       title="Plans & Pricing"
       subtitle="Per-student, per-term subscription tiers"
       nav={superAdminNav}
-      user={{ name: 'Learnora Admin', role: 'Super Admin', initials: 'LA' }}
+      user={sidebarUser}
     >
       <div className="max-w-[1200px] flex flex-col gap-6">
 

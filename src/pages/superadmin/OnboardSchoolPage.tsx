@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { CheckCircle2, ChevronRight } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { superAdminNav } from '../../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -20,6 +21,8 @@ const plans = [
 ]
 
 export default function OnboardSchoolPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
+  const sidebarUser  = profileToSidebarUser(profile)
   const [step, setStep] = useState<Step>('school')
   const [plan, setPlan] = useState('professional')
   const [done, setDone] = useState(false)
@@ -39,7 +42,7 @@ export default function OnboardSchoolPage({ onNavigate }: Props) {
         onNavigate={onNavigate}
         title="School Onboarded"
         nav={superAdminNav}
-        user={{ name: 'Learnora Admin', role: 'Super Admin', initials: 'LA' }}
+        user={sidebarUser}
       >
         <div className="max-w-[500px] text-center mt-10">
           <div className="size-16 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-6">
@@ -67,7 +70,7 @@ export default function OnboardSchoolPage({ onNavigate }: Props) {
       title="Onboard New School"
       subtitle="Add a new school to the Learnora platform"
       nav={superAdminNav}
-      user={{ name: 'Learnora Admin', role: 'Super Admin', initials: 'LA' }}
+      user={sidebarUser}
     >
       <div className="max-w-[700px] flex flex-col gap-8">
 
