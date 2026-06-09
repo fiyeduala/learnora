@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { ChevronLeft, ChevronRight, Moon, Sun, Bell, Shield, User, HelpCircle, LogOut } from 'lucide-react'
 import MobileLayout, { studentMobileNav } from '../../components/layout/MobileLayout'
+import { useAuth } from '../../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
 export default function MobileStudentSettingsPage({ onNavigate }: Props) {
+  const { signOut }  = useAuth()
   const [darkMode, setDarkMode] = useState(() => document.documentElement.getAttribute('data-theme') === 'dark')
 
   function toggleDark() {
@@ -83,7 +85,7 @@ export default function MobileStudentSettingsPage({ onNavigate }: Props) {
 
         {/* Sign out */}
         <button
-          onClick={() => onNavigate('login')}
+          onClick={() => signOut()}
           className="w-full h-12 border border-red-200 text-red-500 text-sm font-bold rounded-2xl hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
         >
           <LogOut size={15} /> Sign Out

@@ -24,7 +24,6 @@ interface Payment {
   items:  string
 }
 
-const schoolBank = { name: 'GTBank', acct: '0123456789', acctName: 'School Account' }
 function fmt(n: number) { return '₦' + n.toLocaleString('en-NG') }
 
 export default function SchoolFeesPage({ onNavigate }: Props) {
@@ -39,6 +38,7 @@ export default function SchoolFeesPage({ onNavigate }: Props) {
   const [feeItems,    setFeeItems]    = useState<FeeItem[]>([])
   const [payments,    setPayments]    = useState<Payment[]>([])
   const [nearestDue,  setNearestDue]  = useState<string | null>(null)
+  const [schoolBank,  setSchoolBank]  = useState({ name: '', acct: '', acctName: '' })
 
   useEffect(() => { if (profile?.id) loadFees() }, [profile?.id])
 
@@ -60,7 +60,7 @@ export default function SchoolFeesPage({ onNavigate }: Props) {
 
     if (!childId) { setLoading(false); return }
 
-    const [profileRes, enrollRes, invoiceRes, paymentRes] = await Promise.all([
+    const [profileRes, enrollRes, invoiceRes, paymentRes, settingsRes] = await Promise.all([
       supabase.from('profiles').select('full_name').eq('id', childId).maybeSingle(),
       supabase.from('class_enrollments')
         .select('classes(name)')
@@ -74,6 +74,10 @@ export default function SchoolFeesPage({ onNavigate }: Props) {
       supabase.from('payments')
         .select('invoice_id, amount, paystack_reference, paystack_status, paid_at')
         .eq('student_id', childId),
+      supabase.from('school_settings')
+        .select('bank_name, account_number, account_name')
+        .eq('school_id', schoolId)
+        .maybeSingle(),
     ])
 
     if (profileRes.data) {
@@ -124,6 +128,10 @@ export default function SchoolFeesPage({ onNavigate }: Props) {
       .map(inv => inv.due_date!)
       .sort()
     setNearestDue(unpaidDues[0] ?? null)
+
+    const s = settingsRes.data as { bank_name: string | null; account_number: string | null; account_name: string | null } | null
+    if (s) setSchoolBank({ name: s.bank_name ?? '', acct: s.account_number ?? '', acctName: s.account_name ?? '' })
+
     setLoading(false)
   }
 

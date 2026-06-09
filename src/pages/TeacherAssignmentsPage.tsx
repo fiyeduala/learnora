@@ -56,6 +56,7 @@ export default function TeacherAssignmentsPage({ onNavigate }: Props) {
       .from('assignments')
       .select('id, title, due_date, class_id, classes(name)')
       .eq('teacher_id', teacherId)
+      .eq('school_id', profile!.school_id)
       .order('created_at', { ascending: false })
 
     const rawAssign = (aData ?? []) as unknown as {

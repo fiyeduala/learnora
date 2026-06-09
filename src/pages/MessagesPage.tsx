@@ -63,6 +63,7 @@ export default function MessagesPage({ onNavigate }: Props) {
       .from('conversation_members')
       .select('conversation_id')
       .eq('user_id', userId)
+      .eq('school_id', profile!.school_id)
 
     const convIds = (memberData ?? []).map((m: { conversation_id: string }) => m.conversation_id)
     if (!convIds.length) { setLoadingConvs(false); return }

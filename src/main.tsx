@@ -5,15 +5,18 @@ import './index.css'
 import App from './App.tsx'
 import { ToastProvider } from './components/shared/Toast.tsx'
 import { AuthProvider } from './contexts/AuthContext.tsx'
+import ErrorBoundary from './components/shared/ErrorBoundary.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter>
-      <AuthProvider>
-        <ToastProvider>
-          <App />
-        </ToastProvider>
-      </AuthProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AuthProvider>
+          <ToastProvider>
+            <App />
+          </ToastProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   </StrictMode>,
 )

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { ChevronLeft, TrendingUp } from 'lucide-react'
 import MobileLayout, { parentMobileNav } from '../../components/layout/MobileLayout'
 import { supabase } from '../../lib/supabase'
+import { useAuth } from '../../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -28,18 +29,24 @@ function BarChart({ scores }: { scores: number[] }) {
 }
 
 export default function ParentProgressPage({ onNavigate }: Props) {
+  const { profile }  = useAuth()
   const [childName,  setChildName]  = useState('Child')
   const [className,  setClassName]  = useState('')
   const [subjects,   setSubjects]   = useState<SubjectStat[]>([])
   const [avgGPA,     setAvgGPA]     = useState<number | null>(null)
   const [loading,    setLoading]    = useState(true)
 
-  useEffect(() => { loadProgress() }, [])
+  useEffect(() => { if (profile?.school_id) loadProgress() }, [profile?.school_id])
 
   async function loadProgress() {
     setLoading(true)
     const childId = localStorage.getItem('learnora_selected_child')
     if (!childId) { setLoading(false); return }
+
+    // Guard: verify child belongs to this school
+    const { data: childCheck } = await supabase
+      .from('profiles').select('id').eq('id', childId).eq('school_id', profile!.school_id).maybeSingle()
+    if (!childCheck) { setLoading(false); return }
 
     const [profileRes, enrollRes, gradeRes] = await Promise.all([
       supabase.from('profiles').select('full_name').eq('id', childId).maybeSingle(),
