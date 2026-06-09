@@ -1,26 +1,35 @@
 import { useState } from 'react'
 import { Eye, EyeOff, CheckCircle2 } from 'lucide-react'
 import AuthHeroPanel from '../components/auth/AuthHeroPanel'
+import { supabase } from '../lib/supabase'
 
 type Props = { onNavigate: (page: string) => void }
 
 export default function ResetPasswordPage({ onNavigate }: Props) {
-  const [password, setPassword] = useState('')
-  const [confirm, setConfirm] = useState('')
-  const [showPw, setShowPw] = useState(false)
+  const [password,    setPassword]    = useState('')
+  const [confirm,     setConfirm]     = useState('')
+  const [showPw,      setShowPw]      = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
-  const [done, setDone] = useState(false)
+  const [done,        setDone]        = useState(false)
+  const [loading,     setLoading]     = useState(false)
+  const [error,       setError]       = useState('')
 
   const rules = [
-    { label: 'At least 8 characters',        met: password.length >= 8 },
-    { label: 'One uppercase letter',          met: /[A-Z]/.test(password) },
-    { label: 'One number',                    met: /\d/.test(password) },
-    { label: 'Passwords match',               met: confirm.length > 0 && password === confirm },
+    { label: 'At least 8 characters', met: password.length >= 8 },
+    { label: 'One uppercase letter',  met: /[A-Z]/.test(password) },
+    { label: 'One number',            met: /\d/.test(password) },
+    { label: 'Passwords match',       met: confirm.length > 0 && password === confirm },
   ]
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (rules.every(r => r.met)) setDone(true)
+    if (!rules.every(r => r.met)) return
+    setLoading(true)
+    setError('')
+    const { error: err } = await supabase.auth.updateUser({ password })
+    setLoading(false)
+    if (err) { setError(err.message); return }
+    setDone(true)
   }
 
   return (
@@ -96,12 +105,14 @@ export default function ResetPasswordPage({ onNavigate }: Props) {
                   ))}
                 </div>
 
+                {error && <p className="text-sm text-red-500">{error}</p>}
+
                 <button
                   type="submit"
-                  disabled={!rules.every(r => r.met)}
+                  disabled={!rules.every(r => r.met) || loading}
                   className="h-14 bg-primary text-white text-base font-semibold rounded-pill hover:bg-primary-deep transition-colors shadow-primary disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Reset Password
+                  {loading ? 'Updating…' : 'Reset Password'}
                 </button>
               </form>
             </>

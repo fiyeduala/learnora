@@ -32,10 +32,10 @@
 | LoginPage | Sign in form | ✅ | `signIn()` → role-routes correctly | `profiles` | — |
 | SchoolSignUpPage | School + admin registration | ✅ | Creates school + auth user + profile | `schools`, `profiles` | — |
 | InviteAcceptancePage | Accept invite link | ✅ | signUp → update profile → enroll | `invitations`, `profiles`, `class_enrollments` | — |
-| ForgotPasswordPage | Send reset email | ❌ | `supabase.auth.resetPasswordForEmail()` | auth only | 🔴 MVP |
-| ResetPasswordPage | Set new password | ❌ | `supabase.auth.updateUser({ password })` | auth only | 🔴 MVP |
+| ForgotPasswordPage | Send reset email | ✅ | `supabase.auth.resetPasswordForEmail()` | auth only | 🔴 MVP |
+| ResetPasswordPage | Set new password | ✅ | `supabase.auth.updateUser({ password })` | auth only | 🔴 MVP |
 | OTPVerificationPage | OTP check | ❌ | `supabase.auth.verifyOtp()` | auth only | 🟡 Soon |
-| CompleteProfilePage | Save profile on first login | ❌ | UPDATE profiles (full_name, phone, avatar) | `profiles` | 🔴 MVP |
+| CompleteProfilePage | Save profile on first login | ✅ | UPDATE profiles (full_name, phone) | `profiles` | 🔴 MVP |
 | ProfileSettingsPage | Edit name/phone/bio | ❌ | UPDATE profiles | `profiles` | 🟡 Soon |
 | NotificationSettingsPage | Toggle preferences | ❌ | Upsert user prefs (no table yet — add `notification_preferences` col to profiles or new table) | `profiles` | ⚪ Later |
 | SecuritySettingsPage | Change password | ❌ | `supabase.auth.updateUser({ password })` | auth only | 🟡 Soon |

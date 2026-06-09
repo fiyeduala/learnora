@@ -1,15 +1,25 @@
 import { useState } from 'react'
 import { Mail } from 'lucide-react'
 import AuthHeroPanel from '../components/auth/AuthHeroPanel'
+import { supabase } from '../lib/supabase'
 
 type Props = { onNavigate: (page: string) => void }
 
 export default function ForgotPasswordPage({ onNavigate }: Props) {
-  const [email, setEmail] = useState('')
-  const [sent, setSent] = useState(false)
+  const [email,   setEmail]   = useState('')
+  const [sent,    setSent]    = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error,   setError]   = useState('')
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setLoading(true)
+    setError('')
+    const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + '/reset-password',
+    })
+    setLoading(false)
+    if (err) { setError(err.message); return }
     setSent(true)
   }
 
@@ -30,16 +40,16 @@ export default function ForgotPasswordPage({ onNavigate }: Props) {
               <h1 className="text-3xl font-semibold text-foreground mb-3">Check your email</h1>
               <p className="text-base text-muted mb-8">
                 We sent a password reset link to <span className="font-semibold text-foreground">{email}</span>.
-                Check your inbox and follow the instructions.
+                Click the link in the email to set a new password.
               </p>
               <button
-                onClick={() => onNavigate('otp-verify')}
+                onClick={() => onNavigate('login')}
                 className="w-full h-14 bg-primary text-white text-base font-semibold rounded-pill hover:bg-primary-deep transition-colors shadow-primary"
               >
-                Enter Reset Code
+                Back to Sign In
               </button>
               <button
-                onClick={() => setSent(false)}
+                onClick={() => { setSent(false); setError('') }}
                 className="mt-4 w-full h-12 text-sm text-muted hover:text-foreground transition-colors"
               >
                 Try a different email
@@ -66,11 +76,14 @@ export default function ForgotPasswordPage({ onNavigate }: Props) {
                   />
                 </div>
 
+                {error && <p className="text-sm text-red-500">{error}</p>}
+
                 <button
                   type="submit"
-                  className="h-14 bg-primary text-white text-base font-semibold rounded-pill hover:bg-primary-deep transition-colors shadow-primary"
+                  disabled={loading}
+                  className="h-14 bg-primary text-white text-base font-semibold rounded-pill hover:bg-primary-deep transition-colors shadow-primary disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Send Reset Link
+                  {loading ? 'Sending…' : 'Send Reset Link'}
                 </button>
               </form>
 
