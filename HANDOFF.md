@@ -34,9 +34,12 @@ Brand: primary `#4b75ff` / deep `#005cf7` / sidebar `#0d2060` — DO NOT change 
 `courses` · `modules` · `lessons` · `assignments` · `assignment_submissions` · `grades`
 `attendance_records` · `live_sessions` · `messages` · `invoices` · `payments` · `notifications` · `announcements`
 
-**New tables expected (may need migration):**
-- `fee_structures (school_id, level, term, items jsonb)` — for AdminFeeSetupPage
-- `school_settings (school_id, bank_name, account_number, account_name, paystack_public_key, paystack_secret_key, paystack_subaccount_code)` — for AdminFeeSetupPage + SchoolFeesPage
+**Migration file:** `supabase/migration_2026_06.sql` — run in Supabase SQL Editor to apply:
+- `school_settings` table (bank + Paystack keys per school)
+- `fee_level_configs` table (level/term fee templates — AdminFeeSetupPage uses this, NOT `fee_structures`)
+- `invoices.paid_amount NUMERIC` column
+- `conversation_members.last_read_at TIMESTAMPTZ` column
+- Storage bucket `message-attachments`: create manually in Supabase dashboard (Storage > New bucket, public OFF)
 
 ---
 
@@ -64,18 +67,23 @@ Brand: primary `#4b75ff` / deep `#005cf7` / sidebar `#0d2060` — DO NOT change 
 
 **LOW items — resolved:**
 - V4 ✅ AssignmentBuilderPage — validates title, deadline, instructions before publish
+- V2 ✅ ProfileSettingsPage — first name required before save
 - Q3 ✅ MessagesPage + TeacherMessagesPage — rollback optimistic message if INSERT fails
 - N6 ✅ SchoolFeesPage download buttons — disabled with `cursor-not-allowed` + tooltip (receipt download not yet implemented)
 
+**Additional fixes this session:**
+- A6 ✅ SettingsPage — profile card now shows real name/email/role from `useAuth()`, sign-out calls `signOut()`
+- E5 ✅ ParentProgressPage — empty-state message when `learnora_selected_child` is missing from localStorage
+- N4 ✅ MessagesPage paperclip — wired to Supabase Storage upload; images displayed inline, other files as download link
+- DB ✅ AdminFeeSetupPage — switched from `fee_structures` to `fee_level_configs` (schema mismatch fix)
+
 ### Still Open (not fixed — needs schema work or complex implementation)
-- E6 — Unread message count always 0 (needs `last_read_at` in `conversation_members`)
+- E6 — Unread message count always 0; `last_read_at` column now exists via migration — needs wiring in MessagesPage (update column on conversation open, compute unread from it)
 - Q4 — No Supabase Realtime subscription on messages (future improvement)
 - Q5 — localStorage coupling fragile (architectural — acceptable for now)
 - Q7 — No Supabase type generation (run `supabase gen types` when ready)
-- S3 — RLS not explicitly enabled on 9+ tables (`audit_logs`, `quiz_questions`, etc.) — needs SQL migration
-- V3 — SecuritySettingsPage already calls `signInWithPassword` for re-auth before password change ✅ (actually fine)
-- N4/N5 — Paperclip and MoreVertical in MessagesPage are UI stubs (file attach not implemented)
-- A6 — Default sidebar user "Olive Johnson" (47 pages — most now pass `profileToSidebarUser(profile)`)
+- S3 — audit_logs, quiz_questions etc. tables don't exist in schema yet; RLS is moot until those screens are backed by real tables
+- N5 — MoreVertical menu in MessagesPage header is still a stub
 - R4 — Admin tables at narrow viewport not fully audited
 
 ---
@@ -132,4 +140,4 @@ Screenshots in `design/sections/`. MCP available but rate-limited on free plan.
 ## Git / Deploy
 - Repo: `github.com/fiyeduala/learnora`
 - Deploy: Vercel auto-deploys on push to `main`
-- Latest commit: `bd60a89` — Fix V4/Q3/N3/N6: assignment validation, message rollback, dead buttons
+- Latest commit: `ffd281c` — SQL migration + code fixes: settings, validation, file upload
