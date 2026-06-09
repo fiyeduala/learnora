@@ -1,5 +1,7 @@
 import { User, Bell, Shield, ChevronRight, LogOut, Palette, Wifi } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
+import { teacherNav, adminNav, superAdminNav } from '../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -22,12 +24,19 @@ const sections = [
 ]
 
 export default function SettingsPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
+  const sidebarUser  = profileToSidebarUser(profile)
+  const settingsPage = profile?.role === 'teacher' ? 'teacher-settings' : profile?.role === 'super_admin' ? 'platform-settings' : 'settings'
+  const settingsNav  = profile?.role === 'teacher' ? teacherNav : profile?.role === 'admin' ? adminNav : profile?.role === 'super_admin' ? superAdminNav : undefined
+
   return (
     <DashboardLayout
-      activePage="settings"
+      activePage={settingsPage}
       onNavigate={onNavigate}
       title="Settings"
       subtitle="Manage your account and preferences"
+      nav={settingsNav}
+      user={sidebarUser}
     >
       <div className="max-w-[700px] flex flex-col gap-6">
 

@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { ChevronLeft } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
+import { teacherNav, adminNav, superAdminNav } from '../components/layout/Sidebar'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -42,6 +44,11 @@ function ToggleRow({ item, onChange }: { item: Toggle; onChange: () => void }) {
 }
 
 export default function NotificationSettingsPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
+  const sidebarUser  = profileToSidebarUser(profile)
+  const settingsPage = profile?.role === 'teacher' ? 'teacher-settings' : profile?.role === 'super_admin' ? 'platform-settings' : 'settings'
+  const settingsNav  = profile?.role === 'teacher' ? teacherNav : profile?.role === 'admin' ? adminNav : profile?.role === 'super_admin' ? superAdminNav : undefined
+
   const [notifs, setNotifs]   = useState(defaults)
   const [chans,  setChans]    = useState(channels)
 
@@ -55,14 +62,16 @@ export default function NotificationSettingsPage({ onNavigate }: Props) {
 
   return (
     <DashboardLayout
-      activePage="settings"
+      activePage={settingsPage}
       onNavigate={onNavigate}
       title="Notification Settings"
       subtitle="Control how and when you receive alerts"
+      nav={settingsNav}
+      user={sidebarUser}
     >
       <div className="max-w-[640px] flex flex-col gap-6">
 
-        <button onClick={() => onNavigate('settings')} className="flex items-center gap-2 text-sm text-muted hover:text-foreground w-fit">
+        <button onClick={() => onNavigate(settingsPage)} className="flex items-center gap-2 text-sm text-muted hover:text-foreground w-fit">
           <ChevronLeft size={16} /> Back to Settings
         </button>
 
