@@ -94,15 +94,34 @@ All 4 settings pages (`SettingsPage`, `ProfileSettingsPage`, `NotificationSettin
 
 **Note on navigation:** No URL params in this app. Detail pages (CourseDetails, AssignmentDetails) use localStorage keys to pass selection from list pages. Set before `onNavigate()` call, read on mount.
 
-### Next Batches
+### Supabase Wiring — Batches 4/5/6 ✅ (2026-06-09)
+
 **Batch 4 — Parent core:**
-- ParentHomePage (parent_student_links), ParentProgressPage, SchoolFeesPage
+- `ParentHomePage` — loads children from parent_student_links; per-child: class name, GPA from grade_summaries, fee status from invoices; child switcher persists `learnora_selected_child` in localStorage
+- `ParentProgressPage` — loads grade_summaries for selected child; subject bar chart + grade breakdown
+- `SchoolFeesPage` — loads invoices + payments for selected child; fee breakdown with progress bars; payment history tab
 
 **Batch 5 — Shared:**
-- Announcements, Notifications, Messages, Calendar
+- `NotificationsPage` — real notifications from DB; mark-read + mark-all-read wired; role-aware sidebar nav
+- `AnnouncementsFeedPage` — loads announcements filtered by target_roles; sets localStorage before navigating
+- `AnnouncementDetailsPage` — loads by `learnora_selected_announcement`; role-aware back button
+- `CalendarPage` — fully dynamic month grid; prev/next/today navigation; loads calendar_events for visible month
+- `MessagesPage` — loads conversations via conversation_members; messages per conv; send wired to INSERT
+- `TeacherMessagesPage` — same pattern with teacher sidebar + student/parent role filter
 
 **Batch 6 — Teacher remaining:**
-- TeacherAssignmentsPage (list teacher's own assignments)
+- `TeacherAssignmentsPage` — teacher's own assignments with class + submission counts; New Assignment nav fixed to `assignment-builder`
+
+**Note on bank details (SchoolFeesPage):** No `school_settings` or `bank_details` table in schema — bank details remain placeholder. Replace when admin panel adds school settings.
+
+**Note on messages (both pages):** No Supabase Realtime subscription — user must navigate away and back to see new messages. Real-time is a future improvement.
+
+### Open Items / Next Steps
+- MOCK_AUDIT.md still shows stale Batch 3 state — needs update
+- Admin settings page / school bank details storage
+- Real-time messaging (Supabase Realtime)
+- Parent attendance page (no attendance table for parents yet)
+- Position/rank data on ParentHomePage (needs cross-student aggregation)
 
 ---
 
