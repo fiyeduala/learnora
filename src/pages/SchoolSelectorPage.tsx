@@ -1,24 +1,54 @@
-import { useState } from 'react'
-import { Search, ChevronRight, MapPin } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Search, ChevronRight, MapPin, Loader2 } from 'lucide-react'
 import AuthHeroPanel from '../components/auth/AuthHeroPanel'
+import { supabase } from '../lib/supabase'
 
 type Props = { onNavigate: (page: string) => void }
 
-const schools = [
-  { id: 1, name: 'Greenfield Academy',       location: 'Lagos, Nigeria',   code: 'GFA-001' },
-  { id: 2, name: 'Royal Crown Secondary',    location: 'Abuja, Nigeria',   code: 'RCS-002' },
-  { id: 3, name: 'Heritage International',   location: 'Port Harcourt, NG',code: 'HIS-003' },
-  { id: 4, name: 'Bright Future School',     location: 'Kano, Nigeria',    code: 'BFS-004' },
-]
+interface School { id: string; name: string; location: string | null; code: string | null }
 
 export default function SchoolSelectorPage({ onNavigate }: Props) {
-  const [query, setQuery] = useState('')
-  const [code, setCode] = useState('')
-  const [tab, setTab] = useState<'search' | 'code'>('search')
+  const [query,   setQuery]   = useState('')
+  const [code,    setCode]    = useState('')
+  const [tab,     setTab]     = useState<'search' | 'code'>('search')
+  const [schools, setSchools] = useState<School[]>([])
+  const [loading, setLoading] = useState(true)
+  const [codeErr, setCodeErr] = useState('')
 
+  useEffect(() => { loadSchools() }, [])
+
+  async function loadSchools() {
+    setLoading(true)
+    const { data } = await supabase
+      .from('schools')
+      .select('id, name, location, code')
+      .order('name', { ascending: true })
+      .limit(100)
+    setSchools((data ?? []) as School[])
+    setLoading(false)
+  }
+
+  function selectSchool(id: string) {
+    localStorage.setItem('learnora_selected_school_id', id)
+    onNavigate('login')
+  }
+
+  async function submitCode() {
+    setCodeErr('')
+    const { data, error } = await supabase
+      .from('schools')
+      .select('id, name')
+      .eq('code', code.trim().toUpperCase())
+      .maybeSingle()
+    if (error || !data) { setCodeErr('School code not found. Please check and try again.'); return }
+    selectSchool((data as School).id)
+  }
+
+  const q = query.toLowerCase()
   const filtered = schools.filter(s =>
-    s.name.toLowerCase().includes(query.toLowerCase()) ||
-    s.location.toLowerCase().includes(query.toLowerCase())
+    !q ||
+    s.name.toLowerCase().includes(q) ||
+    (s.location ?? '').toLowerCase().includes(q)
   )
 
   return (
@@ -32,7 +62,6 @@ export default function SchoolSelectorPage({ onNavigate }: Props) {
           <h1 className="text-4xl font-semibold text-foreground mb-2 leading-tight">Find Your School</h1>
           <p className="text-base text-muted mb-8">Search for your school by name or enter your school code.</p>
 
-          {/* Tabs */}
           <div className="flex gap-1 bg-canvas rounded-card p-1 mb-6">
             {(['search', 'code'] as const).map(t => (
               <button
@@ -60,29 +89,39 @@ export default function SchoolSelectorPage({ onNavigate }: Props) {
                 />
               </div>
 
-              <div className="flex flex-col gap-2">
-                {filtered.map(s => (
-                  <button
-                    key={s.id}
-                    onClick={() => onNavigate('login')}
-                    className="flex items-center gap-4 p-4 border border-black/10 rounded-card hover:border-primary hover:shadow-sm transition-all text-left"
-                  >
-                    <div className="size-11 rounded-card bg-primary/10 flex items-center justify-center shrink-0">
-                      <span className="text-primary text-base font-bold">{s.name.charAt(0)}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-foreground">{s.name}</p>
-                      <p className="text-xs text-muted flex items-center gap-1 mt-0.5">
-                        <MapPin size={10} />{s.location}
-                      </p>
-                    </div>
-                    <ChevronRight size={16} className="text-muted shrink-0" />
-                  </button>
-                ))}
-                {filtered.length === 0 && (
-                  <p className="text-center text-sm text-muted py-8">No schools found. Try a different name or use a school code.</p>
-                )}
-              </div>
+              {loading ? (
+                <div className="flex items-center justify-center py-10">
+                  <Loader2 size={20} className="animate-spin text-primary" />
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {filtered.map(s => (
+                    <button
+                      key={s.id}
+                      onClick={() => selectSchool(s.id)}
+                      className="flex items-center gap-4 p-4 border border-black/10 rounded-card hover:border-primary hover:shadow-sm transition-all text-left"
+                    >
+                      <div className="size-11 rounded-card bg-primary/10 flex items-center justify-center shrink-0">
+                        <span className="text-primary text-base font-bold">{s.name.charAt(0)}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground">{s.name}</p>
+                        {s.location && (
+                          <p className="text-xs text-muted flex items-center gap-1 mt-0.5">
+                            <MapPin size={10} />{s.location}
+                          </p>
+                        )}
+                      </div>
+                      <ChevronRight size={16} className="text-muted shrink-0" />
+                    </button>
+                  ))}
+                  {filtered.length === 0 && (
+                    <p className="text-center text-sm text-muted py-8">
+                      No schools found. Try a different name or use a school code.
+                    </p>
+                  )}
+                </div>
+              )}
             </>
           ) : (
             <div className="flex flex-col gap-5">
@@ -91,15 +130,16 @@ export default function SchoolSelectorPage({ onNavigate }: Props) {
                 <input
                   type="text"
                   value={code}
-                  onChange={e => setCode(e.target.value.toUpperCase())}
+                  onChange={e => { setCode(e.target.value.toUpperCase()); setCodeErr('') }}
                   placeholder="e.g. GFA-001"
                   className="h-14 px-5 border border-black/20 rounded-input text-base text-foreground placeholder:text-muted outline-none focus:border-primary transition-colors tracking-widest"
                 />
+                {codeErr && <p className="text-xs text-red-500">{codeErr}</p>}
                 <p className="text-xs text-muted">Your school code is provided by your school administrator.</p>
               </div>
               <button
                 disabled={code.length < 4}
-                onClick={() => onNavigate('login')}
+                onClick={submitCode}
                 className="h-14 bg-primary text-white text-base font-semibold rounded-pill hover:bg-primary-deep transition-colors shadow-primary disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Continue

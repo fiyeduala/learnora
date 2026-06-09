@@ -28,12 +28,23 @@ export default function CompleteProfilePage({ onNavigate }: Props) {
     if (!profile) return
     setLoading(true)
     setError('')
+
+    const updates: Record<string, string | null> = {
+      full_name: fullName.trim() || null,
+      phone:     phone.trim()    || null,
+    }
+    const schoolId = localStorage.getItem('learnora_selected_school_id')
+    if (schoolId && !profile.school_id) updates.school_id = schoolId
+
     const { error: err } = await supabase
       .from('profiles')
-      .update({ full_name: fullName.trim() || null, phone: phone.trim() || null })
+      .update(updates)
       .eq('id', profile.id)
+
     setLoading(false)
     if (err) { setError(err.message); return }
+
+    localStorage.removeItem('learnora_selected_school_id')
     onNavigate(roleDashboard(profile.role))
   }
 
@@ -46,7 +57,6 @@ export default function CompleteProfilePage({ onNavigate }: Props) {
 
         <div className="bg-surface rounded-card shadow-md p-10">
 
-          {/* Avatar upload — UI only, storage wiring in a later batch */}
           <div className="flex items-center gap-5 mb-8">
             <div className="size-[120px] rounded-full border-2 border-dashed border-black/20 bg-canvas flex items-center justify-center cursor-pointer hover:border-primary hover:bg-primary/4 transition-colors">
               <div className="flex flex-col items-center gap-1 text-muted hover:text-primary transition-colors">
@@ -61,7 +71,6 @@ export default function CompleteProfilePage({ onNavigate }: Props) {
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
 
-            {/* Full Name */}
             <div className="flex flex-col gap-2">
               <label htmlFor="fullName" className="text-sm font-bold text-foreground">Full Name</label>
               <input
@@ -75,7 +84,6 @@ export default function CompleteProfilePage({ onNavigate }: Props) {
               />
             </div>
 
-            {/* Phone Number */}
             <div className="flex flex-col gap-2">
               <label htmlFor="phone" className="text-sm font-bold text-foreground">Phone Number</label>
               <input
@@ -88,7 +96,6 @@ export default function CompleteProfilePage({ onNavigate }: Props) {
               />
             </div>
 
-            {/* Role / account context — read-only info */}
             {profile && (
               <div className="flex flex-col gap-2 bg-canvas rounded-card p-4">
                 <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-1">Your Account</p>
