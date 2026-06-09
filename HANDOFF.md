@@ -85,15 +85,24 @@ All 4 settings pages (`SettingsPage`, `ProfileSettingsPage`, `NotificationSettin
 
 **Note on GradingScreenPage:** Loads the oldest ungraded submission. No routing params yet — teacher navigates to this page from SubmissionsInboxPage and grades one at a time. Full per-submission routing is a future improvement.
 
-### Next Batches
-**Batch 3 — Student core:**
-- OverviewDashboardPage, MyCoursesPage + CourseDetailsPage, AssignmentsPage + AssignmentDetailsPage
+### Supabase Wiring — Batch 3 (Student core) ✅ (2026-06-09)
+- `OverviewDashboardPage` — real student name; enrolled courses (first 4) with lesson progress %; upcoming assignments with submission status; "due this week" count
+- `MyCoursesPage` — all enrolled courses with lesson count + progress %; search filter; stats strip
+- `CourseDetailsPage` — loads course by localStorage key `learnora_selected_course` (fallback: first enrolled); modules + lessons with done/not-done; lesson_progress from DB
+- `AssignmentsPage` — replaced mock `initialAssignments` with real DB data; inline submit wired to `upsert assignment_submissions`; ID changed number→string
+- `AssignmentDetailsPage` — loads by localStorage key `learnora_selected_assignment`; real instructions, due date, teacher; submit view wired to Supabase; file upload is UI-only (storage not wired yet)
 
+**Note on navigation:** No URL params in this app. Detail pages (CourseDetails, AssignmentDetails) use localStorage keys to pass selection from list pages. Set before `onNavigate()` call, read on mount.
+
+### Next Batches
 **Batch 4 — Parent core:**
 - ParentHomePage (parent_student_links), ParentProgressPage, SchoolFeesPage
 
 **Batch 5 — Shared:**
 - Announcements, Notifications, Messages, Calendar
+
+**Batch 6 — Teacher remaining:**
+- TeacherAssignmentsPage (list teacher's own assignments)
 
 ---
 

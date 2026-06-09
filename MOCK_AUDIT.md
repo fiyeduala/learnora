@@ -148,13 +148,13 @@
 
 | Screen | Feature | Status | Should do | Table(s) | Priority |
 |--------|---------|--------|-----------|----------|----------|
-| OverviewDashboardPage | Welcome + enrolled courses | ❌ | SELECT class_enrollments → courses | `class_enrollments`, `courses` | 🔴 MVP |
-| OverviewDashboardPage | Upcoming assignments | ❌ | SELECT assignments WHERE class_id in enrolled classes | `assignments`, `class_enrollments` | 🔴 MVP |
+| OverviewDashboardPage | Welcome + enrolled courses (first 4) + lesson progress | ✅ | class_enrollments → courses; lesson_progress for progress % | `class_enrollments`, `courses`, `lessons`, `lesson_progress` | 🔴 MVP |
+| OverviewDashboardPage | Upcoming assignments with submission status | ✅ | SELECT assignments + assignment_submissions for student | `assignments`, `assignment_submissions` | 🔴 MVP |
 | OverviewDashboardPage | Grades summary | ❌ | SELECT grade_summaries WHERE student | `grade_summaries` | 🔴 MVP |
-| MyCoursesPage | List enrolled courses | ❌ | SELECT class_enrollments → classes → courses | `class_enrollments`, `classes`, `courses` | 🔴 MVP |
-| CourseDetailsPage | Course content (modules/lessons) | ❌ | SELECT modules + lessons; track lesson_progress | `courses`, `modules`, `lessons`, `lesson_progress` | 🔴 MVP |
-| AssignmentsPage | List assignments + status | ❌ | SELECT assignments + assignment_submissions for student | `assignments`, `assignment_submissions`, `class_enrollments` | 🔴 MVP |
-| AssignmentDetailsPage | View assignment + submit | ❌ | SELECT assignment; INSERT assignment_submissions | `assignments`, `assignment_submissions` | 🔴 MVP |
+| MyCoursesPage | List enrolled courses with progress % | ✅ | class_enrollments → courses; lesson_progress per course | `class_enrollments`, `courses`, `lessons`, `lesson_progress` | 🔴 MVP |
+| CourseDetailsPage | Course modules + lessons + student progress | ✅ | SELECT modules + lessons; lesson_progress for done/not-done; localStorage for course selection | `courses`, `modules`, `lessons`, `lesson_progress` | 🔴 MVP |
+| AssignmentsPage | List assignments + status + inline submit | ✅ | SELECT assignments; upsert assignment_submissions on submit | `assignments`, `assignment_submissions`, `class_enrollments` | 🔴 MVP |
+| AssignmentDetailsPage | View assignment + submit | ✅ | SELECT assignment + submission status; INSERT assignment_submissions; localStorage for selection | `assignments`, `assignment_submissions` | 🔴 MVP |
 | MySubmissionsPage | View submitted work | ❌ | SELECT assignment_submissions WHERE student | `assignment_submissions` | 🟡 Soon |
 | AnalysisPage | Student performance | ❌ | SELECT grade_summaries + grades | `grade_summaries`, `grades` | 🟡 Soon |
 | StudentAnalysisPage | Detailed analysis | ❌ | SELECT grades + attendance_records | `grades`, `attendance_records` | ⚪ Later |
@@ -235,12 +235,13 @@
 | Super Admin | 4 | 0 | 12 | None blocking (can use existing) |
 | Admin | 5 | 1 | 18 | Fee setup, Attendance, Results |
 | Teacher | 6 | 1 | 26 | TeacherAssignmentsPage list |
-| Student | 0 | 0 | 35 | Dashboard, Courses, Assignments, Submit |
+| Student | 5 | 0 | 30 | Grades summary, Live Classes |
 | Parent | 0 | 0 | 18 | Children links, Fees, Progress |
 | Mobile | 0 | 1 | 10 | Home, Learn, Lesson progress |
 
-**Total wired: ~19 / ~120 screens**  
+**Total wired: ~24 / ~120 screens**  
 *Batch 2 added: TeacherDashboardPage, MyClassesPage, StudentsManagementPage, InClassAttendancePage, AssignmentBuilderPage, SubmissionsInboxPage, GradingScreenPage*  
+*Batch 3 added: OverviewDashboardPage, MyCoursesPage, CourseDetailsPage, AssignmentsPage, AssignmentDetailsPage*  
 **All backing tables exist** (except: `audit_logs`, `email_templates`, `quiz_questions`, `achievements`, `study_plans`, `certificates`, `goals`, `forum_posts`, `permission_slips`)
 
 ---
