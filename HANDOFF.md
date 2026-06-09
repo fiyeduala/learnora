@@ -19,6 +19,8 @@ Brand: primary `#4b75ff` / deep `#005cf7` / sidebar `#0d2060` — DO NOT change 
 ### Auth Status
 - `LoginPage.tsx` — wired to `supabase.auth.signInWithPassword()`, reads `profiles.role`, routes to correct dashboard ✅
 - `SchoolSignUpPage.tsx` — creates auth user → inserts `schools` row → updates `profiles` with `school_id + role=admin` ✅
+- `src/contexts/AuthContext.tsx` — `AuthProvider` wraps the whole app, `useAuth()` available everywhere ✅
+- `profileToSidebarUser()` helper converts profile → `{ name, role, initials }` for DashboardLayout ✅
 - Email confirmation: **disabled in Supabase** (for testing) — re-enable before production
 - Super admin creation: manual — create user in Supabase Auth dashboard, then run SQL:
   ```sql
@@ -40,15 +42,29 @@ Brand: primary `#4b75ff` / deep `#005cf7` / sidebar `#0d2060` — DO NOT change 
 - School registration (signup → Supabase → school code generated)
 - Login → role read from DB → routes to correct dashboard
 - Super admin login → super-dashboard
+- **Admin panel — Phase 1 complete ✅**
+
+### Admin Panel — Wired (Phase 1)
+- `AdminDashboardPage` — real student/teacher/class counts + recent users; onboarding checklist auto-marks steps as done
+- `ClassesManagementPage` — reads classes from Supabase; creates classes with subjects + form teacher; auto-seeds default subjects on first load
+- `UserManagementPage` — reads real profiles; Add User creates invite record + shows shareable signup link
+- `InviteAcceptancePage` — reads invite token from URL, calls `signUp()`, updates profile with `school_id + role`, enrolls student in class
+- **Migration required**: run `supabase/migrations/001_admin_panel.sql` in Supabase SQL Editor (adds `form_teacher_id` to classes, creates `invitations` table)
+
+### Nav / Cross-role Fixes
+- `TopBar` now fully role-aware: Teacher → `teacher-messages` / `teacher-calendar`; Admin → `teacher-messages` / `timetable`; Super Admin bell → `super-notifications`
+- Removed `Messages` from `adminNav` (linked to student page — no admin-specific messages page yet)
+- `AdminAttendancePage` fixed to navigate to `admin-attendance` not teacher `attendance`
+- `ClassesManagementPage` now navigates to `admin-class-details` and `admin-attendance`
 
 ### What's built but NOT yet wired to Supabase
-Every dashboard page shows correct empty state (no fake data). Pages need Supabase queries added feature by feature. **Wire in this order:**
+Pages need Supabase queries added feature by feature. **Wire in this order:**
 
-**Phase 1 — Admin panel (do this first, everything else depends on it)**
-1. Admin: Create terms, subjects, classes
-2. Admin: Add teachers → assign to classes/subjects
-3. Admin: Add students → enroll in classes
-4. Admin: Add parents → link to students
+**Phase 2 — Finish admin pipeline**
+1. ~~Admin: Create classes~~ ✅
+2. Admin: Invite teachers (send invite link, teacher accepts via `/invite?token=xxx`)
+3. Admin: Invite students (same invite flow, auto-enrolls in selected class)
+4. Admin: Invite parents → link to students (pending parent_student_links wiring)
 
 **Phase 2 — Teacher features**
 5. Teacher: View assigned classes + students
