@@ -4,6 +4,7 @@ import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
 import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
+import { logSupabaseError } from '../../lib/supabaseError'
 
 type Props = { onNavigate: (page: string) => void }
 type Audience = 'school-wide' | 'students' | 'teachers' | 'parents' | 'class'
@@ -79,6 +80,7 @@ export default function AdminAnnouncementsPage({ onNavigate }: Props) {
         school_id:    profile.school_id,
         author_id:    profile.id,
       })
+    logSupabaseError('AdminAnnouncements.send', error)
     setSending(false)
     if (!error) {
       setSent(true)

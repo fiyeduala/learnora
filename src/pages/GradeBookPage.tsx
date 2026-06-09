@@ -3,6 +3,7 @@ import { Search, Download, CheckCircle2, ChevronDown, Save } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
 import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
+import { logSupabaseError } from '../lib/supabaseError'
 import { supabase } from '../lib/supabase'
 
 type Props = { onNavigate: (page: string) => void }
@@ -134,9 +135,10 @@ export default function GradeBookPage({ onNavigate }: Props) {
         grade_letter:  label,
       }
     })
-    await supabase
+    const { error } = await supabase
       .from('grade_summaries')
       .upsert(records, { onConflict: 'student_id,subject_id' })
+    logSupabaseError('GradeBook.save', error)
     setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)

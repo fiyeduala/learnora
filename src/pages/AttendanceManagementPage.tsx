@@ -4,6 +4,7 @@ import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
 import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { logSupabaseError } from '../lib/supabaseError'
 
 type Props = { onNavigate: (page: string) => void }
 type Status = 'present' | 'absent' | 'late' | null
@@ -105,9 +106,10 @@ export default function AttendanceManagementPage({ onNavigate }: Props) {
         school_id:  profile.school_id,
       }))
     if (records.length > 0) {
-      await supabase
+      const { error } = await supabase
         .from('attendance_records')
         .upsert(records, { onConflict: 'student_id,class_id,date' })
+      logSupabaseError('Attendance.save', error)
     }
     setSaving(false)
     setSaved(true)
