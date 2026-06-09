@@ -116,12 +116,23 @@ All 4 settings pages (`SettingsPage`, `ProfileSettingsPage`, `NotificationSettin
 
 **Note on messages (both pages):** No Supabase Realtime subscription — user must navigate away and back to see new messages. Real-time is a future improvement.
 
+### Auth Fixes — DONE (commit 1ab53da)
+A1 ✅ ProtectedRoute in App.tsx — all non-auth routes require active session; unauthenticated → /login
+A5 ✅ RoleRoute in App.tsx — admin and super_admin routes have role guard
+A2 ✅ Sidebar logout now calls signOut() from AuthContext (JWT actually invalidated)
+A3 ✅ SignUpPage calls supabase.auth.signUp(); since email confirmation is off, skips OTP, navigates to role-select; stores learnora_pending_role in localStorage
+N1 ✅ "Forgot password?" button in LoginPage navigates to /forgot-password
+
 ### Open Items / Next Steps
-- MOCK_AUDIT.md still shows stale Batch 3 state — needs update
+- A7 + D21/D22: Real user identity in sidebar (~47 pages pass hardcoded user) + wire profile/security settings saves
+- D12–D14: Mobile student home, learn, lesson pages (still mock data)
+- D15–D20: Parent payment flow end-to-end
+- D2–D11: Teacher/admin mock pages (gradebook, attendance, announcements, fee setup, results)
+- E3+E4: ErrorBoundary + surface Supabase errors sitewide
+- N2: School selector saves school_id on click (currently navigates to login without persisting)
+- MOCK_AUDIT.md stale — needs update
 - Admin settings page / school bank details storage
 - Real-time messaging (Supabase Realtime)
-- Parent attendance page (no attendance table for parents yet)
-- Position/rank data on ParentHomePage (needs cross-student aggregation)
 
 ---
 

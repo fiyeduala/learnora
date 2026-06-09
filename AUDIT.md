@@ -22,11 +22,11 @@
 
 | # | Status | Finding | Severity |
 |---|--------|---------|----------|
-| A1 | ❌ | **No ProtectedRoute anywhere.** `src/App.tsx` — every route is a plain `<Route>`. Any unauthenticated visitor can type `/admin/user-management` or `/superadmin/dashboard` directly into the address bar and reach it. | HIGH |
-| A2 | ❌ | **Logout never calls `supabase.auth.signOut()`.** `src/components/layout/Sidebar.tsx` — the confirm button only calls `onNavigate('login')`. The JWT stays alive until it expires; the user is not actually signed out. | HIGH |
-| A3 | ❌ | **SignUpPage never calls `supabase.auth.signUp()`.** `src/pages/SignUpPage.tsx` — after client-side validation it immediately navigates to `otp-verify`. No user is created in Supabase auth. | HIGH |
-| A4 | ❌ | **OTP verification is UI-only.** `src/pages/OTPVerificationPage.tsx` — on 4-digit fill it navigates to `role-select` without calling `supabase.auth.verifyOtp()`. Email is never confirmed. | HIGH |
-| A5 | ❌ | **No role guard on any page.** No page checks `profile.role`. A student who knows `/admin/user-management` can reach and load admin data (enforcement falls entirely on RLS). | HIGH |
+| A1 | ✅ | ~~No ProtectedRoute anywhere.~~ **Fixed (1ab53da):** `ProtectedRoute` layout route wraps all non-auth routes in App.tsx; unauthenticated visitors redirect to `/login`. | HIGH |
+| A2 | ✅ | ~~Logout never calls `supabase.auth.signOut()`.~~ **Fixed (1ab53da):** Sidebar logout confirm now calls `await signOut()` from `useAuth()` before navigating. | HIGH |
+| A3 | ✅ | ~~SignUpPage never calls `supabase.auth.signUp()`.~~ **Fixed (1ab53da):** Calls `supabase.auth.signUp()`; since email confirmation is off, session is live immediately; stores role in localStorage and navigates to `role-select` (OTP skipped). | HIGH |
+| A4 | ✅ | ~~OTP verification is UI-only.~~ **Fixed (1ab53da):** OTP page is no longer reachable via the normal signup flow (email confirmation is disabled); signup goes directly to role-select. | HIGH |
+| A5 | ✅ | ~~No role guard on any page.~~ **Fixed (1ab53da):** `RoleRoute` wraps all admin and super_admin routes in App.tsx. Non-matching roles redirect to `/login`. | HIGH |
 
 ---
 
@@ -34,7 +34,7 @@
 
 | # | Status | Finding | Severity |
 |---|--------|---------|----------|
-| N1 | ❌ | **"Forgot password?" is a dead button.** `src/pages/LoginPage.tsx` — no `onClick` handler. `ForgotPasswordPage` exists but is unreachable from the login form. | HIGH |
+| N1 | ✅ | ~~"Forgot password?" is a dead button.~~ **Fixed (1ab53da):** `onClick={() => onNavigate('forgot-password')}` added to the button. | HIGH |
 | N2 | ❌ | **School selector persists nothing.** `src/pages/SchoolSelectorPage.tsx` — four hardcoded schools, clicking any navigates to `login` without saving a `school_id` anywhere. The entire multi-tenant login path is broken. | HIGH |
 
 ---
