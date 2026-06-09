@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { ChevronLeft, Eye, EyeOff, Shield, Monitor, Smartphone, CheckCircle2 } from 'lucide-react'
+import { ChevronLeft, Eye, EyeOff, Shield, Monitor, Smartphone, CheckCircle2, AlertCircle } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav, adminNav, superAdminNav } from '../components/layout/Sidebar'
 import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -11,26 +12,50 @@ export default function SecuritySettingsPage({ onNavigate }: Props) {
   const sidebarUser  = profileToSidebarUser(profile)
   const settingsPage = profile?.role === 'teacher' ? 'teacher-settings' : profile?.role === 'super_admin' ? 'platform-settings' : 'settings'
   const settingsNav  = profile?.role === 'teacher' ? teacherNav : profile?.role === 'admin' ? adminNav : profile?.role === 'super_admin' ? superAdminNav : undefined
-  const [current,  setCurrent]  = useState('')
-  const [newPw,    setNewPw]    = useState('')
-  const [confirm,  setConfirm]  = useState('')
-  const [showPw,   setShowPw]   = useState(false)
-  const [twoFA,    setTwoFA]    = useState(false)
-  const [pwSaved,  setPwSaved]  = useState(false)
 
-  function savePassword(e: React.FormEvent) {
+  const [current,   setCurrent]   = useState('')
+  const [newPw,     setNewPw]     = useState('')
+  const [confirm,   setConfirm]   = useState('')
+  const [showPw,    setShowPw]    = useState(false)
+  const [twoFA,     setTwoFA]     = useState(false)
+  const [pwSaving,  setPwSaving]  = useState(false)
+  const [pwSaved,   setPwSaved]   = useState(false)
+  const [errors,    setErrors]    = useState<Record<string, string>>({})
+
+  async function savePassword(e: React.FormEvent) {
     e.preventDefault()
-    if (newPw === confirm && newPw.length >= 8) {
-      setPwSaved(true)
-      setTimeout(() => setPwSaved(false), 2500)
-      setCurrent(''); setNewPw(''); setConfirm('')
+    if (!profile?.email) return
+    const errs: Record<string, string> = {}
+    if (!current)          errs.current = 'Required'
+    if (newPw.length < 8)  errs.newPw   = 'At least 8 characters'
+    if (newPw !== confirm)  errs.confirm  = 'Passwords do not match'
+    if (Object.keys(errs).length) { setErrors(errs); return }
+    setErrors({})
+    setPwSaving(true)
+
+    // Verify current password by re-authenticating
+    const { error: signInErr } = await supabase.auth.signInWithPassword({
+      email:    profile.email,
+      password: current,
+    })
+    if (signInErr) {
+      setPwSaving(false)
+      setErrors({ current: 'Current password is incorrect' })
+      return
     }
+
+    const { error: updateErr } = await supabase.auth.updateUser({ password: newPw })
+    setPwSaving(false)
+    if (updateErr) { setErrors({ general: updateErr.message }); return }
+
+    setPwSaved(true)
+    setCurrent(''); setNewPw(''); setConfirm('')
+    setTimeout(() => setPwSaved(false), 2500)
   }
 
+  // Active sessions list is illustrative — Supabase does not expose a client-side sessions API
   const sessions = [
-    { device: 'Chrome on Windows 10',  location: 'Lagos, Nigeria', time: 'Now · Current',          current: true  },
-    { device: 'Safari on iPhone 14',   location: 'Lagos, Nigeria', time: '2 days ago',              current: false },
-    { device: 'Chrome on MacBook Pro', location: 'Abuja, Nigeria', time: '5 days ago',              current: false },
+    { device: 'Current session', location: '—', time: 'Now', current: true },
   ]
 
   return (
@@ -51,32 +76,41 @@ export default function SecuritySettingsPage({ onNavigate }: Props) {
         {/* Change password */}
         <div className="bg-surface rounded-card shadow-sm p-6">
           <h2 className="text-base font-bold text-foreground mb-5">Change Password</h2>
+
+          {errors.general && (
+            <div className="flex items-center gap-2 mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+              <AlertCircle size={15} className="shrink-0" /> {errors.general}
+            </div>
+          )}
+
           <form onSubmit={savePassword} className="flex flex-col gap-4">
             {[
-              { label: 'Current Password', val: current, set: setCurrent },
-              { label: 'New Password',     val: newPw,   set: setNewPw   },
-              { label: 'Confirm Password', val: confirm,  set: setConfirm  },
+              { label: 'Current Password', val: current, set: setCurrent, key: 'current' },
+              { label: 'New Password',     val: newPw,   set: setNewPw,   key: 'newPw'   },
+              { label: 'Confirm Password', val: confirm,  set: setConfirm, key: 'confirm'  },
             ].map(f => (
-              <div key={f.label} className="flex flex-col gap-2">
+              <div key={f.label} className="flex flex-col gap-1.5">
                 <label className="text-sm font-semibold text-foreground">{f.label}</label>
                 <div className="relative">
                   <input
                     type={showPw ? 'text' : 'password'}
-                    value={f.val} onChange={e => f.set(e.target.value)} required
-                    className="w-full h-12 px-4 pr-11 border border-black/20 rounded-input text-sm text-foreground outline-none focus:border-primary"
+                    value={f.val}
+                    onChange={e => { f.set(e.target.value); setErrors(p => ({ ...p, [f.key]: '', general: '' })) }}
+                    className={`w-full h-12 px-4 pr-11 border rounded-input text-sm text-foreground outline-none focus:border-primary transition-colors ${errors[f.key] ? 'border-red-400' : 'border-black/20'}`}
                   />
                   <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted">
                     {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
+                {errors[f.key] && <p className="text-xs text-red-500">{errors[f.key]}</p>}
               </div>
             ))}
-            <button type="submit"
-              className={`flex items-center gap-2 h-11 px-5 rounded-pill text-sm font-semibold self-start transition-colors ${
+            <button type="submit" disabled={pwSaving}
+              className={`flex items-center gap-2 h-11 px-5 rounded-pill text-sm font-semibold self-start transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
                 pwSaved ? 'bg-green-500 text-white' : 'bg-primary text-white hover:bg-primary-deep shadow-primary'
               }`}>
               {pwSaved && <CheckCircle2 size={14} />}
-              {pwSaved ? 'Password Updated!' : 'Update Password'}
+              {pwSaving ? 'Updating…' : pwSaved ? 'Password Updated!' : 'Update Password'}
             </button>
           </form>
         </div>
