@@ -34,12 +34,12 @@ Brand: primary `#4b75ff` / deep `#005cf7` / sidebar `#0d2060` — DO NOT change 
 `courses` · `modules` · `lessons` · `assignments` · `assignment_submissions` · `grades`
 `attendance_records` · `live_sessions` · `messages` · `invoices` · `payments` · `notifications` · `announcements`
 
-**Migration file:** `supabase/migration_2026_06.sql` — run in Supabase SQL Editor to apply:
-- `school_settings` table (bank + Paystack keys per school)
-- `fee_level_configs` table (level/term fee templates — AdminFeeSetupPage uses this, NOT `fee_structures`)
+**Pending migrations (SQL provided inline in chat — run in Supabase SQL Editor):**
+- `school_settings` table
+- `fee_level_configs` table (AdminFeeSetupPage uses this, NOT `fee_structures`)
 - `invoices.paid_amount NUMERIC` column
 - `conversation_members.last_read_at TIMESTAMPTZ` column
-- Storage bucket `message-attachments`: create manually in Supabase dashboard (Storage > New bucket, public OFF)
+- Storage bucket `message-attachments`: created in dashboard ✅, public ON ✅
 
 ---
 
@@ -81,7 +81,7 @@ Brand: primary `#4b75ff` / deep `#005cf7` / sidebar `#0d2060` — DO NOT change 
 - E6 — Unread message count always 0; `last_read_at` column now exists via migration — needs wiring in MessagesPage (update column on conversation open, compute unread from it)
 - Q4 — No Supabase Realtime subscription on messages (future improvement)
 - Q5 — localStorage coupling fragile (architectural — acceptable for now)
-- Q7 — No Supabase type generation (run `supabase gen types` when ready)
+- Q7 ✅ Supabase types generated → `src/lib/database.types.ts`; client is now `createClient<Database>`
 - S3 — audit_logs, quiz_questions etc. tables don't exist in schema yet; RLS is moot until those screens are backed by real tables
 - N5 — MoreVertical menu in MessagesPage header is still a stub
 - R4 — Admin tables at narrow viewport not fully audited
@@ -140,4 +140,4 @@ Screenshots in `design/sections/`. MCP available but rate-limited on free plan.
 ## Git / Deploy
 - Repo: `github.com/fiyeduala/learnora`
 - Deploy: Vercel auto-deploys on push to `main`
-- Latest commit: `ffd281c` — SQL migration + code fixes: settings, validation, file upload
+- Latest commit: `e70e3ff` — Add Supabase generated types + wire into client
