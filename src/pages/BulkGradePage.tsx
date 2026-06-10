@@ -107,12 +107,9 @@ export default function BulkGradePage({ onNavigate }: Props) {
     const schoolId = profile!.school_id!
     const graded   = students.filter(s => s.score !== '')
 
-    const db = supabase as unknown as { from: (t: string) => any }
-
     for (const s of graded) {
       const scoreNum  = parseInt(s.score)
       const maxScore  = selectedAsgn.max_score ?? 100
-      const pct       = Math.round((scoreNum / maxScore) * 100)
       const scoreTxt  = `Score: ${scoreNum}/${maxScore}`
 
       await supabase.from('assignment_submissions').upsert({

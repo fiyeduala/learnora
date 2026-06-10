@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Award, Download, Eye, Lock, Star } from 'lucide-react'
+import { Award, Download, Eye, Star } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'

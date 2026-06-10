@@ -73,7 +73,7 @@ export default function StudentAnalysisPage({ onNavigate }: Props) {
     }
 
     // Monthly bar chart: submission count by month normalized to pct of max
-    const monthCounts = MONTHS.map((m, i) => monthSubmissions[i] ?? 0)
+    const monthCounts = MONTHS.map((_, i) => monthSubmissions[i] ?? 0)
     const maxMonth    = Math.max(1, ...monthCounts)
     setMonthlyBars(MONTHS.map((m, i) => ({ month: m, pct: Math.round((monthCounts[i] / maxMonth) * 100) })))
 

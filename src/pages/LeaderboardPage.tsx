@@ -36,14 +36,11 @@ export default function LeaderboardPage({ onNavigate }: Props) {
     const studentId = profile!.id
     const schoolId  = profile!.school_id!
 
-    const [ceRes, subRes] = await Promise.all([
+    const [ceRes] = await Promise.all([
       supabase.from('class_enrollments')
         .select('class_id, classes(id, name)')
         .eq('student_id', studentId)
         .limit(1).maybeSingle(),
-      supabase.from('assignment_submissions')
-        .select('student_id', { count: 'exact' })
-        .eq('school_id', schoolId),
     ])
 
     const ce = ceRes.data as unknown as { class_id: string; classes: { id: string; name: string } | null } | null
@@ -57,12 +54,10 @@ export default function LeaderboardPage({ onNavigate }: Props) {
         .eq('school_id', schoolId)
         .order('avg_score', { ascending: false })
         .limit(100),
-      classId ? supabase.from('grade_summaries')
-        .select('student_id, avg_score, profiles!student_id(full_name)')
-        .eq('school_id', schoolId)
+      classId ? (supabase as unknown as { from: (t: string) => any }).from('class_enrollments')
+        .select('student_id')
         .eq('class_id', classId)
-        .order('avg_score', { ascending: false })
-        .limit(100)
+        .eq('school_id', schoolId)
         : Promise.resolve({ data: [] }),
     ])
 
@@ -88,10 +83,11 @@ export default function LeaderboardPage({ onNavigate }: Props) {
     }
 
     const schoolRows = (gsSchoolRes.data ?? []) as unknown as { student_id: string; avg_score: number | null; profiles: { full_name: string | null } | null }[]
-    const classRows  = (gsClassRes.data ?? []) as unknown as { student_id: string; avg_score: number | null; profiles: { full_name: string | null } | null }[]
+    const classEnrolled = new Set((gsClassRes.data ?? []).map((r: any) => r.student_id as string))
+    const classRows = classEnrolled.size > 0 ? schoolRows.filter(r => classEnrolled.has(r.student_id)) : schoolRows
 
     setSchoolBoard(buildBoard(schoolRows))
-    setClassBoard(buildBoard(classRows.length ? classRows : schoolRows))
+    setClassBoard(buildBoard(classRows))
     setLoading(false)
   }
 

@@ -42,7 +42,6 @@ export default function ParentMessageTeacherPage({ onNavigate }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   const childId   = localStorage.getItem('learnora_selected_child') ?? profile?.id ?? ''
-  const childName = ''
 
   useEffect(() => { if (profile?.id) loadTeachers() }, [profile?.id])
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])

@@ -7,7 +7,6 @@ import { supabase } from '../../lib/supabase'
 type Props = { onNavigate: (page: string) => void }
 
 const DAYS    = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
-const DAY_FULL = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 
 interface Period {
   subject:    string

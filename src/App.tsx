@@ -104,6 +104,26 @@ import OnboardingCarouselPage    from './pages/OnboardingCarouselPage'
 import DiscussionForumPage       from './pages/DiscussionForumPage'
 import QuizBuilderPage           from './pages/QuizBuilderPage'
 
+// ── New pages (round 3) ───────────────────────────────────────────────────────
+import ConnectedDevicesPage      from './pages/ConnectedDevicesPage'
+import PrivacySettingsPage       from './pages/PrivacySettingsPage'
+import LinkedAccountsPage        from './pages/LinkedAccountsPage'
+import AttendanceHistoryPage     from './pages/AttendanceHistoryPage'
+import SubjectPerformancePage    from './pages/SubjectPerformancePage'
+import DeadlinesViewPage         from './pages/DeadlinesViewPage'
+import SharedFilesPage           from './pages/SharedFilesPage'
+import CourseResourcesPage       from './pages/CourseResourcesPage'
+import CourseSettingsPage        from './pages/CourseSettingsPage'
+import PlagiarismCheckPage       from './pages/PlagiarismCheckPage'
+import TwoFASetupPage            from './pages/TwoFASetupPage'
+import AddEventPage              from './pages/AddEventPage'
+import StorageManagementPage     from './pages/StorageManagementPage'
+import BadgesRewardsPage         from './pages/BadgesRewardsPage'
+import OfflineSyncPage           from './pages/OfflineSyncPage'
+import WhiteboardPage            from './pages/WhiteboardPage'
+import ScreenSharePage           from './pages/ScreenSharePage'
+import ParticipantsPanelPage     from './pages/ParticipantsPanelPage'
+
 // ── Landing ───────────────────────────────────────────────────────────────────
 import LandingPage            from './pages/LandingPage'
 
@@ -359,6 +379,26 @@ function QuizBuilderRoute()         { const n = useNav(); return <QuizBuilderPag
 function ReportBuilderRoute()       { const n = useNav(); return <ReportBuilderPage         onNavigate={n} /> }
 function BulkGradeRoute()           { const n = useNav(); return <BulkGradePage             onNavigate={n} /> }
 
+// ── Round-3 wrappers ──────────────────────────────────────────────────────────
+function ConnectedDevicesRoute()    { const n = useNav(); return <ConnectedDevicesPage   onNavigate={n} /> }
+function PrivacySettingsRoute()     { const n = useNav(); return <PrivacySettingsPage    onNavigate={n} /> }
+function LinkedAccountsRoute()      { const n = useNav(); return <LinkedAccountsPage     onNavigate={n} /> }
+function AttendanceHistoryRoute()   { const n = useNav(); return <AttendanceHistoryPage  onNavigate={n} /> }
+function SubjectPerfRoute()         { const n = useNav(); return <SubjectPerformancePage onNavigate={n} /> }
+function DeadlinesRoute()           { const n = useNav(); return <DeadlinesViewPage      onNavigate={n} /> }
+function SharedFilesRoute()         { const n = useNav(); return <SharedFilesPage        onNavigate={n} /> }
+function CourseResourcesRoute()     { const n = useNav(); return <CourseResourcesPage    onNavigate={n} /> }
+function CourseSettingsRoute()      { const n = useNav(); return <CourseSettingsPage     onNavigate={n} /> }
+function PlagiarismRoute()          { const n = useNav(); return <PlagiarismCheckPage    onNavigate={n} /> }
+function TwoFARoute()               { const n = useNav(); return <TwoFASetupPage         onNavigate={n} /> }
+function AddEventRoute()            { const n = useNav(); return <AddEventPage           onNavigate={n} /> }
+function StorageMgmtRoute()         { const n = useNav(); return <StorageManagementPage  onNavigate={n} /> }
+function BadgesRewardsRoute()       { const n = useNav(); return <BadgesRewardsPage      onNavigate={n} /> }
+function OfflineSyncRoute()         { const n = useNav(); return <OfflineSyncPage         onNavigate={n} /> }
+function WhiteboardRoute()          { const n = useNav(); return <WhiteboardPage          onNavigate={n} /> }
+function ScreenShareRoute()         { const n = useNav(); return <ScreenSharePage         onNavigate={n} /> }
+function ParticipantsPanelRoute()   { const n = useNav(); return <ParticipantsPanelPage   onNavigate={n} /> }
+
 // ── Bug-fix / new teacher & admin route wrappers ──────────────────────────────
 function AdminAttendRoute()         { const n = useNav(); return <AdminAttendancePage        onNavigate={n} /> }
 function AdminAnnouncRoute()        { const n = useNav(); return <AdminAnnouncementsPage     onNavigate={n} /> }
@@ -553,6 +593,26 @@ export default function App() {
         <Route path="/quiz-builder"        element={<QuizBuilderRoute />} />
         <Route path="/report-builder"      element={<ReportBuilderRoute />} />
         <Route path="/bulk-grade"          element={<BulkGradeRoute />} />
+
+        {/* Round 3: new pages */}
+        <Route path="/connected-devices"   element={<ConnectedDevicesRoute />} />
+        <Route path="/privacy-settings"    element={<PrivacySettingsRoute />} />
+        <Route path="/linked-accounts"     element={<LinkedAccountsRoute />} />
+        <Route path="/attendance-history"  element={<AttendanceHistoryRoute />} />
+        <Route path="/subject-performance" element={<SubjectPerfRoute />} />
+        <Route path="/deadlines"           element={<DeadlinesRoute />} />
+        <Route path="/shared-files"        element={<SharedFilesRoute />} />
+        <Route path="/course-resources"    element={<CourseResourcesRoute />} />
+        <Route path="/course-settings"     element={<CourseSettingsRoute />} />
+        <Route path="/plagiarism-check"    element={<PlagiarismRoute />} />
+        <Route path="/2fa-setup"           element={<TwoFARoute />} />
+        <Route path="/add-event"           element={<AddEventRoute />} />
+        <Route path="/storage-management"  element={<StorageMgmtRoute />} />
+        <Route path="/badges-rewards"      element={<BadgesRewardsRoute />} />
+        <Route path="/offline-sync"        element={<OfflineSyncRoute />} />
+        <Route path="/whiteboard"          element={<WhiteboardRoute />} />
+        <Route path="/screen-share"        element={<ScreenShareRoute />} />
+        <Route path="/participants-panel"  element={<ParticipantsPanelRoute />} />
 
         {/* Mobile student */}
         <Route path="/m/home"              element={<MStudentHomeRoute />} />

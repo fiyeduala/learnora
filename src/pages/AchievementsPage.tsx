@@ -71,7 +71,7 @@ export default function AchievementsPage({ onNavigate }: Props) {
       else if (i > 0) break
     }
 
-    const joined = profile!.created_at ? new Date(profile!.created_at as string).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''
+    const joined = (profile as any).created_at ? new Date((profile as any).created_at as string).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''
     const firstLesson = lpRows[0]?.completed_at ? new Date(lpRows[0].completed_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''
 
     const result: Badge[] = BADGE_CATALOG.map(b => {

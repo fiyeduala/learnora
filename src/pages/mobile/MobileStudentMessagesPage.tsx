@@ -28,7 +28,6 @@ function fmtTime(iso: string | null) {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 }
 
-const db = supabase as unknown as { from: (t: string) => any }
 
 export default function MobileStudentMessagesPage({ onNavigate }: Props) {
   const { profile } = useAuth()
@@ -51,7 +50,7 @@ export default function MobileStudentMessagesPage({ onNavigate }: Props) {
       .maybeSingle()
     const ce = ceData as unknown as { class_id: string; classes: { id: string; name: string } | null } | null
 
-    const queries: Promise<any>[] = []
+    const queries: any[] = []
 
     if (ce?.class_id) {
       queries.push(
@@ -81,7 +80,7 @@ export default function MobileStudentMessagesPage({ onNavigate }: Props) {
       const lastMsg = await getLastMessage(g.id)
       items.push({
         id:       g.id,
-        name:     ce.classes?.name + ' Group' ?? 'Class Group',
+        name:     (ce.classes?.name ?? 'Class') + ' Group',
         role:     'Group Chat',
         initials: 'G',
         preview:  lastMsg.body ?? 'No messages yet',
@@ -175,7 +174,7 @@ export default function MobileStudentMessagesPage({ onNavigate }: Props) {
           </div>
         ) : (
           <div className="flex flex-col gap-4">
-            {visible.map((c, i) => (
+            {visible.map((c) => (
               <button key={c.id} onClick={() => openConversation(c)} className="flex items-start gap-3 text-left">
                 <div className={`size-12 rounded-full ${c.color} flex items-center justify-center shrink-0 text-sm font-bold text-white`}>
                   {c.initials}

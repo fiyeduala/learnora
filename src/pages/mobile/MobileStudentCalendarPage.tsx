@@ -6,12 +6,6 @@ import { supabase } from '../../lib/supabase'
 
 type Props = { onNavigate: (page: string) => void }
 
-interface Activity {
-  title: string
-  time:  string
-  sub:   string
-  color: string
-}
 
 interface Deadline {
   label:       string
@@ -101,11 +95,9 @@ export default function MobileStudentCalendarPage({ onNavigate }: Props) {
     setLoading(false)
 
     function buildDeadlinesForDay(day: number, asgns: any[]): Deadline[] {
-      const selectedDate = new Date(year, month, day)
       return asgns.map(a => {
         const due = a.due_date ? new Date(a.due_date + 'T00:00:00') : null
         const overdue = due && due < new Date()
-        const upcoming = due && due >= new Date()
         const status = overdue ? 'Overdue' : 'Pending'
         const statusColor = overdue ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
         return {
