@@ -1,66 +1,87 @@
-import { useState } from 'react'
-import { Search, BookOpen, PenLine, User, Calendar, X, Megaphone, GraduationCap } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { Search, BookOpen, PenLine, User, X, Megaphone, GraduationCap } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 
 type Props = { onNavigate: (page: string) => void }
 
-type RType = 'course' | 'assignment' | 'student' | 'event' | 'teacher' | 'announcement'
+type RType = 'course' | 'assignment' | 'student' | 'teacher' | 'announcement'
 
 type Result = { type: RType; title: string; sub: string; page: string }
 
-const allResults: Result[] = [
-  { type: 'course',       title: 'Physics 101',               sub: 'Course · SS1A · 68% complete',             page: 'course-details'        },
-  { type: 'course',       title: 'Mathematics',               sub: 'Course · SS2B · 45% complete',             page: 'course-details'        },
-  { type: 'course',       title: 'Basic Science',             sub: 'Course · JSS1 · 82% complete',             page: 'course-details'        },
-  { type: 'assignment',   title: "Newton's Laws Quiz",        sub: 'Assignment · Physics · Due Jun 8',         page: 'assignments'           },
-  { type: 'assignment',   title: 'Algebra Worksheet',         sub: 'Assignment · Maths · Submitted',           page: 'assignments'           },
-  { type: 'assignment',   title: 'Essay on Shakespeare',      sub: 'Assignment · English · Overdue',           page: 'assignments'           },
-  { type: 'student',      title: 'Olive Princely Johnson',    sub: 'Student · SS1A · GPA 4.3',                 page: 'student-profile'       },
-  { type: 'student',      title: 'Fatima Al-Rashid',          sub: 'Student · SS1A · GPA 4.8',                 page: 'student-profile'       },
-  { type: 'student',      title: 'Tobi Ashuma',               sub: 'Student · JSS2B · GPA 3.8',               page: 'student-profile'       },
-  { type: 'teacher',      title: 'Mr. Daniel Johnson',        sub: 'Teacher · Mathematics & Physics',          page: 'students'              },
-  { type: 'teacher',      title: 'Mrs. Elena Bright',         sub: 'Teacher · English · New (Pending)',        page: 'students'              },
-  { type: 'event',        title: 'Maths Exam',                sub: 'Event · June 15, 2026 · 9:00 AM',          page: 'event-details'         },
-  { type: 'event',        title: 'Sports Day',                sub: 'Event · June 20, 2026 · All day',          page: 'event-details'         },
-  { type: 'announcement', title: 'End-of-Term Timetable',     sub: 'Announcement · Posted Jun 1',              page: 'announcements'         },
-  { type: 'announcement', title: 'Platform Maintenance',      sub: 'Announcement · Jun 14, 2026',              page: 'announcements'         },
-]
-
-const recentSearches = ['Physics assignment', 'Newton', 'SS1A attendance', 'Mrs Bright']
+const recentSearches = ['Physics', 'Assignment', 'Attendance', 'English']
 
 const iconMap: Record<RType, { Icon: typeof BookOpen; color: string; bg: string }> = {
-  course:       { Icon: BookOpen,       color: 'text-primary',      bg: 'bg-primary/10'     },
-  assignment:   { Icon: PenLine,        color: 'text-amber-600',    bg: 'bg-amber-50'       },
-  student:      { Icon: User,           color: 'text-accent-mint',  bg: 'bg-accent-mint/10' },
-  teacher:      { Icon: GraduationCap,  color: 'text-purple-600',   bg: 'bg-purple-50'      },
-  event:        { Icon: Calendar,       color: 'text-foreground',   bg: 'bg-canvas'         },
-  announcement: { Icon: Megaphone,      color: 'text-primary-deep', bg: 'bg-primary/8'      },
+  course:       { Icon: BookOpen,      color: 'text-primary',      bg: 'bg-primary/10'     },
+  assignment:   { Icon: PenLine,       color: 'text-amber-600',    bg: 'bg-amber-50'       },
+  student:      { Icon: User,          color: 'text-accent-mint',  bg: 'bg-accent-mint/10' },
+  teacher:      { Icon: GraduationCap, color: 'text-purple-600',   bg: 'bg-purple-50'      },
+  announcement: { Icon: Megaphone,     color: 'text-primary-deep', bg: 'bg-primary/8'      },
 }
 
-type Category = 'All' | 'Courses' | 'Assignments' | 'Students' | 'Teachers' | 'Announcements'
+type Category = 'All' | 'Courses' | 'Assignments' | 'People' | 'Announcements'
 
 const categoryMap: Record<Category, RType[] | null> = {
   'All':           null,
   'Courses':       ['course'],
   'Assignments':   ['assignment'],
-  'Students':      ['student'],
-  'Teachers':      ['teacher'],
-  'Announcements': ['announcement', 'event'],
+  'People':        ['student', 'teacher'],
+  'Announcements': ['announcement'],
 }
 
 export default function GlobalSearchPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
+  const sidebarUser = profileToSidebarUser(profile)
+
   const [query,    setQuery]    = useState('')
   const [category, setCategory] = useState<Category>('All')
+  const [results,  setResults]  = useState<Result[]>([])
+  const [loading,  setLoading]  = useState(false)
 
-  const filtered = allResults.filter(r => {
-    const matchesQuery = query.trim().length > 1
-      ? r.title.toLowerCase().includes(query.toLowerCase()) || r.sub.toLowerCase().includes(query.toLowerCase())
-      : true
-    const types = categoryMap[category]
-    const matchesCat = types === null || types.includes(r.type)
-    return matchesQuery && matchesCat
-  })
+  const schoolId = profile?.school_id ?? ''
 
+  const runSearch = useCallback(async (q: string) => {
+    if (!schoolId || q.trim().length < 2) { setResults([]); return }
+    setLoading(true)
+
+    const term = `%${q.trim()}%`
+    const [coursesRes, assignRes, profRes, annRes] = await Promise.all([
+      supabase.from('courses').select('id, title').ilike('title', term).eq('school_id', schoolId).limit(5),
+      supabase.from('assignments').select('id, title, due_date').ilike('title', term).eq('school_id', schoolId).limit(5),
+      supabase.from('profiles').select('id, full_name, role').ilike('full_name', term).eq('school_id', schoolId).limit(5),
+      supabase.from('announcements').select('id, title, published_at').ilike('title', term).eq('school_id', schoolId).limit(5),
+    ])
+
+    const items: Result[] = []
+
+    for (const c of (coursesRes.data ?? []) as { id: string; title: string }[]) {
+      items.push({ type: 'course', title: c.title, sub: 'Course', page: 'course-details' })
+    }
+    for (const a of (assignRes.data ?? []) as { id: string; title: string; due_date: string | null }[]) {
+      const due = a.due_date ? `Due ${new Date(a.due_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : 'No due date'
+      items.push({ type: 'assignment', title: a.title, sub: `Assignment · ${due}`, page: 'assignments' })
+    }
+    for (const p of (profRes.data ?? []) as { id: string; full_name: string | null; role: string | null }[]) {
+      const rType = p.role === 'teacher' ? 'teacher' : 'student'
+      items.push({ type: rType, title: p.full_name ?? 'Unknown', sub: `${p.role ? p.role.charAt(0).toUpperCase() + p.role.slice(1) : 'User'}`, page: 'student-profile' })
+    }
+    for (const n of (annRes.data ?? []) as { id: string; title: string; published_at: string | null }[]) {
+      const date = n.published_at ? new Date(n.published_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''
+      items.push({ type: 'announcement', title: n.title, sub: `Announcement${date ? ` · ${date}` : ''}`, page: 'announcements' })
+    }
+
+    setResults(items)
+    setLoading(false)
+  }, [schoolId])
+
+  useEffect(() => {
+    const timer = setTimeout(() => runSearch(query), 300)
+    return () => clearTimeout(timer)
+  }, [query, runSearch])
+
+  const types = categoryMap[category]
+  const filtered = types ? results.filter(r => types.includes(r.type)) : results
   const showResults = query.trim().length > 1 || category !== 'All'
 
   return (
@@ -69,6 +90,7 @@ export default function GlobalSearchPage({ onNavigate }: Props) {
       onNavigate={onNavigate}
       title="Search"
       subtitle="Find anything across Learnora"
+      user={sidebarUser}
     >
       <div className="max-w-[760px] flex flex-col gap-5">
 
@@ -90,7 +112,7 @@ export default function GlobalSearchPage({ onNavigate }: Props) {
 
         {/* Category tabs */}
         <div className="flex gap-1.5 overflow-x-auto pb-1">
-          {(['All', 'Courses', 'Assignments', 'Students', 'Teachers', 'Announcements'] as Category[]).map(c => (
+          {(['All', 'Courses', 'Assignments', 'People', 'Announcements'] as Category[]).map(c => (
             <button key={c} onClick={() => setCategory(c)}
               className={`h-8 px-3.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors shrink-0 ${category === c ? 'bg-primary text-white shadow-primary' : 'bg-surface text-muted hover:text-primary border border-black/10'}`}>
               {c}
@@ -113,8 +135,11 @@ export default function GlobalSearchPage({ onNavigate }: Props) {
           </div>
         )}
 
+        {/* Loading */}
+        {loading && <div className="text-center py-6 text-sm text-muted">Searching…</div>}
+
         {/* Results */}
-        {showResults && filtered.length > 0 && (
+        {!loading && showResults && filtered.length > 0 && (
           <div className="bg-surface rounded-card shadow-sm overflow-hidden">
             <div className="px-5 py-3 border-b border-black/6 flex items-center justify-between">
               <p className="text-xs font-semibold text-muted">
@@ -146,7 +171,7 @@ export default function GlobalSearchPage({ onNavigate }: Props) {
           </div>
         )}
 
-        {showResults && filtered.length === 0 && (
+        {!loading && showResults && filtered.length === 0 && (
           <div className="text-center py-12 text-muted">
             <Search size={32} className="mx-auto mb-3 opacity-30" />
             <p className="text-sm">No results{query.trim() ? ` for "${query}"` : ''}</p>

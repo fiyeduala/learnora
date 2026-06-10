@@ -1,37 +1,87 @@
-﻿import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, Trash2, Upload, Send, ChevronDown } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
 import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
+import { supabase } from '../../lib/supabase'
 
 type Props = { onNavigate: (page: string) => void }
 
-type Invite = { id: number; email: string; role: string; class: string }
+interface ClassOpt { id: string; name: string }
+interface InviteRow { _key: number; email: string; role: string; classId: string }
 
-let nextId = 3
+let _nextKey = 3
 
 export default function InviteUsersPage({ onNavigate }: Props) {
   const { profile } = useAuth()
-  const [invites, setInvites] = useState<Invite[]>([
-    { id: 1, email: '', role: 'Student', class: 'SS1A' },
-    { id: 2, email: '', role: 'Student', class: 'SS1A' },
+  const sidebarUser = profileToSidebarUser(profile)
+
+  const [classes, setClasses] = useState<ClassOpt[]>([])
+  const [invites, setInvites] = useState<InviteRow[]>([
+    { _key: 1, email: '', role: 'Student', classId: '' },
+    { _key: 2, email: '', role: 'Student', classId: '' },
   ])
-  const [sent, setSent] = useState(false)
+  const [sent,    setSent]    = useState(false)
+  const [sending, setSending] = useState(false)
+  const [error,   setError]   = useState('')
+
+  useEffect(() => { if (profile?.school_id) loadClasses() }, [profile?.school_id])
+
+  async function loadClasses() {
+    const { data } = await supabase
+      .from('classes')
+      .select('id, name')
+      .eq('school_id', profile!.school_id!)
+      .order('name')
+    const cls = (data ?? []) as ClassOpt[]
+    setClasses(cls)
+    if (cls.length > 0) {
+      setInvites(prev => prev.map(i => ({ ...i, classId: i.classId || cls[0].id })))
+    }
+  }
 
   function addRow() {
-    setInvites(inv => [...inv, { id: nextId++, email: '', role: 'Student', class: 'SS1A' }])
+    const classId = classes[0]?.id ?? ''
+    setInvites(inv => [...inv, { _key: _nextKey++, email: '', role: 'Student', classId }])
   }
 
-  function removeRow(id: number) {
-    setInvites(inv => inv.filter(i => i.id !== id))
+  function removeRow(key: number) {
+    setInvites(inv => inv.filter(i => i._key !== key))
   }
 
-  function update(id: number, field: keyof Invite, value: string) {
-    setInvites(inv => inv.map(i => i.id === id ? { ...i, [field]: value } : i))
+  function update(key: number, field: keyof InviteRow, value: string) {
+    setInvites(inv => inv.map(i => i._key === key ? { ...i, [field]: value } : i))
   }
 
-  const roles   = ['Student', 'Teacher', 'Parent']
-  const classes  = ['SS1A', 'SS1B', 'SS2A', 'SS2B', 'SS3A', 'SS3B', 'JSS1', 'JSS2', 'JSS3']
+  async function sendInvitations() {
+    const valid = invites.filter(i => i.email.trim())
+    if (valid.length === 0) { setError('Please enter at least one email address.'); return }
+    setSending(true)
+    setError('')
+
+    const rows = valid.map(i => ({
+      school_id:  profile!.school_id!,
+      email:      i.email.trim().toLowerCase(),
+      role:       i.role.toLowerCase(),
+      class_id:   i.classId || null,
+      invited_by: profile!.id,
+      status:     'pending',
+    }))
+
+    const db = supabase as unknown as { from: (t: string) => any }
+    const { error: dbErr } = await db.from('invitations').insert(rows)
+
+    if (dbErr) {
+      setError('Failed to save invitations. Please try again.')
+      setSending(false)
+      return
+    }
+
+    setSending(false)
+    setSent(true)
+  }
+
+  const roles = ['Student', 'Teacher', 'Parent']
 
   return (
     <DashboardLayout
@@ -40,17 +90,22 @@ export default function InviteUsersPage({ onNavigate }: Props) {
       title="Invite Users"
       subtitle="Send email invitations to join the school platform"
       nav={adminNav}
-      user={profileToSidebarUser(profile)}
+      user={sidebarUser}
     >
       <div className="max-w-[860px] flex flex-col gap-6">
 
         {sent ? (
           <div className="bg-green-50 border border-green-200 rounded-card p-8 text-center">
             <Send size={32} className="text-green-600 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-foreground mb-2">Invitations Sent!</h2>
-            <p className="text-sm text-muted mb-6">{invites.length} invitation{invites.length > 1 ? 's' : ''} sent successfully. Recipients will receive an email to set up their accounts.</p>
+            <h2 className="text-xl font-bold text-foreground mb-2">Invitations Saved!</h2>
+            <p className="text-sm text-muted mb-6">
+              {invites.filter(i => i.email.trim()).length} invitation{invites.filter(i => i.email.trim()).length > 1 ? 's' : ''} queued successfully. Users will be set up when they join.
+            </p>
             <div className="flex gap-3 justify-center">
-              <button onClick={() => setSent(false)} className="h-11 px-5 bg-primary text-white text-sm font-semibold rounded-pill hover:bg-primary-deep transition-colors">
+              <button
+                onClick={() => { setSent(false); setInvites([{ _key: _nextKey++, email: '', role: 'Student', classId: classes[0]?.id ?? '' }]) }}
+                className="h-11 px-5 bg-primary text-white text-sm font-semibold rounded-pill hover:bg-primary-deep transition-colors"
+              >
                 Send More
               </button>
               <button onClick={() => onNavigate('user-management')} className="h-11 px-5 border border-black/20 text-foreground text-sm font-semibold rounded-pill hover:border-primary hover:text-primary transition-colors">
@@ -87,49 +142,52 @@ export default function InviteUsersPage({ onNavigate }: Props) {
                 </button>
               </div>
 
-              {/* Table header */}
-              <div className="grid grid-cols-[1fr_140px_140px_40px] gap-3 px-5 py-2.5 bg-canvas/40 border-b border-black/6 text-xs font-semibold text-muted uppercase tracking-wider">
+              <div className="grid grid-cols-[1fr_140px_160px_40px] gap-3 px-5 py-2.5 bg-canvas/40 border-b border-black/6 text-xs font-semibold text-muted uppercase tracking-wider">
                 <span>Email Address</span><span>Role</span><span>Class</span><span />
               </div>
 
               <div className="divide-y divide-black/4">
                 {invites.map(inv => (
-                  <div key={inv.id} className="grid grid-cols-[1fr_140px_140px_40px] gap-3 items-center px-5 py-2.5">
+                  <div key={inv._key} className="grid grid-cols-[1fr_140px_160px_40px] gap-3 items-center px-5 py-2.5">
                     <input
-                      type="email" value={inv.email} onChange={e => update(inv.id, 'email', e.target.value)}
+                      type="email" value={inv.email} onChange={e => update(inv._key, 'email', e.target.value)}
                       placeholder="email@example.com"
                       className="h-9 px-3 border border-black/15 rounded-md text-sm text-foreground placeholder:text-muted outline-none focus:border-primary"
                     />
                     <div className="relative">
-                      <select value={inv.role} onChange={e => update(inv.id, 'role', e.target.value)}
+                      <select value={inv.role} onChange={e => update(inv._key, 'role', e.target.value)}
                         className="w-full h-9 pl-3 pr-8 border border-black/15 rounded-md text-sm text-foreground bg-white outline-none focus:border-primary appearance-none">
                         {roles.map(r => <option key={r}>{r}</option>)}
                       </select>
                       <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
                     </div>
                     <div className="relative">
-                      <select value={inv.class} onChange={e => update(inv.id, 'class', e.target.value)}
+                      <select value={inv.classId} onChange={e => update(inv._key, 'classId', e.target.value)}
                         className="w-full h-9 pl-3 pr-8 border border-black/15 rounded-md text-sm text-foreground bg-white outline-none focus:border-primary appearance-none">
-                        {classes.map(c => <option key={c}>{c}</option>)}
+                        <option value="">— None —</option>
+                        {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                       </select>
                       <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
                     </div>
-                    {invites.length > 1 && (
-                      <button onClick={() => removeRow(inv.id)} className="text-muted hover:text-red-500 transition-colors flex items-center justify-center">
+                    {invites.length > 1 ? (
+                      <button onClick={() => removeRow(inv._key)} className="text-muted hover:text-red-500 transition-colors flex items-center justify-center">
                         <Trash2 size={14} />
                       </button>
-                    )}
+                    ) : <span />}
                   </div>
                 ))}
               </div>
             </div>
 
+            {error && <p className="text-sm text-red-600">{error}</p>}
+
             <div className="flex gap-3">
               <button
-                onClick={() => setSent(true)}
-                className="flex items-center gap-2 h-12 px-6 bg-primary text-white text-sm font-semibold rounded-pill hover:bg-primary-deep transition-colors shadow-primary"
+                onClick={sendInvitations}
+                disabled={sending}
+                className="flex items-center gap-2 h-12 px-6 bg-primary text-white text-sm font-semibold rounded-pill hover:bg-primary-deep transition-colors shadow-primary disabled:opacity-50"
               >
-                <Send size={14} /> Send Invitations
+                <Send size={14} /> {sending ? 'Saving…' : 'Send Invitations'}
               </button>
               <button onClick={() => onNavigate('user-management')} className="h-12 px-6 border border-black/20 text-foreground text-sm font-semibold rounded-pill hover:border-primary hover:text-primary transition-colors">
                 Cancel

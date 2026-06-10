@@ -1,17 +1,20 @@
-import { useState } from 'react'
-import { Target, Plus, CheckCircle2, Circle, Trash2, Edit2, Calendar } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Target, Plus, CheckCircle2, Circle, Trash2, Calendar } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 
 type Props = { onNavigate: (page: string) => void }
 
-interface Goal { id: number; title: string; subject: string; target: string; deadline: string; progress: number; done: boolean }
-
-const initialGoals: Goal[] = [
-  { id: 1, title: 'Reach 80% in Physics',      subject: 'Physics',     target: '80%',    deadline: 'Jun 15, 2026', progress: 72, done: false },
-  { id: 2, title: 'Complete all Maths chapters', subject: 'Mathematics', target: '32/32',  deadline: 'Jun 10, 2026', progress: 56, done: false },
-  { id: 3, title: 'Maintain 90%+ attendance',   subject: 'General',     target: '90%',    deadline: 'End of term',  progress: 91, done: false },
-  { id: 4, title: 'Score A in English essay',   subject: 'English',     target: 'Grade A', deadline: 'Jun 12, 2026', progress: 100, done: true  },
-]
+interface Goal {
+  id: string
+  title: string
+  subject: string
+  target_label: string | null
+  deadline_label: string | null
+  progress: number
+  done: boolean
+}
 
 const subjectColor: Record<string, string> = {
   Physics:     'bg-primary/10 text-primary',
@@ -20,37 +23,68 @@ const subjectColor: Record<string, string> = {
   General:     'bg-canvas text-muted',
 }
 
+const db = supabase as unknown as { from: (t: string) => any }
+
 export default function AcademicGoalsPage({ onNavigate }: Props) {
-  const [goals,  setGoals]  = useState<Goal[]>(initialGoals)
-  const [adding, setAdding] = useState(false)
+  const { profile } = useAuth()
+  const sidebarUser = profileToSidebarUser(profile)
+
+  const [goals,    setGoals]    = useState<Goal[]>([])
+  const [loading,  setLoading]  = useState(true)
+  const [adding,   setAdding]   = useState(false)
   const [newTitle, setNewTitle] = useState('')
 
-  function toggleDone(id: number) {
-    setGoals(prev => prev.map(g => g.id === id ? { ...g, done: !g.done } : g))
+  useEffect(() => { if (profile?.id) loadGoals() }, [profile?.id])
+
+  async function loadGoals() {
+    setLoading(true)
+    const { data } = await db.from('student_goals')
+      .select('id, title, subject, target_label, deadline_label, progress, done')
+      .eq('student_id', profile!.id)
+      .eq('school_id', profile!.school_id)
+      .order('created_at', { ascending: false })
+    setGoals((data ?? []) as Goal[])
+    setLoading(false)
   }
-  function remove(id: number) {
-    setGoals(prev => prev.filter(g => g.id !== id))
-  }
-  function addGoal() {
+
+  async function addGoal() {
     if (!newTitle.trim()) return
-    setGoals(prev => [...prev, { id: Date.now(), title: newTitle, subject: 'General', target: '—', deadline: '—', progress: 0, done: false }])
+    const { data } = await db.from('student_goals').insert({
+      student_id: profile!.id,
+      school_id: profile!.school_id,
+      title: newTitle.trim(),
+      subject: 'General',
+      progress: 0,
+      done: false,
+    }).select().single()
+    if (data) setGoals(prev => [data as Goal, ...prev])
     setNewTitle('')
     setAdding(false)
+  }
+
+  async function toggleDone(id: string, current: boolean) {
+    setGoals(prev => prev.map(g => g.id === id ? { ...g, done: !current } : g))
+    await db.from('student_goals').update({ done: !current }).eq('id', id)
+  }
+
+  async function remove(id: string) {
+    setGoals(prev => prev.filter(g => g.id !== id))
+    await db.from('student_goals').delete().eq('id', id)
   }
 
   const active    = goals.filter(g => !g.done)
   const completed = goals.filter(g => g.done)
 
   return (
-    <DashboardLayout activePage="analysis" onNavigate={onNavigate} title="Academic Goals" subtitle="Set and track your personal learning targets">
+    <DashboardLayout activePage="analysis" onNavigate={onNavigate} title="Academic Goals" subtitle="Set and track your personal learning targets" user={sidebarUser}>
       <div className="max-w-[720px] flex flex-col gap-6">
 
         {/* Summary */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { label: 'Active Goals',    value: active.length,    color: 'text-primary'   },
-            { label: 'Completed',       value: completed.length, color: 'text-green-600' },
-            { label: 'On Track',        value: active.filter(g => g.progress >= 70).length, color: 'text-amber-600' },
+            { label: 'Active Goals', value: active.length,    color: 'text-primary'   },
+            { label: 'Completed',    value: completed.length, color: 'text-green-600' },
+            { label: 'On Track',     value: active.filter(g => g.progress >= 70).length, color: 'text-amber-600' },
           ].map(({ label, value, color }) => (
             <div key={label} className="bg-surface rounded-card shadow-sm p-4 text-center">
               <p className={`text-2xl font-bold ${color}`}>{value}</p>
@@ -88,44 +122,47 @@ export default function AcademicGoalsPage({ onNavigate }: Props) {
             </div>
           )}
 
-          <div className="divide-y divide-black/4">
-            {active.map(g => (
-              <div key={g.id} className="px-6 py-4 group">
-                <div className="flex items-start gap-3">
-                  <button onClick={() => toggleDone(g.id)} className="mt-0.5 shrink-0">
-                    <Circle size={18} className="text-muted/40 hover:text-primary transition-colors" />
-                  </button>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="text-sm font-semibold text-foreground">{g.title}</p>
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${subjectColor[g.subject] ?? 'bg-canvas text-muted'}`}>{g.subject}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-xs text-muted mb-3">
-                      <span>Target: <strong>{g.target}</strong></span>
-                      <span className="flex items-center gap-1"><Calendar size={10} /> {g.deadline}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="flex-1 h-1.5 bg-black/8 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full ${g.progress >= 90 ? 'bg-green-500' : g.progress >= 70 ? 'bg-primary' : 'bg-amber-400'}`}
-                          style={{ width: `${g.progress}%` }}
-                        />
-                      </div>
-                      <span className="text-xs font-semibold text-foreground">{g.progress}%</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                    <button className="size-7 rounded-full flex items-center justify-center text-muted hover:text-primary transition-colors">
-                      <Edit2 size={12} />
+          {loading ? (
+            <div className="text-center py-8 text-sm text-muted">Loading goals…</div>
+          ) : active.length === 0 ? (
+            <div className="text-center py-8 text-sm text-muted">No active goals yet. Add one above.</div>
+          ) : (
+            <div className="divide-y divide-black/4">
+              {active.map(g => (
+                <div key={g.id} className="px-6 py-4 group">
+                  <div className="flex items-start gap-3">
+                    <button onClick={() => toggleDone(g.id, g.done)} className="mt-0.5 shrink-0">
+                      <Circle size={18} className="text-muted/40 hover:text-primary transition-colors" />
                     </button>
-                    <button onClick={() => remove(g.id)} className="size-7 rounded-full flex items-center justify-center text-muted hover:text-red-500 transition-colors">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-sm font-semibold text-foreground">{g.title}</p>
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${subjectColor[g.subject] ?? 'bg-canvas text-muted'}`}>{g.subject}</span>
+                      </div>
+                      {(g.target_label || g.deadline_label) && (
+                        <div className="flex items-center gap-3 text-xs text-muted mb-3">
+                          {g.target_label && <span>Target: <strong>{g.target_label}</strong></span>}
+                          {g.deadline_label && <span className="flex items-center gap-1"><Calendar size={10} /> {g.deadline_label}</span>}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 h-1.5 bg-black/8 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${g.progress >= 90 ? 'bg-green-500' : g.progress >= 70 ? 'bg-primary' : 'bg-amber-400'}`}
+                            style={{ width: `${g.progress}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-semibold text-foreground">{g.progress}%</span>
+                      </div>
+                    </div>
+                    <button onClick={() => remove(g.id)} className="size-7 rounded-full flex items-center justify-center text-muted hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 shrink-0">
                       <Trash2 size={12} />
                     </button>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Completed */}

@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Award, Star, Lock, Trophy } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -15,30 +17,87 @@ interface Badge {
   xp:          number
 }
 
-const badges: Badge[] = [
-  { id: '1',  title: 'First Login',        description: 'Logged in for the first time',                    icon: '🚀', category: 'Milestones', earned: true,  earnedDate: 'Sep 14, 2024', xp: 50   },
-  { id: '2',  title: 'Course Completer',   description: 'Completed your first full course',                icon: '📗', category: 'Learning',   earned: true,  earnedDate: 'Nov 2, 2024',  xp: 200  },
-  { id: '3',  title: '7-Day Streak',       description: 'Studied every day for a week',                   icon: '🔥', category: 'Consistency', earned: true,  earnedDate: 'Nov 20, 2024', xp: 150  },
-  { id: '4',  title: 'Top of the Class',   description: 'Ranked #1 in your class leaderboard',            icon: '🥇', category: 'Excellence', earned: true,  earnedDate: 'Jan 10, 2025', xp: 500  },
-  { id: '5',  title: 'Perfect Score',      description: 'Got 100% on a quiz',                             icon: '💯', category: 'Excellence', earned: true,  earnedDate: 'Feb 28, 2025', xp: 300  },
-  { id: '6',  title: 'Night Owl',          description: 'Studied after 10PM for 5 days',                  icon: '🦉', category: 'Consistency', earned: true,  earnedDate: 'Mar 15, 2025', xp: 100  },
-  { id: '7',  title: '30-Day Streak',      description: 'Studied every day for a month',                  icon: '📅', category: 'Consistency', earned: false, xp: 500  },
-  { id: '8',  title: 'WAEC Ready',         description: 'Completed all WAEC prep modules',                icon: '📝', category: 'Learning',   earned: false, xp: 400  },
-  { id: '9',  title: 'Social Learner',     description: 'Participated in 10 group discussions',           icon: '💬', category: 'Collaboration', earned: false, xp: 200  },
-  { id: '10', title: 'Polymath',           description: 'Completed courses in 5 different subjects',      icon: '🧠', category: 'Learning',   earned: false, xp: 600  },
-  { id: '11', title: 'AI Explorer',        description: 'Used AI Tutor for 20 sessions',                  icon: '🤖', category: 'Learning',   earned: false, xp: 250  },
-  { id: '12', title: 'Goal Crusher',       description: 'Completed all academic goals for a term',        icon: '🎯', category: 'Excellence', earned: false, xp: 350  },
+// Static badge catalog — earned status derived from DB activity
+const BADGE_CATALOG: Omit<Badge, 'earned' | 'earnedDate'>[] = [
+  { id: 'first_login',    title: 'First Login',        description: 'Logged in for the first time',               icon: '🚀', category: 'Milestones',    xp: 50   },
+  { id: 'course_done',    title: 'Course Completer',   description: 'Completed your first full lesson',            icon: '📗', category: 'Learning',      xp: 200  },
+  { id: 'streak_7',       title: '7-Day Streak',       description: 'Studied every day for a week',               icon: '🔥', category: 'Consistency',   xp: 150  },
+  { id: 'top_class',      title: 'Top of the Class',   description: 'Ranked #1 in your class leaderboard',        icon: '🥇', category: 'Excellence',    xp: 500  },
+  { id: 'forum_post',     title: 'Forum Starter',      description: 'Posted your first discussion thread',        icon: '💬', category: 'Collaboration', xp: 100  },
+  { id: 'streak_30',      title: '30-Day Streak',      description: 'Studied every day for a month',              icon: '📅', category: 'Consistency',   xp: 500  },
+  { id: 'five_subjects',  title: 'Polymath',           description: 'Completed lessons in 5 different subjects',  icon: '🧠', category: 'Learning',      xp: 600  },
+  { id: 'goal_crusher',   title: 'Goal Crusher',       description: 'Completed all academic goals for a term',    icon: '🎯', category: 'Excellence',    xp: 350  },
 ]
 
 const categories = ['All', 'Milestones', 'Learning', 'Consistency', 'Excellence', 'Collaboration']
 
-const totalXP   = badges.filter(b => b.earned).reduce((s, b) => s + b.xp, 0)
-const earnedCount = badges.filter(b => b.earned).length
+const db = supabase as unknown as { from: (t: string) => any }
 
 export default function AchievementsPage({ onNavigate }: Props) {
-  const [tab, setTab] = useState('All')
+  const { profile } = useAuth()
+  const sidebarUser = profileToSidebarUser(profile)
 
-  const filtered = tab === 'All' ? badges : badges.filter(b => b.category === tab)
+  const [badges, setBadges]   = useState<Badge[]>([])
+  const [tab,    setTab]      = useState('All')
+  const [loading,setLoading]  = useState(true)
+
+  useEffect(() => { if (profile?.id) deriveAchievements() }, [profile?.id])
+
+  async function deriveAchievements() {
+    setLoading(true)
+    const sid      = profile!.id
+    const schoolId = profile!.school_id!
+
+    const [lpRes, gsRes, forumRes, goalsRes] = await Promise.all([
+      supabase.from('lesson_progress').select('completed_at, lesson_id').eq('student_id', sid).eq('completed', true).not('completed_at', 'is', null).order('completed_at', { ascending: true }),
+      supabase.from('grade_summaries').select('subject_id').eq('student_id', sid).eq('school_id', schoolId),
+      db.from('forum_threads').select('id').eq('author_id', sid).limit(1),
+      db.from('student_goals').select('id').eq('student_id', sid).eq('done', true).limit(1),
+    ])
+
+    const lpRows = (lpRes.data ?? []) as { completed_at: string; lesson_id: string }[]
+    const gsRows = (gsRes.data ?? []) as { subject_id: string }[]
+    const forumRows = (forumRes.data ?? []) as { id: string }[]
+    const goalRows  = (goalsRes.data ?? []) as { id: string }[]
+
+    // Streak from completed_at dates
+    const days = new Set(lpRows.map(r => r.completed_at.slice(0, 10)))
+    const today = new Date()
+    let streak = 0
+    for (let i = 0; i < 365; i++) {
+      const d = new Date(today)
+      d.setDate(today.getDate() - i)
+      if (days.has(d.toISOString().slice(0, 10))) streak++
+      else if (i > 0) break
+    }
+
+    const joined = profile!.created_at ? new Date(profile!.created_at as string).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''
+    const firstLesson = lpRows[0]?.completed_at ? new Date(lpRows[0].completed_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''
+
+    const result: Badge[] = BADGE_CATALOG.map(b => {
+      let earned = false
+      let earnedDate: string | undefined
+
+      if (b.id === 'first_login')   { earned = true; earnedDate = joined }
+      if (b.id === 'course_done')   { earned = lpRows.length > 0; earnedDate = firstLesson }
+      if (b.id === 'streak_7')      { earned = streak >= 7 }
+      if (b.id === 'streak_30')     { earned = streak >= 30 }
+      if (b.id === 'top_class')     { earned = false }
+      if (b.id === 'forum_post')    { earned = forumRows.length > 0 }
+      if (b.id === 'five_subjects') { earned = new Set(gsRows.map(g => g.subject_id)).size >= 5 }
+      if (b.id === 'goal_crusher')  { earned = goalRows.length > 0 }
+
+      return { ...b, earned, earnedDate }
+    })
+
+    setBadges(result)
+    setLoading(false)
+  }
+
+  const filtered   = tab === 'All' ? badges : badges.filter(b => b.category === tab)
+  const totalXP    = badges.filter(b => b.earned).reduce((s, b) => s + b.xp, 0)
+  const earnedCount = badges.filter(b => b.earned).length
+  const level = Math.floor(totalXP / 500) + 1
 
   return (
     <DashboardLayout
@@ -46,7 +105,11 @@ export default function AchievementsPage({ onNavigate }: Props) {
       onNavigate={onNavigate}
       title="Achievements"
       subtitle="Badges and milestones you've unlocked"
+      user={sidebarUser}
     >
+      {loading ? (
+        <div className="text-center py-16 text-sm text-muted">Loading achievements…</div>
+      ) : <>
       {/* XP Banner */}
       <div className="bg-gradient-to-r from-[#4b75ff] to-[#005cf7] rounded-card p-6 flex items-center justify-between mb-5 text-white">
         <div>
@@ -57,7 +120,7 @@ export default function AchievementsPage({ onNavigate }: Props) {
         <div className="flex items-center gap-3">
           <div className="text-center">
             <Trophy size={32} className="mx-auto mb-1 opacity-80" />
-            <p className="text-xs font-semibold opacity-70">Level 6</p>
+            <p className="text-xs font-semibold opacity-70">Level {level}</p>
           </div>
         </div>
       </div>
@@ -137,6 +200,7 @@ export default function AchievementsPage({ onNavigate }: Props) {
           })}
         </div>
       </div>
+      </>}
     </DashboardLayout>
   )
 }

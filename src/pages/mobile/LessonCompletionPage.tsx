@@ -1,8 +1,34 @@
+import { useEffect, useState } from 'react'
 import { ChevronLeft } from 'lucide-react'
+import { useAuth } from '../../contexts/AuthContext'
+import { supabase } from '../../lib/supabase'
 
 type Props = { onNavigate: (page: string) => void }
 
 export default function LessonCompletionPage({ onNavigate }: Props) {
+  const { profile } = useAuth()
+  const [lessonTitle, setLessonTitle] = useState('this lesson')
+
+  useEffect(() => {
+    const raw = localStorage.getItem('learnora_selected_lesson')
+    if (raw) {
+      try {
+        const lesson = JSON.parse(raw)
+        if (lesson?.title) setLessonTitle(lesson.title)
+
+        if (profile?.id && lesson?.id) {
+          supabase.from('lesson_progress').upsert({
+            student_id: profile.id,
+            lesson_id: lesson.id,
+            school_id: profile.school_id!,
+            completed: true,
+            completed_at: new Date().toISOString(),
+          }, { onConflict: 'student_id,lesson_id' }).then(() => {})
+        }
+      } catch {}
+    }
+  }, [profile?.id])
+
   return (
     <div className="min-h-screen bg-white flex flex-col max-w-[430px] mx-auto px-5">
 
@@ -13,15 +39,11 @@ export default function LessonCompletionPage({ onNavigate }: Props) {
         </button>
         <div className="flex gap-1 justify-center mb-4">
           {['bg-red-400', 'bg-yellow-400', 'bg-blue-400', 'bg-green-400', 'bg-pink-400', 'bg-purple-400'].map((c, i) => (
-            <div key={i} className={`w-2 h-8 ${c} rounded-full transform -rotate-12`} style={{ transform: `rotate(${(i - 2) * 15}deg)` }} />
+            <div key={i} className={`w-2 h-8 ${c} rounded-full`} style={{ transform: `rotate(${(i - 2) * 15}deg)` }} />
           ))}
         </div>
-
-        {/* Robot mascot */}
         <div className="flex justify-center">
-          <div className="size-28 rounded-full bg-primary/10 flex items-center justify-center text-6xl select-none">
-            🤖
-          </div>
+          <div className="size-28 rounded-full bg-primary/10 flex items-center justify-center text-6xl select-none">🤖</div>
         </div>
       </div>
 
@@ -30,28 +52,28 @@ export default function LessonCompletionPage({ onNavigate }: Props) {
         <h1 className="text-2xl font-bold text-foreground text-center mb-2">Congratulations!</h1>
         <p className="text-sm text-muted text-center mb-8">
           You completed<br />
-          <span className="font-semibold text-foreground">Solving Linear Equations</span>
+          <span className="font-semibold text-foreground">{lessonTitle}</span>
         </p>
 
         {/* Stats */}
         <div className="grid grid-cols-2 gap-4 mb-8">
           <div className="bg-canvas rounded-2xl p-4">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-xs text-muted">Accuracy</p>
-              <div className="size-8 rounded-full bg-pink-100 flex items-center justify-center">
-                <span className="text-sm">🎯</span>
+              <p className="text-xs text-muted">Status</p>
+              <div className="size-8 rounded-full bg-green-100 flex items-center justify-center">
+                <span className="text-sm">✅</span>
               </div>
             </div>
-            <p className="text-2xl font-bold text-foreground">80%</p>
+            <p className="text-2xl font-bold text-foreground">Done</p>
           </div>
           <div className="bg-canvas rounded-2xl p-4">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-xs text-muted">Grade</p>
-              <div className="size-8 rounded-full bg-green-100 flex items-center justify-center">
+              <p className="text-xs text-muted">XP Earned</p>
+              <div className="size-8 rounded-full bg-amber-100 flex items-center justify-center">
                 <span className="text-sm">⭐</span>
               </div>
             </div>
-            <p className="text-2xl font-bold text-foreground">B+</p>
+            <p className="text-2xl font-bold text-foreground">+50</p>
           </div>
         </div>
 

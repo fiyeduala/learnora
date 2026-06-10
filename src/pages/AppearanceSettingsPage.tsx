@@ -1,18 +1,44 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Sun, Moon, Monitor, Type, Eye, Save, CheckCircle2 } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 type Theme    = 'light' | 'dark' | 'system'
 type FontSize = 'small' | 'medium' | 'large'
 
+const PREFS_KEY = 'learnora_appearance'
+
 export default function AppearanceSettingsPage({ onNavigate }: Props) {
-  const [theme,      setTheme]     = useState<Theme>('light')
-  const [fontSize,   setFontSize]  = useState<FontSize>('medium')
-  const [compact,    setCompact]   = useState(false)
-  const [animations, setAnimations]= useState(true)
-  const [highContrast, setHighContrast] = useState(false)
-  const [saved,      setSaved]     = useState(false)
+  const { profile } = useAuth()
+  const sidebarUser = profileToSidebarUser(profile)
+
+  const [theme,       setTheme]       = useState<Theme>('light')
+  const [fontSize,    setFontSize]    = useState<FontSize>('medium')
+  const [compact,     setCompact]     = useState(false)
+  const [animations,  setAnimations]  = useState(true)
+  const [highContrast,setHighContrast]= useState(false)
+  const [saved,       setSaved]       = useState(false)
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(PREFS_KEY)
+      if (raw) {
+        const p = JSON.parse(raw)
+        if (p.theme)       setTheme(p.theme)
+        if (p.fontSize)    setFontSize(p.fontSize)
+        if (p.compact     !== undefined) setCompact(p.compact)
+        if (p.animations  !== undefined) setAnimations(p.animations)
+        if (p.highContrast !== undefined) setHighContrast(p.highContrast)
+      }
+    } catch {}
+  }, [])
+
+  function handleSave() {
+    localStorage.setItem(PREFS_KEY, JSON.stringify({ theme, fontSize, compact, animations, highContrast }))
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2500)
+  }
 
   const themeOptions: { id: Theme; label: string; icon: typeof Sun; desc: string }[] = [
     { id: 'light',  label: 'Light',  icon: Sun,     desc: 'Default white theme'       },
@@ -32,6 +58,7 @@ export default function AppearanceSettingsPage({ onNavigate }: Props) {
       onNavigate={onNavigate}
       title="Appearance"
       subtitle="Customise how Learnora looks for you"
+      user={sidebarUser}
     >
       <div className="max-w-[600px] flex flex-col gap-6">
 
@@ -123,7 +150,7 @@ export default function AppearanceSettingsPage({ onNavigate }: Props) {
 
         <div className="flex items-center gap-3">
           <button
-            onClick={() => { setSaved(true); setTimeout(() => setSaved(false), 2500) }}
+            onClick={handleSave}
             className="flex items-center gap-2 h-11 px-6 bg-primary text-white text-sm font-semibold rounded-pill shadow-primary hover:bg-primary-deep transition-colors"
           >
             <Save size={15} /> Save Preferences

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Search, Send, Paperclip, MoreVertical, ArrowLeft, MessageSquare, Loader2 } from 'lucide-react'
+import { Search, Send, Paperclip, MoreVertical, ArrowLeft, MessageSquare, Loader2, BellOff } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -51,8 +51,18 @@ export default function MessagesPage({ onNavigate }: Props) {
   const [mobileView,    setMobileView]    = useState<'list' | 'chat'>('list')
   const [sending,       setSending]       = useState(false)
   const [uploading,     setUploading]     = useState(false)
+  const [showMenu,      setShowMenu]      = useState(false)
   const bottomRef  = useRef<HTMLDivElement>(null)
   const fileRef    = useRef<HTMLInputElement>(null)
+  const menuRef    = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function close(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setShowMenu(false)
+    }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [])
 
   useEffect(() => { if (profile?.id) loadConversations() }, [profile?.id])
   useEffect(() => { if (activeId) loadMessages(activeId) }, [activeId])
@@ -230,6 +240,17 @@ export default function MessagesPage({ onNavigate }: Props) {
     setUploading(false)
   }
 
+  async function markUnread() {
+    if (!activeId) return
+    await supabase
+      .from('conversation_members')
+      .update({ last_read_at: null })
+      .eq('conversation_id', activeId)
+      .eq('user_id', profile!.id)
+    setConversations(prev => prev.map(c => c.id === activeId ? { ...c, unread: 1 } : c))
+    setShowMenu(false)
+  }
+
   async function markRead(convId: string) {
     await supabase
       .from('conversation_members')
@@ -325,7 +346,24 @@ export default function MessagesPage({ onNavigate }: Props) {
                 <p className="text-sm font-semibold text-foreground truncate">{active.name}</p>
                 <p className="text-xs text-muted capitalize">{active.role}</p>
               </div>
-              <button className="p-2 text-muted hover:text-foreground"><MoreVertical size={18} /></button>
+              <div className="relative" ref={menuRef}>
+                <button onClick={() => setShowMenu(v => !v)}
+                  className="p-2 text-muted hover:text-foreground rounded-md hover:bg-canvas transition-colors">
+                  <MoreVertical size={18} />
+                </button>
+                {showMenu && (
+                  <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-card shadow-lg border border-black/8 py-1 z-20">
+                    <button onClick={markUnread}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left text-foreground hover:bg-canvas transition-colors">
+                      <BellOff size={14} className="text-muted" /> Mark as unread
+                    </button>
+                    <button onClick={() => { setMobileView('list'); setShowMenu(false) }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left text-foreground hover:bg-canvas transition-colors md:hidden">
+                      <ArrowLeft size={14} className="text-muted" /> Close chat
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 md:py-6 flex flex-col gap-3 md:gap-4">

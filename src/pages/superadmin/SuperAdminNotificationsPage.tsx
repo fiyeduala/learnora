@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Bell, AlertCircle, Building2, CreditCard,
   Megaphone, UserPlus, Clock, Check,
@@ -6,13 +6,14 @@ import {
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { superAdminNav } from '../../components/layout/Sidebar'
 import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
+import { supabase } from '../../lib/supabase'
 
 type Props = { onNavigate: (page: string) => void }
 
-type NType = 'school' | 'billing' | 'system' | 'announcement' | 'invite'
+type NType = 'school' | 'billing' | 'system' | 'announcement' | 'invite' | 'general'
 
 type Notif = {
-  id:    number
+  id:    string
   type:  NType
   title: string
   body:  string
@@ -21,7 +22,7 @@ type Notif = {
   page?: string
 }
 
-const iconMap: Record<NType, { icon: typeof Bell; bg: string; color: string }> = {
+const iconMap: Partial<Record<NType, { icon: typeof Bell; bg: string; color: string }>> = {
   school:       { icon: Building2,  bg: 'bg-primary/10', color: 'text-primary'   },
   billing:      { icon: CreditCard, bg: 'bg-amber-50',   color: 'text-amber-600' },
   system:       { icon: AlertCircle,bg: 'bg-canvas',     color: 'text-muted'     },
@@ -29,24 +30,60 @@ const iconMap: Record<NType, { icon: typeof Bell; bg: string; color: string }> =
   invite:       { icon: UserPlus,   bg: 'bg-teal-50',    color: 'text-teal-600'  },
 }
 
-const initNotifs: Notif[] = []
+const defaultIcon = { icon: Bell, bg: 'bg-canvas', color: 'text-muted' }
+
+function fmtTime(iso: string | null) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const now = new Date()
+  const diff = (now.getTime() - d.getTime()) / 60000
+  if (diff < 60)   return `${Math.round(diff)}m ago`
+  if (diff < 1440) return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+}
 
 type Filter = 'All' | 'Unread' | 'Schools' | 'Billing' | 'System'
 
 export default function SuperAdminNotificationsPage({ onNavigate }: Props) {
   const { profile } = useAuth()
   const sidebarUser  = profileToSidebarUser(profile)
-  const [notifs, setNotifs] = useState<Notif[]>(initNotifs)
+  const [notifs, setNotifs] = useState<Notif[]>([])
   const [filter, setFilter] = useState<Filter>('All')
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => { if (profile?.id) loadNotifs() }, [profile?.id])
+
+  async function loadNotifs() {
+    setLoading(true)
+    const { data } = await supabase
+      .from('notifications')
+      .select('id, title, body, type, read, created_at')
+      .eq('user_id', profile!.id)
+      .order('created_at', { ascending: false })
+      .limit(50)
+    setNotifs((data ?? []).map((n: {
+      id: string; title: string; body: string | null; type: string | null; read: boolean | null; created_at: string | null
+    }) => ({
+      id:    n.id,
+      type:  (n.type ?? 'general') as NType,
+      title: n.title,
+      body:  n.body ?? '',
+      time:  fmtTime(n.created_at),
+      read:  n.read ?? false,
+    })))
+    setLoading(false)
+  }
 
   const unreadCount = notifs.filter(n => !n.read).length
 
-  function markRead(id: number) {
+  async function markRead(id: string) {
     setNotifs(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
+    await supabase.from('notifications').update({ read: true }).eq('id', id)
   }
 
-  function markAllRead() {
+  async function markAllRead() {
     setNotifs(prev => prev.map(n => ({ ...n, read: true })))
+    await supabase.from('notifications').update({ read: true }).eq('user_id', profile!.id)
   }
 
   function handleClick(n: Notif) {
@@ -55,11 +92,11 @@ export default function SuperAdminNotificationsPage({ onNavigate }: Props) {
   }
 
   const filterTypes: Record<Filter, NType[] | null> = {
-    'All':        null,
-    'Unread':     null,
-    'Schools':    ['school', 'invite'],
-    'Billing':    ['billing'],
-    'System':     ['system', 'announcement'],
+    'All':     null,
+    'Unread':  null,
+    'Schools': ['school', 'invite'],
+    'Billing': ['billing'],
+    'System':  ['system', 'announcement'],
   }
 
   const visible = notifs.filter(n => {
@@ -101,7 +138,9 @@ export default function SuperAdminNotificationsPage({ onNavigate }: Props) {
         </div>
 
         {/* List */}
-        {visible.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-10 text-sm text-muted">Loading…</div>
+        ) : visible.length === 0 ? (
           <div className="bg-surface rounded-card shadow-sm p-12 text-center">
             <Bell size={32} className="text-muted mx-auto mb-3 opacity-40" />
             <p className="text-sm text-muted">No notifications yet.</p>
@@ -110,7 +149,7 @@ export default function SuperAdminNotificationsPage({ onNavigate }: Props) {
           <div className="bg-surface rounded-card shadow-sm overflow-hidden">
             <div className="divide-y divide-black/4">
               {visible.map(n => {
-                const meta = iconMap[n.type]
+                const meta = iconMap[n.type] ?? defaultIcon
                 const Icon = meta.icon
                 return (
                   <div key={n.id} onClick={() => handleClick(n)}

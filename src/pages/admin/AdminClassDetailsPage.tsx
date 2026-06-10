@@ -1,7 +1,9 @@
-import { ArrowLeft, Users, BookOpen, ClipboardCheck, TrendingUp, Award } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { ArrowLeft, Users, BookOpen, ClipboardCheck, TrendingUp, UserPlus } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
 import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
+import { supabase } from '../../lib/supabase'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -10,27 +12,110 @@ interface ClassMeta {
   teacher: string | null; students: number; subjects: number
 }
 
-const mockStudents = [
-  { name: 'Olive Princely',   avg: 82, attendance: 94, status: 'Good'     },
-  { name: 'Yetunde Adesanya', avg: 91, attendance: 100,'status': 'Excellent'},
-  { name: 'Kofi Asante',      avg: 63, attendance: 72, status: 'At Risk'  },
-  { name: 'Moses Yakubu',     avg: 55, attendance: 60, status: 'Critical' },
-  { name: 'Sandra Ogbu',      avg: 78, attendance: 90, status: 'Good'     },
-]
-
-const statusStyle: Record<string, string> = {
-  Excellent: 'bg-green-50 text-green-700',
-  Good:      'bg-primary/10 text-primary',
-  'At Risk': 'bg-orange-50 text-orange-600',
-  Critical:  'bg-red-50 text-red-600',
+interface StudentRow {
+  id:         string
+  full_name:  string | null
+  avgScore:   number | null
+  attendance: number | null
 }
 
 export default function AdminClassDetailsPage({ onNavigate }: Props) {
-  const { profile } = useAuth()
-  const sidebarUser = profileToSidebarUser(profile)
+  const { profile }    = useAuth()
+  const sidebarUser    = profileToSidebarUser(profile)
 
   const raw = sessionStorage.getItem('learnora_admin_class')
   const cls: ClassMeta | null = raw ? JSON.parse(raw) : null
+
+  const [students,        setStudents]        = useState<StudentRow[]>([])
+  const [loadingStudents, setLoadingStudents] = useState(true)
+
+  useEffect(() => {
+    if (cls?.id) loadStudents(cls.id)
+  }, [cls?.id])
+
+  async function loadStudents(classId: string) {
+    setLoadingStudents(true)
+
+    const { data: enrollData } = await supabase
+      .from('class_enrollments')
+      .select('student_id, profiles!student_id(id, full_name)')
+      .eq('class_id', classId)
+
+    const rawEnroll = (enrollData ?? []) as unknown as {
+      student_id: string
+      profiles: { id: string; full_name: string | null } | null
+    }[]
+
+    const studentIds = rawEnroll.map(r => r.student_id)
+    if (!studentIds.length) { setStudents([]); setLoadingStudents(false); return }
+
+    // Fetch grade summaries for avg score
+    const { data: gradeData } = await supabase
+      .from('grade_summaries')
+      .select('student_id, average_score')
+      .in('student_id', studentIds)
+
+    const gradeMap: Record<string, number[]> = {}
+    for (const g of (gradeData ?? []) as { student_id: string; average_score: number | null }[]) {
+      if (!gradeMap[g.student_id]) gradeMap[g.student_id] = []
+      if (g.average_score != null) gradeMap[g.student_id].push(g.average_score)
+    }
+
+    // Fetch attendance records for this class
+    const { data: attData } = await supabase
+      .from('attendance_records')
+      .select('student_id, status')
+      .eq('class_id', classId)
+      .in('student_id', studentIds)
+
+    const attMap: Record<string, { present: number; total: number }> = {}
+    for (const a of (attData ?? []) as { student_id: string; status: string }[]) {
+      if (!attMap[a.student_id]) attMap[a.student_id] = { present: 0, total: 0 }
+      attMap[a.student_id].total++
+      if (a.status === 'present') attMap[a.student_id].present++
+    }
+
+    const rows: StudentRow[] = rawEnroll.map(r => {
+      const sid    = r.student_id
+      const scores = gradeMap[sid] ?? []
+      const avg    = scores.length ? Math.round(scores.reduce((s, v) => s + v, 0) / scores.length) : null
+      const att    = attMap[sid]
+      const attPct = att && att.total > 0 ? Math.round((att.present / att.total) * 100) : null
+      return {
+        id:         sid,
+        full_name:  r.profiles?.full_name ?? null,
+        avgScore:   avg,
+        attendance: attPct,
+      }
+    })
+
+    setStudents(rows)
+    setLoadingStudents(false)
+  }
+
+  function statusLabel(avg: number | null) {
+    if (avg === null) return 'No Data'
+    if (avg >= 80)   return 'Excellent'
+    if (avg >= 65)   return 'Good'
+    if (avg >= 50)   return 'At Risk'
+    return 'Critical'
+  }
+
+  const statusStyle: Record<string, string> = {
+    Excellent: 'bg-green-50 text-green-700',
+    Good:      'bg-primary/10 text-primary',
+    'At Risk': 'bg-orange-50 text-orange-600',
+    Critical:  'bg-red-50 text-red-600',
+    'No Data': 'bg-canvas text-muted',
+  }
+
+  const avgAttendance = students.length
+    ? Math.round(students.reduce((s, st) => s + (st.attendance ?? 0), 0) / students.length)
+    : 0
+
+  const avgScore = students.filter(s => s.avgScore !== null).length
+    ? Math.round(students.filter(s => s.avgScore !== null).reduce((s, st) => s + st.avgScore!, 0) / students.filter(s => s.avgScore !== null).length)
+    : 0
 
   if (!cls) {
     return (
@@ -43,9 +128,6 @@ export default function AdminClassDetailsPage({ onNavigate }: Props) {
       </DashboardLayout>
     )
   }
-
-  const avgAttendance = Math.round(mockStudents.reduce((s, st) => s + st.attendance, 0) / mockStudents.length)
-  const avgScore = Math.round(mockStudents.reduce((s, st) => s + st.avg, 0) / mockStudents.length)
 
   return (
     <DashboardLayout
@@ -78,6 +160,9 @@ export default function AdminClassDetailsPage({ onNavigate }: Props) {
               <button onClick={() => onNavigate('admin-attendance')} className="h-9 px-4 border border-primary text-primary text-sm font-semibold rounded-pill hover:bg-primary hover:text-white transition-colors flex items-center gap-1.5">
                 <ClipboardCheck size={14} /> View Attendance
               </button>
+              <button onClick={() => onNavigate('user-management')} className="h-9 px-4 border border-black/15 text-muted text-sm font-semibold rounded-pill hover:border-primary hover:text-primary transition-colors flex items-center gap-1.5">
+                <UserPlus size={14} /> Enroll Students
+              </button>
             </div>
           </div>
         </div>
@@ -85,10 +170,10 @@ export default function AdminClassDetailsPage({ onNavigate }: Props) {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: 'Students',       value: cls.students,    icon: Users,        color: 'text-primary bg-primary/10'    },
-            { label: 'Subjects',       value: cls.subjects,    icon: BookOpen,     color: 'text-foreground bg-canvas'     },
-            { label: 'Avg Attendance', value: `${avgAttendance}%`, icon: ClipboardCheck, color: 'text-green-600 bg-green-50' },
-            { label: 'Avg Score',      value: `${avgScore}%`,  icon: TrendingUp,   color: 'text-amber-600 bg-amber-50'    },
+            { label: 'Students',       value: students.length,             icon: Users,        color: 'text-primary bg-primary/10'    },
+            { label: 'Subjects',       value: cls.subjects,                icon: BookOpen,     color: 'text-foreground bg-canvas'     },
+            { label: 'Avg Attendance', value: students.length ? `${avgAttendance}%` : '—', icon: ClipboardCheck, color: 'text-green-600 bg-green-50' },
+            { label: 'Avg Score',      value: students.filter(s => s.avgScore !== null).length ? `${avgScore}%` : '—', icon: TrendingUp, color: 'text-amber-600 bg-amber-50' },
           ].map(s => {
             const Icon = s.icon
             return (
@@ -107,71 +192,76 @@ export default function AdminClassDetailsPage({ onNavigate }: Props) {
         <div className="bg-surface rounded-card shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-black/6 flex items-center justify-between">
             <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-              <Users size={15} className="text-primary" /> Students
+              <Users size={15} className="text-primary" /> Enrolled Students
             </h3>
-            <span className="text-xs text-muted">Sample data — wire to Supabase in Phase 2</span>
+            <span className="text-xs text-muted">{students.length} student{students.length !== 1 ? 's' : ''}</span>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[500px]">
-              <thead>
-                <tr className="border-b border-black/6 bg-canvas/40">
-                  {['Student', 'Avg Score', 'Attendance', 'Status'].map(h => (
-                    <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-muted uppercase tracking-wider">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-black/4">
-                {mockStudents.map((s, i) => (
-                  <tr key={i} className="hover:bg-canvas/40 transition-colors">
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-2.5">
-                        <div className="size-7 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">
-                          {s.name.charAt(0)}
-                        </div>
-                        <span className="font-medium text-foreground">{s.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-2">
-                        <div className="w-20 h-1.5 bg-canvas rounded-full overflow-hidden">
-                          <div className={`h-full rounded-full ${s.avg >= 70 ? 'bg-green-500' : s.avg >= 60 ? 'bg-amber-400' : 'bg-red-400'}`} style={{ width: `${s.avg}%` }} />
-                        </div>
-                        <span className={`text-xs font-bold ${s.avg < 60 ? 'text-red-500' : 'text-foreground'}`}>{s.avg}%</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span className={`text-xs font-bold ${s.attendance < 75 ? 'text-red-500' : 'text-green-600'}`}>{s.attendance}%</span>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusStyle[s.status]}`}>{s.status}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
 
-        {/* Performance bar */}
-        <div className="bg-surface rounded-card shadow-sm p-6">
-          <h3 className="text-base font-bold text-foreground mb-4 flex items-center gap-2">
-            <Award size={15} className="text-amber-500" /> Performance Overview
-          </h3>
-          <div className="flex flex-col gap-3">
-            {[
-              { label: 'Above 70%',    count: mockStudents.filter(s => s.avg >= 70).length, color: 'bg-green-500'  },
-              { label: '60–69%',       count: mockStudents.filter(s => s.avg >= 60 && s.avg < 70).length, color: 'bg-amber-400' },
-              { label: 'Below 60%',   count: mockStudents.filter(s => s.avg < 60).length, color: 'bg-red-400'    },
-            ].map(b => (
-              <div key={b.label} className="flex items-center gap-3">
-                <p className="text-xs text-muted w-20 shrink-0">{b.label}</p>
-                <div className="flex-1 h-2 bg-canvas rounded-full overflow-hidden">
-                  <div className={`h-full rounded-full ${b.color}`} style={{ width: `${(b.count / mockStudents.length) * 100}%` }} />
-                </div>
-                <span className="text-xs font-bold text-foreground w-6">{b.count}</span>
-              </div>
-            ))}
-          </div>
+          {loadingStudents ? (
+            <div className="py-12 text-center text-sm text-muted">Loading students…</div>
+          ) : students.length === 0 ? (
+            <div className="py-16 text-center">
+              <Users size={28} className="mx-auto mb-3 text-muted opacity-30" />
+              <p className="text-sm text-muted">No students enrolled yet.</p>
+              <button
+                onClick={() => onNavigate('user-management')}
+                className="mt-4 h-9 px-5 bg-primary text-white text-sm font-semibold rounded-pill"
+              >
+                Go to User Management
+              </button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[500px]">
+                <thead>
+                  <tr className="border-b border-black/6 bg-canvas/40">
+                    {['Student', 'Avg Score', 'Attendance', 'Status'].map(h => (
+                      <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-muted uppercase tracking-wider">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-black/4">
+                  {students.map(s => {
+                    const label = statusLabel(s.avgScore)
+                    return (
+                      <tr key={s.id} className="hover:bg-canvas/40 transition-colors">
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-2.5">
+                            <div className="size-7 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">
+                              {(s.full_name ?? '?').charAt(0)}
+                            </div>
+                            <span className="font-medium text-foreground">{s.full_name ?? 'Unnamed'}</span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          {s.avgScore !== null ? (
+                            <div className="flex items-center gap-2">
+                              <div className="w-20 h-1.5 bg-canvas rounded-full overflow-hidden">
+                                <div className={`h-full rounded-full ${s.avgScore >= 70 ? 'bg-green-500' : s.avgScore >= 60 ? 'bg-amber-400' : 'bg-red-400'}`} style={{ width: `${s.avgScore}%` }} />
+                              </div>
+                              <span className={`text-xs font-bold ${s.avgScore < 60 ? 'text-red-500' : 'text-foreground'}`}>{s.avgScore}%</span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted">No grades</span>
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          {s.attendance !== null ? (
+                            <span className={`text-xs font-bold ${s.attendance < 75 ? 'text-red-500' : 'text-green-600'}`}>{s.attendance}%</span>
+                          ) : (
+                            <span className="text-xs text-muted">—</span>
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusStyle[label]}`}>{label}</span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
       </div>

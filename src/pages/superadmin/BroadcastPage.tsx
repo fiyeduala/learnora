@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Megaphone, Send, Users, Building2, CheckCircle2, Clock, Filter } from 'lucide-react'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import { superAdminNav } from '../../components/layout/Sidebar'
 import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
+import { supabase } from '../../lib/supabase'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -10,7 +11,7 @@ type Audience = 'all' | 'starter' | 'growth' | 'enterprise' | 'trial' | 'suspend
 type Channel  = 'in_app' | 'email'
 
 type SentMsg = {
-  id:       number
+  id:       string
   title:    string
   body:     string
   audience: string
@@ -19,21 +20,21 @@ type SentMsg = {
   reached:  number
 }
 
-const initialSentMessages: SentMsg[] = [
-  { id: 1, title: 'New Term: Billing Update',          body: 'Term 2 2026 invoices have been generated and are due within 7 days.',          audience: 'All schools',   channels: ['In-App', 'Email'], sentAt: 'Apr 1, 2026',  reached: 142 },
-  { id: 2, title: 'Platform Maintenance – Jun 14',     body: 'Scheduled maintenance window: Jun 14 02:00–04:00 WAT. Expect brief downtime.', audience: 'All schools',   channels: ['In-App', 'Email'], sentAt: 'Jun 8, 2026',  reached: 142 },
-  { id: 3, title: 'New Feature: AI Tutor Live',        body: 'The AI Tutor module is now available to all Growth and Enterprise schools.',    audience: 'Growth+',       channels: ['In-App'],         sentAt: 'May 20, 2026', reached: 114 },
-  { id: 4, title: 'Trial Expiry Reminder',             body: 'Your free trial ends in 7 days. Upgrade to keep your school data.',            audience: 'Trial schools', channels: ['In-App', 'Email'], sentAt: 'May 15, 2026', reached: 18  },
+const AUDIENCE_OPTIONS: { value: Audience; label: string; desc: string }[] = [
+  { value: 'all',        label: 'All Schools',      desc: '142 schools' },
+  { value: 'starter',   label: 'Starter Plan',      desc: '28 schools'  },
+  { value: 'growth',    label: 'Growth Plan',       desc: '89 schools'  },
+  { value: 'enterprise',label: 'Enterprise Plan',   desc: '25 schools'  },
+  { value: 'trial',     label: 'Trial Schools',     desc: '18 schools'  },
+  { value: 'suspended', label: 'Suspended Schools', desc: '5 schools'   },
 ]
 
-const AUDIENCE_OPTIONS: { value: Audience; label: string; desc: string }[] = [
-  { value: 'all',        label: 'All Schools',        desc: '142 schools' },
-  { value: 'starter',   label: 'Starter Plan',        desc: '28 schools'  },
-  { value: 'growth',    label: 'Growth Plan',         desc: '89 schools'  },
-  { value: 'enterprise',label: 'Enterprise Plan',     desc: '25 schools'  },
-  { value: 'trial',     label: 'Trial Schools',       desc: '18 schools'  },
-  { value: 'suspended', label: 'Suspended Schools',   desc: '5 schools'   },
-]
+const db = supabase as unknown as { from: (t: string) => any }
+
+function fmtSentAt(iso: string | null) {
+  if (!iso) return 'Unknown'
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+}
 
 export default function BroadcastPage({ onNavigate: _onNavigate }: Props) {
   const { profile } = useAuth()
@@ -43,34 +44,64 @@ export default function BroadcastPage({ onNavigate: _onNavigate }: Props) {
   const [body, setBody]         = useState('')
   const [audience, setAud]      = useState<Audience>('all')
   const [channels, setChans]    = useState<Channel[]>(['in_app', 'email'])
-  const [sent, setSent]         = useState(false)
-  const [sentMessages, setSentMessages] = useState<SentMsg[]>(initialSentMessages)
+  const [sending, setSending]   = useState(false)
+  const [sentMessages, setSentMessages] = useState<SentMsg[]>([])
+  const [loadingSent, setLoadingSent]   = useState(false)
+
+  useEffect(() => { loadSent() }, [])
+
+  async function loadSent() {
+    setLoadingSent(true)
+    const { data } = await db.from('platform_broadcasts')
+      .select('id, title, body, audience, channels, reached, created_at')
+      .order('created_at', { ascending: false })
+      .limit(20)
+    setSentMessages((data ?? []).map((r: any) => ({
+      id:       r.id,
+      title:    r.title,
+      body:     r.body,
+      audience: r.audience,
+      channels: Array.isArray(r.channels) ? r.channels : [],
+      sentAt:   fmtSentAt(r.created_at),
+      reached:  r.reached ?? 0,
+    })))
+    setLoadingSent(false)
+  }
 
   function toggleChannel(c: Channel) {
     setChans(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c])
   }
 
-  function handleSend() {
+  async function handleSend() {
     if (!title.trim() || !body.trim()) return
-    setSent(true)
-    setTimeout(() => {
-      const newMsg: SentMsg = {
-        id:       Date.now(),
-        title:    title.trim(),
-        body:     body.trim(),
-        audience: selectedAud.label,
-        channels: channels.map(c => c === 'in_app' ? 'In-App' : 'Email'),
+    setSending(true)
+    const reached = Number(selectedAud.desc.replace(/\D/g, ''))
+    const { data } = await db.from('platform_broadcasts').insert({
+      title:    title.trim(),
+      body:     body.trim(),
+      audience: selectedAud.label,
+      channels: channels.map(c => c === 'in_app' ? 'In-App' : 'Email'),
+      reached,
+      sent_by:  profile?.id ?? null,
+    }).select().single()
+
+    if (data) {
+      setSentMessages(prev => [{
+        id:       data.id,
+        title:    data.title,
+        body:     data.body,
+        audience: data.audience,
+        channels: data.channels ?? [],
         sentAt:   'Just now',
-        reached:  Number(selectedAud.desc.replace(/\D/g, '')),
-      }
-      setSentMessages(prev => [newMsg, ...prev])
-      setSent(false)
-      setTitle('')
-      setBody('')
-      setAud('all')
-      setChans(['in_app', 'email'])
-      setTab('sent')
-    }, 1800)
+        reached,
+      }, ...prev])
+    }
+    setSending(false)
+    setTitle('')
+    setBody('')
+    setAud('all')
+    setChans(['in_app', 'email'])
+    setTab('sent')
   }
 
   const selectedAud = AUDIENCE_OPTIONS.find(o => o.value === audience)!
@@ -176,10 +207,10 @@ export default function BroadcastPage({ onNavigate: _onNavigate }: Props) {
               </div>
               <button
                 onClick={handleSend}
-                disabled={!title.trim() || !body.trim() || channels.length === 0 || sent}
+                disabled={!title.trim() || !body.trim() || channels.length === 0 || sending}
                 className="flex items-center gap-2 h-10 px-6 bg-primary text-white text-sm font-bold rounded-pill hover:bg-primary-deep transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-primary"
               >
-                {sent ? <><CheckCircle2 size={14} /> Sent!</> : <><Send size={14} /> Send Broadcast</>}
+                {sending ? <><CheckCircle2 size={14} /> Sending…</> : <><Send size={14} /> Send Broadcast</>}
               </button>
             </div>
           </div>
@@ -187,6 +218,10 @@ export default function BroadcastPage({ onNavigate: _onNavigate }: Props) {
 
         {tab === 'sent' && (
           <div className="flex flex-col gap-3">
+            {loadingSent && <div className="text-center py-8 text-sm text-muted">Loading…</div>}
+            {!loadingSent && sentMessages.length === 0 && (
+              <div className="text-center py-8 text-sm text-muted">No broadcasts sent yet.</div>
+            )}
             {sentMessages.map(m => (
               <div key={m.id} className="bg-surface rounded-card shadow-sm p-5">
                 <div className="flex items-start justify-between gap-3">

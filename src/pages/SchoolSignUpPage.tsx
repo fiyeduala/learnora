@@ -111,6 +111,43 @@ export default function SchoolSignUpPage({ onNavigate }: Props) {
 
       if (profileError) throw profileError
 
+      // Auto-seed: term, subjects, starter class
+      const now = new Date()
+      const yr  = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1
+      await supabase.from('terms').insert({
+        school_id:  school.id,
+        name:       `First Term ${yr}/${yr + 1}`,
+        start_date: `${yr}-09-01`,
+        end_date:   `${yr + 1}-01-31`,
+        is_current: true,
+      })
+
+      const defaultSubjects = [
+        'Mathematics', 'English Language', 'Basic Science', 'Social Studies',
+        'Civic Education', 'Computer Science', 'French', 'Physical Education',
+        'Christian Religious Studies', 'Further Mathematics',
+      ]
+      const { data: subRows } = await supabase
+        .from('subjects')
+        .insert(defaultSubjects.map(name => ({ name, school_id: school.id })))
+        .select('id, name')
+
+      // One starter class (SS1A) with all subjects
+      if (subRows && subRows.length > 0) {
+        const { data: cls } = await supabase
+          .from('classes')
+          .insert({ school_id: school.id, name: 'SS1A', level: 'SS1', arm: 'A' })
+          .select('id')
+          .single()
+        if (cls) {
+          await supabase.from('class_subjects').insert(
+            subRows.map((s: { id: string; name: string }) => ({
+              class_id: cls.id, subject_id: s.id, school_id: school.id,
+            }))
+          )
+        }
+      }
+
       setSchoolCode(school.code)
       setStep('done')
     } catch (err: unknown) {

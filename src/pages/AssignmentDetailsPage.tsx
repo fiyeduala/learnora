@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
-import { ArrowLeft, Calendar, Clock, BookOpen, Upload, CheckCircle2, X, FileText, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Calendar, Clock, BookOpen, Upload, CheckCircle2, X, FileText, AlertCircle, HelpCircle } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 
 type Props = { onNavigate: (page: string) => void }
-type View = 'details' | 'submit' | 'success'
+type View = 'details' | 'submit' | 'quiz' | 'success'
 
 interface AssignmentData {
   id:           string
@@ -17,6 +17,15 @@ interface AssignmentData {
   teacherName:  string
   instructions: string | null
   status:       'Pending' | 'Completed' | 'Overdue'
+}
+
+interface QuizQuestion {
+  id:             string
+  position:       number
+  question:       string
+  options:        string[]
+  correct_option: number
+  points:         number
 }
 
 function fmtDate(iso: string | null) {
@@ -34,20 +43,25 @@ export default function AssignmentDetailsPage({ onNavigate }: Props) {
   const { profile }  = useAuth()
   const sidebarUser  = profileToSidebarUser(profile)
 
-  const [view,       setView]       = useState<View>('details')
-  const [assignment, setAssignment] = useState<AssignmentData | null>(null)
-  const [loading,    setLoading]    = useState(true)
-  const [note,       setNote]       = useState('')
-  const [files,      setFiles]      = useState<string[]>([])
-  const [submitting, setSubmitting] = useState(false)
-  const [error,      setError]      = useState('')
+  const [view,          setView]          = useState<View>('details')
+  const [assignment,    setAssignment]    = useState<AssignmentData | null>(null)
+  const [loading,       setLoading]       = useState(true)
+  const [note,          setNote]          = useState('')
+  const [files,         setFiles]         = useState<string[]>([])
+  const [submitting,    setSubmitting]    = useState(false)
+  const [error,         setError]         = useState('')
+
+  const [isQuiz,        setIsQuiz]        = useState(false)
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([])
+  const [quizAnswers,   setQuizAnswers]   = useState<Record<string, number>>({})
+  const [quizResult,    setQuizResult]    = useState<{ score: number; max: number } | null>(null)
 
   useEffect(() => { if (profile?.id) loadAssignment() }, [profile?.id])
 
   async function loadAssignment() {
     setLoading(true)
-    const studentId    = profile!.id
-    let assignmentId   = localStorage.getItem('learnora_selected_assignment')
+    const studentId  = profile!.id
+    let assignmentId = localStorage.getItem('learnora_selected_assignment')
 
     if (!assignmentId) {
       const { data: ceData } = await supabase
@@ -112,6 +126,21 @@ export default function AssignmentDetailsPage({ onNavigate }: Props) {
       instructions: raw.instructions,
       status,
     })
+
+    // Check for quiz questions
+    const db = supabase as unknown as { from: (t: string) => any }
+    const { data: qData } = await db
+      .from('quiz_questions')
+      .select('id, position, question, options, correct_option, points')
+      .eq('assignment_id', assignmentId)
+      .order('position', { ascending: true })
+
+    const qs = (qData ?? []) as QuizQuestion[]
+    if (qs.length > 0) {
+      setIsQuiz(true)
+      setQuizQuestions(qs)
+    }
+
     setLoading(false)
   }
 
@@ -135,6 +164,47 @@ export default function AssignmentDetailsPage({ onNavigate }: Props) {
     if (err) { setError(err.message); return }
     setView('success')
   }
+
+  async function submitQuiz() {
+    if (!assignment) return
+    setSubmitting(true)
+    setError('')
+
+    let score = 0
+    let max   = 0
+    quizQuestions.forEach(q => {
+      max += q.points
+      if (quizAnswers[q.id] === q.correct_option) score += q.points
+    })
+
+    const db = supabase as unknown as { from: (t: string) => any }
+    await db.from('quiz_submissions').upsert({
+      school_id:     profile!.school_id!,
+      assignment_id: assignment.id,
+      student_id:    profile!.id,
+      answers:       quizAnswers,
+      score,
+      max_score:     max,
+      submitted_at:  new Date().toISOString(),
+    }, { onConflict: 'assignment_id,student_id' })
+
+    await supabase
+      .from('assignment_submissions')
+      .upsert({
+        school_id:       profile!.school_id!,
+        assignment_id:   assignment.id,
+        student_id:      profile!.id,
+        submission_text: `Quiz: ${score}/${max}`,
+        status:          'submitted',
+        submitted_at:    new Date().toISOString(),
+      }, { onConflict: 'assignment_id,student_id' })
+
+    setQuizResult({ score, max })
+    setSubmitting(false)
+    setView('success')
+  }
+
+  const allAnswered = quizQuestions.length > 0 && quizQuestions.every(q => quizAnswers[q.id] !== undefined)
 
   if (loading) {
     return (
@@ -163,19 +233,33 @@ export default function AssignmentDetailsPage({ onNavigate }: Props) {
 
   if (view === 'success') {
     return (
-      <DashboardLayout activePage="assignments" onNavigate={onNavigate} title="Assignment Submitted" user={sidebarUser}>
+      <DashboardLayout activePage="assignments" onNavigate={onNavigate} title={isQuiz ? 'Quiz Complete' : 'Assignment Submitted'} user={sidebarUser}>
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
           <div className="size-24 rounded-full bg-green-50 flex items-center justify-center mb-6">
             <CheckCircle2 size={44} className="text-green-500" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground mb-2">Submitted Successfully!</h1>
-          <p className="text-sm text-muted max-w-[380px] leading-relaxed mb-2">
-            Your assignment <span className="font-semibold text-foreground">{assignment.title}</span> has been submitted.
-          </p>
-          <p className="text-xs text-muted mb-8">
-            Submitted · {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-          </p>
-          <div className="flex gap-3">
+          <h1 className="text-2xl font-bold text-foreground mb-2">
+            {isQuiz ? 'Quiz Submitted!' : 'Submitted Successfully!'}
+          </h1>
+          {quizResult ? (
+            <>
+              <div className="bg-surface rounded-card shadow-sm px-10 py-6 mb-6 mt-4">
+                <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">Your Score</p>
+                <p className="text-5xl font-bold text-foreground">
+                  {quizResult.score}
+                  <span className="text-2xl text-muted font-semibold">/{quizResult.max}</span>
+                </p>
+                <p className="text-sm text-muted mt-2">
+                  {Math.round((quizResult.score / quizResult.max) * 100)}% · {quizQuestions.length} question{quizQuestions.length !== 1 ? 's' : ''}
+                </p>
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-muted max-w-[380px] leading-relaxed mb-8">
+              Your assignment <span className="font-semibold text-foreground">{assignment.title}</span> has been submitted.
+            </p>
+          )}
+          <div className="flex gap-3 mt-4">
             <button
               onClick={() => onNavigate('assignments')}
               className="h-11 px-6 bg-primary text-white text-sm font-semibold rounded-pill shadow-primary hover:bg-primary-deep transition-colors"
@@ -189,6 +273,92 @@ export default function AssignmentDetailsPage({ onNavigate }: Props) {
               View Details
             </button>
           </div>
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  if (view === 'quiz') {
+    return (
+      <DashboardLayout activePage="assignments" onNavigate={onNavigate} title="Take Quiz" user={sidebarUser}>
+        <div className="max-w-[700px] flex flex-col gap-5">
+          <button
+            onClick={() => setView('details')}
+            className="flex items-center gap-2 text-sm text-muted hover:text-foreground transition-colors w-fit"
+          >
+            <ArrowLeft size={16} /> Back to Details
+          </button>
+
+          <div className="bg-surface rounded-card shadow-sm p-5">
+            <div className="flex items-center gap-3">
+              <div className="size-9 rounded-full bg-primary/10 flex items-center justify-center">
+                <HelpCircle size={16} className="text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-foreground">{assignment.title}</p>
+                <p className="text-xs text-muted">{quizQuestions.length} questions · {assignment.points} pts total</p>
+              </div>
+            </div>
+          </div>
+
+          {quizQuestions.map((q, qi) => {
+            const chosen = quizAnswers[q.id]
+            return (
+              <div key={q.id} className="bg-surface rounded-card shadow-sm p-6 flex flex-col gap-4">
+                <div className="flex items-start justify-between gap-4">
+                  <p className="text-sm font-semibold text-foreground leading-snug">
+                    <span className="text-muted font-normal mr-2">{qi + 1}.</span>
+                    {q.question}
+                  </p>
+                  <span className="text-xs text-muted shrink-0">{q.points} pt{q.points !== 1 ? 's' : ''}</span>
+                </div>
+
+                {q.options.length > 0 ? (
+                  <div className="flex flex-col gap-2">
+                    {q.options.map((opt, oi) => (
+                      <button
+                        key={oi}
+                        onClick={() => setQuizAnswers(prev => ({ ...prev, [q.id]: oi }))}
+                        className={`flex items-center gap-3 p-3 rounded-card border text-left transition-colors ${
+                          chosen === oi
+                            ? 'border-primary bg-primary/5'
+                            : 'border-black/10 hover:border-primary/30'
+                        }`}
+                      >
+                        <span className={`size-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors ${
+                          chosen === oi ? 'border-primary bg-primary' : 'border-black/20'
+                        }`}>
+                          {chosen === oi && <span className="size-1.5 rounded-full bg-white" />}
+                        </span>
+                        <span className="text-sm text-foreground">{opt}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <textarea
+                    rows={3}
+                    placeholder="Type your answer…"
+                    onChange={e => setQuizAnswers(prev => ({ ...prev, [q.id]: e.target.value as unknown as number }))}
+                    className="w-full px-4 py-3 border border-black/20 rounded-card text-sm text-foreground outline-none focus:border-primary resize-none"
+                  />
+                )}
+              </div>
+            )
+          })}
+
+          {error && <p className="text-sm text-red-500">{error}</p>}
+
+          <button
+            onClick={submitQuiz}
+            disabled={submitting || !allAnswered}
+            className="h-12 bg-primary text-white text-sm font-bold rounded-pill shadow-primary hover:bg-primary-deep transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {submitting ? 'Submitting…' : 'Submit Quiz'}
+          </button>
+
+          {!allAnswered && (
+            <p className="text-xs text-muted text-center -mt-2">Answer all questions to submit</p>
+          )}
         </div>
       </DashboardLayout>
     )
@@ -209,7 +379,6 @@ export default function AssignmentDetailsPage({ onNavigate }: Props) {
             <h2 className="text-lg font-bold text-foreground mb-1">{assignment.title}</h2>
             <p className="text-sm text-muted mb-5">{assignment.subjectName} · Due {fmtDate(assignment.dueDate)}</p>
 
-            {/* File attachment zone (UI only — storage not yet wired) */}
             <div
               className="border-2 border-dashed border-black/20 rounded-card p-8 flex flex-col items-center gap-3 cursor-pointer hover:border-primary hover:bg-primary/4 transition-colors mb-4"
               onClick={() => setFiles(f => [...f, `Attachment_${f.length + 1}.pdf`])}
@@ -261,7 +430,7 @@ export default function AssignmentDetailsPage({ onNavigate }: Props) {
     )
   }
 
-  const instructionText = assignment.instructions ?? ''
+  const instructionText  = assignment.instructions ?? ''
   const instructionParts = instructionText.split('\n').filter(Boolean)
 
   return (
@@ -278,7 +447,14 @@ export default function AssignmentDetailsPage({ onNavigate }: Props) {
         <div className="bg-primary rounded-card p-6 text-white">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <span className="text-xs font-semibold bg-white/20 px-3 py-1 rounded-full">{assignment.subjectName}</span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-semibold bg-white/20 px-3 py-1 rounded-full">{assignment.subjectName}</span>
+                {isQuiz && (
+                  <span className="text-xs font-semibold bg-white/20 px-3 py-1 rounded-full flex items-center gap-1">
+                    <HelpCircle size={10} /> Quiz
+                  </span>
+                )}
+              </div>
               <h1 className="text-xl font-bold mt-3 mb-1">{assignment.title}</h1>
               <p className="text-white/70 text-sm">{assignment.className} · {assignment.teacherName}</p>
             </div>
@@ -296,6 +472,12 @@ export default function AssignmentDetailsPage({ onNavigate }: Props) {
               <Clock size={14} />
               <span>11:59 PM</span>
             </div>
+            {isQuiz && (
+              <div className="flex items-center gap-2 text-white/80 text-sm">
+                <HelpCircle size={14} />
+                <span>{quizQuestions.length} question{quizQuestions.length !== 1 ? 's' : ''}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -324,7 +506,9 @@ export default function AssignmentDetailsPage({ onNavigate }: Props) {
               </div>
             ) : (
               <div className="bg-surface rounded-card shadow-sm p-6">
-                <p className="text-sm text-muted">No instructions provided for this assignment.</p>
+                <p className="text-sm text-muted">
+                  {isQuiz ? 'No additional instructions.' : 'No instructions provided for this assignment.'}
+                </p>
               </div>
             )}
           </div>
@@ -339,13 +523,13 @@ export default function AssignmentDetailsPage({ onNavigate }: Props) {
               </span>
             </div>
 
-            {/* Submit CTA */}
+            {/* CTA */}
             {assignment.status !== 'Completed' && (
               <button
-                onClick={() => setView('submit')}
-                className="w-full h-12 bg-primary text-white text-sm font-bold rounded-pill shadow-primary hover:bg-primary-deep transition-colors"
+                onClick={() => setView(isQuiz ? 'quiz' : 'submit')}
+                className="w-full h-12 bg-primary text-white text-sm font-bold rounded-pill shadow-primary hover:bg-primary-deep transition-colors flex items-center justify-center gap-2"
               >
-                Submit Assignment
+                {isQuiz ? <><HelpCircle size={16} /> Take Quiz</> : 'Submit Assignment'}
               </button>
             )}
           </div>

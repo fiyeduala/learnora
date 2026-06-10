@@ -1,37 +1,116 @@
 import { Trophy, Medal, Flame, TrendingUp } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import DashboardLayout from '../components/layout/DashboardLayout'
+import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 
 type Props = { onNavigate: (page: string) => void }
-type Tab   = 'class' | 'school' | 'national'
+type Tab   = 'class' | 'school'
 
-type BoardEntry = { rank: number; name: string; gpa: number; streak: number; points: number; change: number; me?: boolean }
-
-const myRank = { class: 0, school: 0, national: 0 }
-
-const classBoard: BoardEntry[] = []
+interface BoardEntry {
+  rank:    number
+  name:    string
+  points:  number
+  avgScore:number
+  change:  number
+  me:      boolean
+}
 
 const medalColor = ['text-amber-500', 'text-gray-400', 'text-orange-600']
 const medalBg    = ['bg-amber-50', 'bg-gray-50', 'bg-orange-50']
 
 export default function LeaderboardPage({ onNavigate }: Props) {
-  const [tab, setTab] = useState<Tab>('class')
+  const { profile }  = useAuth()
+  const sidebarUser  = profileToSidebarUser(profile)
 
-  const label = { class: 'My Class (SS1A)', school: 'Greenfield Academy', national: 'Nigeria' }
+  const [tab,      setTab]      = useState<Tab>('class')
+  const [classBoard, setClassBoard] = useState<BoardEntry[]>([])
+  const [schoolBoard, setSchoolBoard] = useState<BoardEntry[]>([])
+  const [className,  setClassName]  = useState('')
+  const [loading,    setLoading]    = useState(true)
+
+  useEffect(() => { if (profile?.id) load() }, [profile?.id])
+
+  async function load() {
+    setLoading(true)
+    const studentId = profile!.id
+    const schoolId  = profile!.school_id!
+
+    const [ceRes, subRes] = await Promise.all([
+      supabase.from('class_enrollments')
+        .select('class_id, classes(id, name)')
+        .eq('student_id', studentId)
+        .limit(1).maybeSingle(),
+      supabase.from('assignment_submissions')
+        .select('student_id', { count: 'exact' })
+        .eq('school_id', schoolId),
+    ])
+
+    const ce = ceRes.data as unknown as { class_id: string; classes: { id: string; name: string } | null } | null
+    setClassName(ce?.classes?.name ?? '')
+
+    const classId = ce?.class_id ?? null
+
+    const [gsSchoolRes, gsClassRes] = await Promise.all([
+      supabase.from('grade_summaries')
+        .select('student_id, avg_score, profiles!student_id(full_name)')
+        .eq('school_id', schoolId)
+        .order('avg_score', { ascending: false })
+        .limit(100),
+      classId ? supabase.from('grade_summaries')
+        .select('student_id, avg_score, profiles!student_id(full_name)')
+        .eq('school_id', schoolId)
+        .eq('class_id', classId)
+        .order('avg_score', { ascending: false })
+        .limit(100)
+        : Promise.resolve({ data: [] }),
+    ])
+
+    function buildBoard(rows: { student_id: string; avg_score: number | null; profiles: { full_name: string | null } | null }[]): BoardEntry[] {
+      const byStudent: Record<string, { scores: number[]; name: string }> = {}
+      for (const r of rows) {
+        if (!byStudent[r.student_id]) byStudent[r.student_id] = { scores: [], name: r.profiles?.full_name ?? 'Unknown' }
+        if (r.avg_score != null) byStudent[r.student_id].scores.push(r.avg_score)
+      }
+      const entries = Object.entries(byStudent).map(([sid, v]) => {
+        const avg = v.scores.length ? Math.round(v.scores.reduce((a, b) => a + b, 0) / v.scores.length) : 0
+        return { studentId: sid, name: v.name, avgScore: avg, points: avg * 10 }
+      })
+      entries.sort((a, b) => b.points - a.points)
+      return entries.map((e, i) => ({
+        rank:     i + 1,
+        name:     e.name,
+        avgScore: e.avgScore,
+        points:   e.points,
+        change:   0,
+        me:       e.studentId === studentId,
+      }))
+    }
+
+    const schoolRows = (gsSchoolRes.data ?? []) as unknown as { student_id: string; avg_score: number | null; profiles: { full_name: string | null } | null }[]
+    const classRows  = (gsClassRes.data ?? []) as unknown as { student_id: string; avg_score: number | null; profiles: { full_name: string | null } | null }[]
+
+    setSchoolBoard(buildBoard(schoolRows))
+    setClassBoard(buildBoard(classRows.length ? classRows : schoolRows))
+    setLoading(false)
+  }
+
+  const board   = tab === 'class' ? classBoard : schoolBoard
+  const myEntry = board.find(e => e.me)
 
   return (
-    <DashboardLayout activePage="analysis" onNavigate={onNavigate} title="Leaderboard" subtitle="See how you rank against your peers">
+    <DashboardLayout activePage="analysis" onNavigate={onNavigate} title="Leaderboard" subtitle="See how you rank against your peers" user={sidebarUser}>
       <div className="max-w-[720px] flex flex-col gap-5">
 
         {/* Tabs */}
         <div className="flex gap-1 bg-canvas rounded-pill p-1 w-fit">
-          {(['class','school','national'] as Tab[]).map(t => (
+          {(['class', 'school'] as Tab[]).map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
               className={`h-9 px-5 rounded-full text-sm font-semibold capitalize transition-colors ${tab === t ? 'bg-white text-primary shadow-sm' : 'text-muted hover:text-foreground'}`}
             >
-              {t}
+              {t === 'class' ? (className || 'My Class') : 'My School'}
             </button>
           ))}
         </div>
@@ -39,32 +118,32 @@ export default function LeaderboardPage({ onNavigate }: Props) {
         {/* My rank banner */}
         <div className="bg-primary rounded-card p-5 flex items-center gap-4">
           <div className="size-12 rounded-full bg-white/20 flex items-center justify-center text-white text-lg font-bold">
-            O
+            {(profile?.full_name ?? '?').split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase()}
           </div>
           <div className="flex-1">
-            <p className="text-white text-xs mb-0.5">Your rank in {label[tab]}</p>
-            <p className="text-3xl font-bold text-white">{myRank[tab] ? `#${myRank[tab]}` : '—'}</p>
+            <p className="text-white text-xs mb-0.5">Your rank in {tab === 'class' ? (className || 'class') : 'school'}</p>
+            <p className="text-3xl font-bold text-white">{myEntry ? `#${myEntry.rank}` : '—'}</p>
           </div>
           <div className="text-right">
             <div className="flex items-center gap-1.5 text-white/80 text-sm mb-1">
-              <Flame size={13} className="text-red-300" /> — streak
+              <TrendingUp size={13} /> {myEntry?.points ?? 0} pts
             </div>
             <div className="flex items-center gap-1.5 text-white/80 text-sm">
-              <TrendingUp size={13} /> — points
+              <Trophy size={13} className="text-amber-300" /> avg {myEntry?.avgScore ?? 0}%
             </div>
           </div>
         </div>
 
-        {/* Podium (top 3) */}
-        {classBoard.length >= 3 && (
+        {/* Podium */}
+        {!loading && board.length >= 3 && (
           <div className="flex items-end justify-center gap-4 py-4">
-            {[classBoard[1], classBoard[0], classBoard[2]].map((p, i) => {
+            {[board[1], board[0], board[2]].map((p, i) => {
               const displayRank = i === 0 ? 2 : i === 1 ? 1 : 3
               const heights = ['h-24', 'h-32', 'h-20']
               return (
                 <div key={p.rank} className="flex flex-col items-center gap-2">
                   <div className={`size-12 rounded-full ${p.me ? 'bg-primary' : 'bg-canvas border border-black/10'} flex items-center justify-center text-sm font-bold ${p.me ? 'text-white' : 'text-foreground'}`}>
-                    {p.name.split(' ').map(n => n[0]).join('')}
+                    {p.name.split(' ').map((n: string) => n[0]).join('')}
                   </div>
                   <p className="text-xs font-semibold text-foreground text-center max-w-[80px] leading-tight">{p.name.split(' ')[0]}</p>
                   <div className={`w-20 ${heights[i]} ${medalBg[displayRank - 1]} rounded-t-lg flex items-end justify-center pb-2`}>
@@ -79,36 +158,36 @@ export default function LeaderboardPage({ onNavigate }: Props) {
 
         {/* Full board */}
         <div className="bg-surface rounded-card shadow-sm overflow-hidden">
-          <div className="divide-y divide-black/4">
-            {classBoard.length === 0
-              ? <div className="py-8 text-center text-sm text-muted">No data yet.</div>
-              : classBoard.map(p => (
+          {loading ? (
+            <div className="py-12 text-center text-sm text-muted">Loading…</div>
+          ) : board.length === 0 ? (
+            <div className="py-8 text-center text-sm text-muted">No data yet. Grades will appear once teachers submit results.</div>
+          ) : (
+            <div className="divide-y divide-black/4">
+              {board.map(p => (
                 <div key={p.rank} className={`flex items-center gap-4 px-5 py-3.5 ${p.me ? 'bg-primary/6 border-l-2 border-primary' : ''}`}>
                   <div className={`w-7 text-center shrink-0 ${p.rank <= 3 ? 'text-base' : 'text-sm'}`}>
                     {p.rank <= 3 ? ['🥇','🥈','🥉'][p.rank - 1] : <span className="text-muted font-semibold">{p.rank}</span>}
                   </div>
                   <div className={`size-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${p.me ? 'bg-primary text-white' : 'bg-canvas text-foreground'}`}>
-                    {p.name.split(' ').map(n => n[0]).join('')}
+                    {p.name.split(' ').map((n: string) => n[0]).join('')}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm font-semibold ${p.me ? 'text-primary' : 'text-foreground'}`}>
                       {p.name}{p.me ? ' (You)' : ''}
                     </p>
                     <div className="flex items-center gap-3 text-xs text-muted">
-                      <span>GPA {p.gpa}</span>
-                      <span className="flex items-center gap-0.5"><Flame size={10} className="text-red-400" /> {p.streak}d</span>
+                      <span>Avg {p.avgScore}%</span>
+                      <span className="flex items-center gap-0.5"><Flame size={10} className="text-red-400" /> {p.points} pts</span>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-sm font-bold text-foreground">{p.points}</p>
-                    <p className={`text-[10px] font-semibold ${p.change > 0 ? 'text-green-500' : p.change < 0 ? 'text-red-500' : 'text-muted'}`}>
-                      {p.change > 0 ? `+${p.change}` : p.change < 0 ? `${p.change}` : '—'}
-                    </p>
                   </div>
                 </div>
-              ))
-            }
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* How points work */}
