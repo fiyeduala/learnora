@@ -140,7 +140,39 @@ CSS vars under `[data-theme="dark"]` in `index.css`. Toggled from TeacherSetting
 ## Design Source
 Screenshots in `design/sections/`. MCP available but rate-limited on free plan.
 
+## Round 3 — 18 New Pages (2026-06-10) ✅
+
+**New pages built and routed:**
+- `ScreenSharePage` `/screen-share` — screen share controls for live class
+- `ParticipantsPanelPage` `/participants-panel` — participant list with mic/cam/hand-raised states (Supabase-backed)
+- `OfflineSyncPage` `/offline-sync` — sync queue with pending/synced/failed states (mock)
+- `WhiteboardPage` `/whiteboard` — whiteboard toolbar (pen/eraser/shapes/text/color); canvas placeholder
+- `AttendanceHistoryPage` `/attendance-history` — teacher view of past attendance records
+- `SubjectPerformancePage` `/subject-performance` — student per-subject drill-down from grade_summaries
+- `DeadlinesViewPage` `/deadlines` — student assignments by urgency (overdue/today/week/upcoming)
+- `SharedFilesPage` `/shared-files` — message attachments grid with file-type detection
+- `CourseResourcesPage` `/course-resources` — student lesson list for selected course (tabs by type)
+- `CourseSettingsPage` `/course-settings` — teacher edit course title/description
+- `PlagiarismCheckPage` `/plagiarism-check` — submission similarity scores (simulated)
+- `TwoFASetupPage` `/2fa-setup` — multi-step 2FA (app/SMS → verify → recovery codes)
+- `AddEventPage` `/add-event` — calendar event form → inserts to `live_sessions`
+- `StorageManagementPage` `/storage-management` — usage bars by category + clear buttons
+- `BadgesRewardsPage` `/badges-rewards` — XP from lesson_progress + submissions; reward shop
+- `ConnectedDevicesPage` `/connected-devices` — active sessions list (mock)
+- `PrivacySettingsPage` `/privacy-settings` — privacy toggles saved to localStorage
+- `LinkedAccountsPage` `/linked-accounts` — connect/disconnect SSO providers
+
+**TypeScript fixes (caught by Vercel fresh build):**
+- `interface Record` → `AttendRow` (shadowed built-in)
+- `Chrome` icon → `Info` (lucide-react)
+- `courses.published` column removed from CourseSettingsPage
+- `live_sessions.topic` cast pattern in AddEventPage
+- `grade_summaries` class_id → via `class_enrollments` join in LeaderboardPage
+- `profile.created_at` cast in AchievementsPage
+- `PostgrestBuilder` → `any[]` in MobileStudentMessagesPage
+- Unused imports/variables removed across 12+ files
+
 ## Git / Deploy
 - Repo: `github.com/fiyeduala/learnora`
 - Deploy: Vercel auto-deploys on push to `main`
-- Latest commit: `4850a9b` — E6/Q4 unread counts + Realtime; fix EmptyStatePage type
+- Latest commit: `c67425c` — Round 3: 18 new pages + TS fixes
