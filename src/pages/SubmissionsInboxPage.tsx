@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Search, Download } from 'lucide-react'
+import { Search, Download, ScanSearch } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
 import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
@@ -150,6 +150,12 @@ export default function SubmissionsInboxPage({ onNavigate }: Props) {
           </div>
           <button className="flex items-center gap-1.5 h-10 px-4 border border-black/15 rounded-pill text-sm text-muted hover:text-foreground transition-colors">
             <Download size={14} /> Export
+          </button>
+          <button
+            onClick={() => onNavigate('plagiarism-check')}
+            className="flex items-center gap-1.5 h-10 px-4 bg-amber-50 border border-amber-200 rounded-pill text-sm font-semibold text-amber-700 hover:bg-amber-100 transition-colors"
+          >
+            <ScanSearch size={14} /> Plagiarism Check
           </button>
         </div>
 

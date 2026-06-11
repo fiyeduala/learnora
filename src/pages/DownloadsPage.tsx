@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Download, Video, FileText, Wifi, WifiOff, Trash2, PlayCircle, HardDrive } from 'lucide-react'
+import { Download, Video, FileText, Wifi, WifiOff, Trash2, PlayCircle, HardDrive, RefreshCw, Settings2 } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 
 type Props = { onNavigate: (page: string) => void }
@@ -61,6 +61,16 @@ export default function DownloadsPage({ onNavigate }: Props) {
             <div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }} />
           </div>
           <p className="text-xs text-muted">{pct}% used · {(totalGB - usedGB).toFixed(2)} GB free</p>
+          <div className="flex gap-2 mt-4">
+            <button onClick={() => onNavigate('storage-management')}
+              className="flex items-center gap-1.5 h-8 px-3 text-xs font-semibold text-muted border border-black/15 rounded-pill hover:border-primary hover:text-primary transition-colors">
+              <Settings2 size={12} /> Manage storage
+            </button>
+            <button onClick={() => onNavigate('offline-sync')}
+              className="flex items-center gap-1.5 h-8 px-3 text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-200 rounded-pill hover:bg-amber-100 transition-colors">
+              <RefreshCw size={12} /> Sync status
+            </button>
+          </div>
         </div>
 
         {/* Tabs */}

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Search, Send, Paperclip, MoreVertical, ArrowLeft, MessageSquare, Loader2, BellOff } from 'lucide-react'
+import { Search, Send, Paperclip, MoreVertical, ArrowLeft, MessageSquare, Loader2, BellOff, FolderOpen } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -356,6 +356,10 @@ export default function MessagesPage({ onNavigate }: Props) {
                     <button onClick={markUnread}
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left text-foreground hover:bg-canvas transition-colors">
                       <BellOff size={14} className="text-muted" /> Mark as unread
+                    </button>
+                    <button onClick={() => { onNavigate('shared-files'); setShowMenu(false) }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left text-foreground hover:bg-canvas transition-colors">
+                      <FolderOpen size={14} className="text-muted" /> Shared files
                     </button>
                     <button onClick={() => { setMobileView('list'); setShowMenu(false) }}
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left text-foreground hover:bg-canvas transition-colors md:hidden">

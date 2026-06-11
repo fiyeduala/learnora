@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Play, ArrowRight, CheckCircle2, Clock, ChevronRight, BookOpen, AlertCircle } from 'lucide-react'
+import { Play, ArrowRight, CheckCircle2, Clock, ChevronRight, BookOpen, AlertCircle, BarChart2, CalendarClock, Medal } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -330,6 +330,29 @@ export default function OverviewDashboardPage({ onNavigate }: Props) {
               </tbody>
             </table>
           </div>
+        </div>
+
+        {/* Quick links row */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[
+            { icon: BarChart2,     label: 'Subject Performance', sub: 'Detailed per-subject analytics',     page: 'subject-performance', color: 'bg-primary/10 text-primary'     },
+            { icon: CalendarClock, label: 'Deadlines',           sub: 'All upcoming & overdue work',         page: 'deadlines',           color: 'bg-amber-50 text-amber-600'     },
+            { icon: Medal,         label: 'Badges & Rewards',    sub: 'Your XP, badges and reward shop',     page: 'badges-rewards',      color: 'bg-purple-50 text-purple-600'   },
+          ].map(q => {
+            const Icon = q.icon
+            return (
+              <button key={q.page} onClick={() => onNavigate(q.page)}
+                className="bg-surface rounded-card shadow-sm p-5 flex items-center gap-4 hover:shadow-md transition-shadow text-left">
+                <div className={`size-11 rounded-card flex items-center justify-center shrink-0 ${q.color}`}>
+                  <Icon size={20} />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-foreground">{q.label}</p>
+                  <p className="text-xs text-muted mt-0.5">{q.sub}</p>
+                </div>
+              </button>
+            )
+          })}
         </div>
 
         {/* Live Classes + Performance Overview */}

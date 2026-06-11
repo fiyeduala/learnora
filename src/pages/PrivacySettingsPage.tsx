@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Eye, BarChart2, Bell, Share2, CheckCircle2 } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -13,26 +14,41 @@ interface Toggle {
   value:    boolean
 }
 
+const DEFAULTS: Toggle[] = [
+  { id: 'profile_visible',    label: 'Profile visible to classmates',     desc: 'Other students can see your name and class.',          icon: Eye,       value: true  },
+  { id: 'analytics_share',    label: 'Share performance with teachers',   desc: 'Teachers see your grades and attendance trends.',      icon: BarChart2, value: true  },
+  { id: 'activity_status',    label: 'Show activity status',              desc: 'Others can see when you were last active.',            icon: Bell,      value: false },
+  { id: 'data_collection',    label: 'Usage analytics for improvement',   desc: 'Help us improve Learnora by sharing anonymised data.', icon: Share2,    value: true  },
+]
+
 export default function PrivacySettingsPage({ onNavigate }: Props) {
   const { profile } = useAuth()
   const sidebarUser = profileToSidebarUser(profile)
-  const [saved, setSaved] = useState(false)
+  const [saved, setSaved]     = useState(false)
+  const [saving, setSaving]   = useState(false)
+  const [toggles, setToggles] = useState<Toggle[]>(DEFAULTS)
 
-  const [toggles, setToggles] = useState<Toggle[]>([
-    { id: 'profile_visible',    label: 'Profile visible to classmates',     desc: 'Other students can see your name and class.',              icon: Eye,      value: true  },
-    { id: 'analytics_share',    label: 'Share performance with teachers',   desc: 'Teachers see your grades and attendance trends.',          icon: BarChart2, value: true  },
-    { id: 'activity_status',    label: 'Show activity status',              desc: 'Others can see when you were last active.',                icon: Bell,     value: false },
-    { id: 'data_collection',    label: 'Usage analytics for improvement',   desc: 'Help us improve Learnora by sharing anonymised data.',     icon: Share2,   value: true  },
-  ])
+  // Load saved prefs from auth user_metadata on mount
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      const meta = data.user?.user_metadata?.privacy_prefs as Record<string, boolean> | undefined
+      if (meta) {
+        setToggles(prev => prev.map(t => ({ ...t, value: meta[t.id] ?? t.value })))
+      }
+    })
+  }, [])
 
   function flip(id: string) {
     setToggles(prev => prev.map(t => t.id === id ? { ...t, value: !t.value } : t))
   }
 
-  function save() {
-    // Prefs would be stored server-side; for now use localStorage
+  async function save() {
+    setSaving(true)
     const prefs = Object.fromEntries(toggles.map(t => [t.id, t.value]))
+    // Persist to Supabase auth user_metadata (no schema change required)
+    await supabase.auth.updateUser({ data: { privacy_prefs: prefs } })
     localStorage.setItem('learnora_privacy', JSON.stringify(prefs))
+    setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
@@ -88,9 +104,9 @@ export default function PrivacySettingsPage({ onNavigate }: Props) {
 
         {/* Save */}
         <div className="flex justify-end">
-          <button onClick={save}
-            className="flex items-center gap-2 h-10 px-6 bg-primary text-white text-sm font-bold rounded-pill hover:bg-primary-deep transition-colors shadow-primary">
-            {saved ? <><CheckCircle2 size={14} /> Saved</> : 'Save changes'}
+          <button onClick={save} disabled={saving}
+            className="flex items-center gap-2 h-10 px-6 bg-primary text-white text-sm font-bold rounded-pill hover:bg-primary-deep transition-colors shadow-primary disabled:opacity-60">
+            {saved ? <><CheckCircle2 size={14} /> Saved</> : saving ? 'Saving…' : 'Save changes'}
           </button>
         </div>
       </div>

@@ -17,7 +17,7 @@ export default function SecuritySettingsPage({ onNavigate }: Props) {
   const [newPw,     setNewPw]     = useState('')
   const [confirm,   setConfirm]   = useState('')
   const [showPw,    setShowPw]    = useState(false)
-  const [twoFA,     setTwoFA]     = useState(false)
+  const [twoFA]     = useState(false)
   const [pwSaving,  setPwSaving]  = useState(false)
   const [pwSaved,   setPwSaved]   = useState(false)
   const [errors,    setErrors]    = useState<Record<string, string>>({})
@@ -117,7 +117,7 @@ export default function SecuritySettingsPage({ onNavigate }: Props) {
 
         {/* 2FA */}
         <div className="bg-surface rounded-card shadow-sm p-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="size-10 rounded-card bg-primary/10 flex items-center justify-center">
                 <Shield size={18} className="text-primary" />
@@ -128,10 +128,10 @@ export default function SecuritySettingsPage({ onNavigate }: Props) {
               </div>
             </div>
             <button
-              onClick={() => setTwoFA(!twoFA)}
-              className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${twoFA ? 'bg-primary' : 'bg-black/15'}`}
+              onClick={() => onNavigate('2fa-setup')}
+              className="h-9 px-4 text-sm font-semibold rounded-pill border border-primary text-primary hover:bg-primary hover:text-white transition-colors shrink-0"
             >
-              <span className={`absolute inset-y-[2px] w-5 h-5 rounded-full bg-white shadow-sm transition-all duration-200 ${twoFA ? 'left-[22px]' : 'left-[2px]'}`} />
+              {twoFA ? 'Manage' : 'Set up'}
             </button>
           </div>
         </div>

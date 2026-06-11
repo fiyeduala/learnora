@@ -1,4 +1,4 @@
-import { User, Bell, Shield, ChevronRight, LogOut, Palette, Wifi } from 'lucide-react'
+import { User, Bell, Shield, ChevronRight, LogOut, Palette, Wifi, Lock, Smartphone, Link2, HardDrive, RefreshCw } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav, adminNav, superAdminNav } from '../components/layout/Sidebar'
 import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
@@ -10,16 +10,26 @@ const sections = [
   {
     title: 'Account',
     items: [
-      { icon: User,    label: 'Profile Settings',      sub: 'Update your name, photo and bio',        page: 'profile-settings'  },
-      { icon: Bell,    label: 'Notification Settings', sub: 'Manage how you receive notifications',    page: 'notif-settings'    },
-      { icon: Shield,  label: 'Security Settings',     sub: 'Password, 2FA and active sessions',      page: 'security-settings' },
+      { icon: User,       label: 'Profile Settings',      sub: 'Update your name, photo and bio',          page: 'profile-settings'   },
+      { icon: Bell,       label: 'Notification Settings', sub: 'Manage how you receive notifications',      page: 'notif-settings'     },
+      { icon: Shield,     label: 'Security Settings',     sub: 'Password, 2FA and active sessions',        page: 'security-settings'  },
     ],
   },
   {
-    title: 'Appearance',
+    title: 'Privacy & Devices',
     items: [
-      { icon: Palette, label: 'Theme',                 sub: 'Light mode (Dark mode coming soon)',      page: 'settings'          },
-      { icon: Wifi,    label: 'Offline Mode',          sub: 'Download content for offline access',     page: 'settings'          },
+      { icon: Lock,       label: 'Privacy Settings',      sub: 'Control who can see your profile and data', page: 'privacy-settings'   },
+      { icon: Smartphone, label: 'Connected Devices',     sub: 'Manage sessions on your devices',           page: 'connected-devices'  },
+      { icon: Link2,      label: 'Linked Accounts',       sub: 'Connect Google, Microsoft or Apple',        page: 'linked-accounts'    },
+    ],
+  },
+  {
+    title: 'Appearance & Offline',
+    items: [
+      { icon: Palette,    label: 'Theme',                 sub: 'Light mode (Dark mode coming soon)',        page: 'appearance-settings'},
+      { icon: HardDrive,  label: 'Storage Management',   sub: 'See what is taking up space',               page: 'storage-management' },
+      { icon: RefreshCw,  label: 'Offline Sync',         sub: 'View items waiting to sync',                page: 'offline-sync'       },
+      { icon: Wifi,       label: 'Downloads',            sub: 'Manage offline content',                    page: 'downloads'          },
     ],
   },
 ]

@@ -219,14 +219,14 @@ export default function LiveClassRoomPage({ onNavigate }: Props) {
           <span className="text-[9px] text-white/50">Camera</span>
         </button>
         <button
-          onClick={() => setMode(mode === 'screenshare' ? 'gallery' : 'screenshare')}
+          onClick={() => onNavigate('screen-share')}
           className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-colors ${mode === 'screenshare' ? 'bg-primary/30' : 'hover:bg-white/8'}`}
         >
           <Monitor size={20} className={mode === 'screenshare' ? 'text-primary' : 'text-white'} />
           <span className="text-[9px] text-white/50">Share</span>
         </button>
         <button
-          onClick={() => setMode(mode === 'whiteboard' ? 'gallery' : 'whiteboard')}
+          onClick={() => onNavigate('whiteboard')}
           className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-colors ${mode === 'whiteboard' ? 'bg-primary/30' : 'hover:bg-white/8'}`}
         >
           <PenLine size={20} className={mode === 'whiteboard' ? 'text-primary' : 'text-white'} />
@@ -247,7 +247,7 @@ export default function LiveClassRoomPage({ onNavigate }: Props) {
           <span className="text-[9px] text-white/50">Chat</span>
         </button>
         <button
-          onClick={() => togglePanel('participants')}
+          onClick={() => onNavigate('participants-panel')}
           className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-colors ${panel === 'participants' ? 'bg-primary/30' : 'hover:bg-white/8'}`}
         >
           <Users size={20} className={panel === 'participants' ? 'text-primary' : 'text-white'} />
