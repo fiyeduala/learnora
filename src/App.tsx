@@ -103,6 +103,8 @@ import AppearanceSettingsPage    from './pages/AppearanceSettingsPage'
 import OnboardingCarouselPage    from './pages/OnboardingCarouselPage'
 import DiscussionForumPage       from './pages/DiscussionForumPage'
 import QuizBuilderPage           from './pages/QuizBuilderPage'
+import StudentTimetablePage     from './pages/StudentTimetablePage'
+import BulkStudentImportPage    from './pages/admin/BulkStudentImportPage'
 
 // ── New pages (round 3) ───────────────────────────────────────────────────────
 import ConnectedDevicesPage      from './pages/ConnectedDevicesPage'
@@ -376,6 +378,8 @@ function AppearanceRoute()          { const n = useNav(); return <AppearanceSett
 function OnboardingCarouselRoute()  { const n = useNav(); return <OnboardingCarouselPage    onNavigate={n} /> }
 function DiscussionForumRoute()     { const n = useNav(); return <DiscussionForumPage       onNavigate={n} /> }
 function QuizBuilderRoute()         { const n = useNav(); return <QuizBuilderPage           onNavigate={n} /> }
+function StudentTimetableRoute()    { const n = useNav(); return <StudentTimetablePage       onNavigate={n} /> }
+function BulkStudentImportRoute()   { const n = useNav(); return <BulkStudentImportPage      onNavigate={n} /> }
 function ReportBuilderRoute()       { const n = useNav(); return <ReportBuilderPage         onNavigate={n} /> }
 function BulkGradeRoute()           { const n = useNav(); return <BulkGradePage             onNavigate={n} /> }
 
@@ -591,6 +595,7 @@ export default function App() {
         <Route path="/appearance-settings" element={<AppearanceRoute />} />
         <Route path="/discussion-forum"    element={<DiscussionForumRoute />} />
         <Route path="/quiz-builder"        element={<QuizBuilderRoute />} />
+        <Route path="/student-timetable"   element={<StudentTimetableRoute />} />
         <Route path="/report-builder"      element={<ReportBuilderRoute />} />
         <Route path="/bulk-grade"          element={<BulkGradeRoute />} />
 
@@ -664,6 +669,7 @@ export default function App() {
           <Route path="/admin-results"       element={<AdminResultsRoute />} />
           <Route path="/admin-class-details" element={<AdminClassDetailsRoute />} />
           <Route path="/timetable"           element={<TimetableMgmtRoute />} />
+          <Route path="/bulk-import"         element={<BulkStudentImportRoute />} />
           <Route path="/term-calendar"       element={<TermCalendarRoute />} />
           <Route path="/audit-logs"          element={<AuditLogsRoute />} />
           <Route path="/roles-permissions"   element={<RolesPermRoute />} />

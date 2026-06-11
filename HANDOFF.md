@@ -197,15 +197,113 @@ CREATE POLICY "own_claims" ON badge_claims
 4. `StorageManagementPage` — lists `message-attachments` bucket for school prefix, walks sub-folders (capped at 20), sums bytes by MIME type into video/pdf/image categories
 5. `BadgesRewardsPage` — loads `badge_claims` on mount to restore claimed state; `claim()` inserts to `badge_claims` table (cast pattern)
 
-## Still Pending / Open
-- Q5 — localStorage coupling fragile (architectural — acceptable for now)
-- S3 — audit_logs, quiz_questions etc. tables not in schema
-- N5 — MoreVertical menu stub in MessagesPage header
-- R4 — Admin tables at narrow viewport not fully audited
-- ConnectedDevicesPage — still mock data (would need `sessions` table or Supabase Admin API)
-- OfflineSyncPage — still mock data (needs Service Worker integration for real offline queue)
+## Roadmap Checklists
+
+### Option A — Third-party services (blocked on external accounts)
+- [ ] Video calls / Live Classroom real WebRTC — Daily.co, Jitsi, or Twilio
+- [ ] Real screen share — same video provider
+- [ ] SMS 2FA — Twilio / Africa's Talking
+- [ ] Push notifications — Firebase FCM
+- [ ] AI essay auto-feedback — OpenAI API
+- [ ] ConnectedDevicesPage — real session list (Supabase Admin API, server-side only)
+
+### Option B — Polish & production hardening
+- [ ] Re-enable Supabase email confirmation + custom template
+- [ ] Stripe / Paystack payment webhook (FeeCollectionPage currently records manually)
+- [ ] Wire `logSupabaseError` into all write operations (currently only 3 pages)
+- [ ] RLS audit — verify every table policy before going multi-tenant
+- [ ] OfflineSyncPage — real Service Worker offline queue
+- [ ] Fix localStorage coupling (Q5 — architectural, low urgency)
+- [ ] Admin tables responsive audit at narrow viewport (R4)
+- [ ] MoreVertical menu in MessagesPage header (N5)
+
+### Option C — New screens / features ✅ COMPLETE
+- [x] SQL: `timetable_entries` table — run in Supabase SQL Editor (see below)
+- [x] SQL: `quiz_questions` + `quiz_attempts` tables — run in Supabase SQL Editor (see below)
+- [x] SQL: `bulk_student_imports` not needed — batch insert directly from CSV
+- [x] StudentTimetablePage `/student-timetable` — weekly grid for students (mobile day-picker + desktop table)
+- [x] ChildTimetablePage `/parent/timetable` — already wired (reads `timetable_entries`)
+- [x] TimetableManagementPage `/timetable` — admin grid editor, already wired (reads/writes `timetable_entries`)
+- [x] QuizBuilderPage `/quiz-builder` — wired to `quiz_questions` (MCQ/true-false/short; delete+re-insert pattern)
+- [x] QuizPage `/m/quiz` — loads from `quiz_questions`, saves to `quiz_attempts`, navigates to quiz-result
+- [x] QuizResultPage `/m/quiz-result` — reads `learnora_quiz_result` from localStorage (set by QuizPage); shows score/grade/XP
+- [x] ReportCardsPage `/parent/report-cards` — already wired to `grade_summaries`
+- [x] ParentMessageTeacherPage — already wired
+- [x] BulkStudentImportPage `/admin/bulk-import` — CSV drag-drop → parse → preview → batch insert profiles + class_enrollments; template download; per-row result table
+
+### Option D — Mobile app
+- [ ] Wrap with Capacitor for Android/iOS PWA (zero code changes needed)
+
+---
+
+### SQL to run in Supabase (Option C — run these before testing timetable and quiz)
+
+```sql
+-- Timetable entries (day is TEXT: 'Monday'..'Friday'; period is 0-indexed INT)
+CREATE TABLE IF NOT EXISTS public.timetable_entries (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id  UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  class_id   UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  subject_id UUID NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+  teacher_id UUID REFERENCES profiles(id),
+  day        TEXT NOT NULL,
+  period     INT  NOT NULL,
+  start_time TIME NOT NULL,
+  end_time   TIME NOT NULL,
+  room       TEXT,
+  UNIQUE(class_id, day, period)
+);
+ALTER TABLE timetable_entries ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "school_members_read_tt" ON timetable_entries
+  FOR SELECT USING (school_id IN (SELECT school_id FROM profiles WHERE id = auth.uid()));
+CREATE POLICY "admin_teacher_write_tt" ON timetable_entries
+  FOR ALL USING (school_id IN (SELECT school_id FROM profiles WHERE id = auth.uid() AND role IN ('admin','teacher','super_admin')))
+  WITH CHECK (school_id IN (SELECT school_id FROM profiles WHERE id = auth.uid() AND role IN ('admin','teacher','super_admin')));
+
+-- Quiz questions
+CREATE TABLE IF NOT EXISTS public.quiz_questions (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  lesson_id   UUID REFERENCES lessons(id) ON DELETE CASCADE,
+  school_id   UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  question    TEXT NOT NULL,
+  type        TEXT DEFAULT 'mcq' CHECK (type IN ('mcq','truefalse','short')),
+  options     JSONB,
+  explanation TEXT,
+  points      INT DEFAULT 1,
+  order_index INT DEFAULT 0,
+  created_by  UUID REFERENCES profiles(id),
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE quiz_questions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "school_read_qq" ON quiz_questions
+  FOR SELECT USING (school_id IN (SELECT school_id FROM profiles WHERE id = auth.uid()));
+CREATE POLICY "teacher_write_qq" ON quiz_questions
+  FOR ALL USING (school_id IN (SELECT school_id FROM profiles WHERE id = auth.uid() AND role IN ('teacher','admin','super_admin')))
+  WITH CHECK (school_id IN (SELECT school_id FROM profiles WHERE id = auth.uid() AND role IN ('teacher','admin','super_admin')));
+
+-- Quiz attempts
+CREATE TABLE IF NOT EXISTS public.quiz_attempts (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id   UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  lesson_id    UUID REFERENCES lessons(id),
+  school_id    UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  answers      JSONB,
+  score        INT,
+  max_score    INT,
+  completed_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(student_id, lesson_id)
+);
+ALTER TABLE quiz_attempts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "own_quiz_attempts" ON quiz_attempts
+  FOR ALL USING (student_id = auth.uid()) WITH CHECK (student_id = auth.uid());
+CREATE POLICY "teacher_read_qa" ON quiz_attempts
+  FOR SELECT USING (school_id IN (SELECT school_id FROM profiles WHERE id = auth.uid() AND role IN ('teacher','admin')));
+```
+
+---
 
 ## Git / Deploy
 - Repo: `github.com/fiyeduala/learnora`
 - Deploy: Vercel auto-deploys on push to `main`
-- Latest local commit: `3558d6c` — all changes above are uncommitted (ready to commit)
+- Latest commit: `2ac43f5` — wired 5 stub pages to real services
+- Round 5 (2026-06-11): StudentTimetablePage routed; BulkStudentImportPage built; QuizPage/QuizBuilderPage/QuizResultPage fully wired — Option C complete
