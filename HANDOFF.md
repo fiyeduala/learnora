@@ -146,7 +146,7 @@ Screenshots in `design/sections/`. MCP available but rate-limited on free plan.
 - `ScreenSharePage` `/screen-share` — screen share controls for live class
 - `ParticipantsPanelPage` `/participants-panel` — participant list with mic/cam/hand-raised states (Supabase-backed)
 - `OfflineSyncPage` `/offline-sync` — sync queue with pending/synced/failed states (mock)
-- `WhiteboardPage` `/whiteboard` — whiteboard toolbar (pen/eraser/shapes/text/color); canvas placeholder
+- `WhiteboardPage` `/whiteboard` — full Canvas API drawing (pen/eraser/rect/circle/text, undo, download)
 - `AttendanceHistoryPage` `/attendance-history` — teacher view of past attendance records
 - `SubjectPerformancePage` `/subject-performance` — student per-subject drill-down from grade_summaries
 - `DeadlinesViewPage` `/deadlines` — student assignments by urgency (overdue/today/week/upcoming)
@@ -154,13 +154,13 @@ Screenshots in `design/sections/`. MCP available but rate-limited on free plan.
 - `CourseResourcesPage` `/course-resources` — student lesson list for selected course (tabs by type)
 - `CourseSettingsPage` `/course-settings` — teacher edit course title/description
 - `PlagiarismCheckPage` `/plagiarism-check` — submission similarity scores (simulated)
-- `TwoFASetupPage` `/2fa-setup` — multi-step 2FA (app/SMS → verify → recovery codes)
+- `TwoFASetupPage` `/2fa-setup` — full Supabase TOTP MFA: enroll → QR code → challenge → verify → recovery codes persisted to user_metadata
 - `AddEventPage` `/add-event` — calendar event form → inserts to `live_sessions`
-- `StorageManagementPage` `/storage-management` — usage bars by category + clear buttons
-- `BadgesRewardsPage` `/badges-rewards` — XP from lesson_progress + submissions; reward shop
+- `StorageManagementPage` `/storage-management` — queries `message-attachments` Supabase Storage bucket; sums sizes by MIME type
+- `BadgesRewardsPage` `/badges-rewards` — XP from lesson_progress + submissions (real); claims persisted to `badge_claims` table
 - `ConnectedDevicesPage` `/connected-devices` — active sessions list (mock)
-- `PrivacySettingsPage` `/privacy-settings` — privacy toggles saved to localStorage
-- `LinkedAccountsPage` `/linked-accounts` — connect/disconnect SSO providers
+- `PrivacySettingsPage` `/privacy-settings` — privacy toggles persisted to Supabase auth user_metadata
+- `LinkedAccountsPage` `/linked-accounts` — wired to `getUserIdentities/linkIdentity/unlinkIdentity` (OAuth redirect)
 
 **TypeScript fixes (caught by Vercel fresh build):**
 - `interface Record` → `AttendRow` (shadowed built-in)
@@ -172,7 +172,40 @@ Screenshots in `design/sections/`. MCP available but rate-limited on free plan.
 - `PostgrestBuilder` → `any[]` in MobileStudentMessagesPage
 - Unused imports/variables removed across 12+ files
 
+## Round 4 — Wiring Stubs to Real Services (2026-06-11) ✅
+
+All 5 "available in stack" items wired up. Run this SQL in Supabase before testing badge claims:
+
+```sql
+CREATE TABLE IF NOT EXISTS public.badge_claims (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  school_id  UUID NOT NULL REFERENCES schools(id)  ON DELETE CASCADE,
+  reward_id  TEXT NOT NULL,
+  claimed_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(student_id, reward_id)
+);
+ALTER TABLE badge_claims ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "own_claims" ON badge_claims
+  USING (student_id = auth.uid()) WITH CHECK (student_id = auth.uid());
+```
+
+**Wiring changes made:**
+1. `WhiteboardPage` — full HTML5 Canvas: useRef, mousedown/move/up + touch, pen/eraser/rect/circle/text tools, 24-frame undo stack, clear, download as PNG
+2. `TwoFASetupPage` — `supabase.auth.mfa.enroll()` → real TOTP QR code; `challenge()` + `verify()` flow; recovery codes generated client-side and stored in `user_metadata`; SMS option disabled (not in Supabase stack)
+3. `LinkedAccountsPage` — `getUserIdentities()` on mount; `linkIdentity({ provider })` triggers OAuth redirect; `unlinkIdentity(identity)` to disconnect; provider 'microsoft' maps to Supabase 'azure'
+4. `StorageManagementPage` — lists `message-attachments` bucket for school prefix, walks sub-folders (capped at 20), sums bytes by MIME type into video/pdf/image categories
+5. `BadgesRewardsPage` — loads `badge_claims` on mount to restore claimed state; `claim()` inserts to `badge_claims` table (cast pattern)
+
+## Still Pending / Open
+- Q5 — localStorage coupling fragile (architectural — acceptable for now)
+- S3 — audit_logs, quiz_questions etc. tables not in schema
+- N5 — MoreVertical menu stub in MessagesPage header
+- R4 — Admin tables at narrow viewport not fully audited
+- ConnectedDevicesPage — still mock data (would need `sessions` table or Supabase Admin API)
+- OfflineSyncPage — still mock data (needs Service Worker integration for real offline queue)
+
 ## Git / Deploy
 - Repo: `github.com/fiyeduala/learnora`
 - Deploy: Vercel auto-deploys on push to `main`
-- Latest commit: `c67425c` — Round 3: 18 new pages + TS fixes
+- Latest local commit: `3558d6c` — all changes above are uncommitted (ready to commit)

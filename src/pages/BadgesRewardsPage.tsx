@@ -17,42 +17,60 @@ interface Reward {
 }
 
 const REWARDS: Reward[] = [
-  { id: 'custom_avatar',   title: 'Custom Avatar Frame',   desc: 'Unlock a golden frame for your profile picture.',             icon: '🖼️',  cost: 200,  unlocked: false, claimed: false },
-  { id: 'dark_theme',      title: 'Premium Dark Theme',    desc: 'Access the exclusive Midnight theme.',                        icon: '🌙',  cost: 300,  unlocked: false, claimed: false },
-  { id: 'xp_boost',        title: 'XP Boost (24h)',        desc: 'Earn double XP for 24 hours.',                               icon: '⚡',  cost: 150,  unlocked: false, claimed: false },
-  { id: 'leaderboard_pin', title: 'Leaderboard Pin',       desc: 'Pin yourself at the top of class for 1 day.',                icon: '📌',  cost: 500,  unlocked: false, claimed: false },
-  { id: 'emoji_pack',      title: 'Emoji Reaction Pack',   desc: 'Unlock 12 exclusive emojis for forum posts.',                icon: '🎭',  cost: 100,  unlocked: false, claimed: false },
-  { id: 'early_access',    title: 'Beta Feature Access',   desc: 'Be first to try upcoming Learnora features.',                icon: '🔬',  cost: 800,  unlocked: false, claimed: false },
+  { id: 'custom_avatar',   title: 'Custom Avatar Frame',   desc: 'Unlock a golden frame for your profile picture.',  icon: '🖼️', cost: 200,  unlocked: false, claimed: false },
+  { id: 'dark_theme',      title: 'Premium Dark Theme',    desc: 'Access the exclusive Midnight theme.',             icon: '🌙', cost: 300,  unlocked: false, claimed: false },
+  { id: 'xp_boost',        title: 'XP Boost (24h)',        desc: 'Earn double XP for 24 hours.',                    icon: '⚡', cost: 150,  unlocked: false, claimed: false },
+  { id: 'leaderboard_pin', title: 'Leaderboard Pin',       desc: 'Pin yourself at the top of class for 1 day.',     icon: '📌', cost: 500,  unlocked: false, claimed: false },
+  { id: 'emoji_pack',      title: 'Emoji Reaction Pack',   desc: 'Unlock 12 exclusive emojis for forum posts.',     icon: '🎭', cost: 100,  unlocked: false, claimed: false },
+  { id: 'early_access',    title: 'Beta Feature Access',   desc: 'Be first to try upcoming Learnora features.',     icon: '🔬', cost: 800,  unlocked: false, claimed: false },
 ]
 
 export default function BadgesRewardsPage({ onNavigate }: Props) {
   const { profile } = useAuth()
   const sidebarUser = profileToSidebarUser(profile)
 
-  const [rewards, setRewards] = useState<Reward[]>(REWARDS)
-  const [totalXP,  setTotalXP] = useState(0)
-  const [loading,  setLoading] = useState(true)
+  const [rewards,  setRewards]  = useState<Reward[]>(REWARDS)
+  const [totalXP,  setTotalXP]  = useState(0)
+  const [loading,  setLoading]  = useState(true)
 
   useEffect(() => { if (profile?.id) load() }, [profile?.id])
 
   async function load() {
     setLoading(true)
     const sid = profile!.id
+    const db  = supabase as unknown as { from: (t: string) => any }
 
-    // Compute XP from lesson completions + submissions
-    const [lpRes, subRes] = await Promise.all([
-      supabase.from('lesson_progress').select('id').eq('student_id', sid).eq('completed', true),
-      supabase.from('assignment_submissions').select('id').eq('student_id', sid),
+    const [lpRes, subRes, claimsRes] = await Promise.all([
+      supabase.from('lesson_progress')
+        .select('id').eq('student_id', sid).eq('completed', true),
+      supabase.from('assignment_submissions')
+        .select('id').eq('student_id', sid),
+      db.from('badge_claims')
+        .select('reward_id').eq('student_id', sid),
     ])
+
     const xp = ((lpRes.data?.length ?? 0) * 50) + ((subRes.data?.length ?? 0) * 30)
     setTotalXP(xp)
 
-    // Unlock rewards based on XP thresholds
-    setRewards(prev => prev.map(r => ({ ...r, unlocked: xp >= r.cost })))
+    const claimedIds = new Set<string>(
+      (claimsRes.data ?? []).map((c: any) => c.reward_id as string)
+    )
+
+    setRewards(REWARDS.map(r => ({
+      ...r,
+      unlocked: xp >= r.cost,
+      claimed:  claimedIds.has(r.id),
+    })))
     setLoading(false)
   }
 
-  function claim(id: string) {
+  async function claim(id: string) {
+    const db = supabase as unknown as { from: (t: string) => any }
+    await db.from('badge_claims').insert({
+      student_id: profile!.id,
+      school_id:  profile!.school_id!,
+      reward_id:  id,
+    })
     setRewards(prev => prev.map(r => r.id === id ? { ...r, claimed: true } : r))
   }
 
@@ -87,7 +105,9 @@ export default function BadgesRewardsPage({ onNavigate }: Props) {
 
           {/* How to earn */}
           <div className="bg-surface rounded-card shadow-sm p-5">
-            <p className="text-xs font-bold text-foreground mb-3 flex items-center gap-1.5"><Zap size={12} className="text-amber-500" /> How to earn XP</p>
+            <p className="text-xs font-bold text-foreground mb-3 flex items-center gap-1.5">
+              <Zap size={12} className="text-amber-500" /> How to earn XP
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[
                 { label: 'Complete a lesson', xp: '+50 XP' },
