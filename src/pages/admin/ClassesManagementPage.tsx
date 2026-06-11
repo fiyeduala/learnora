@@ -5,6 +5,7 @@ import { adminNav } from '../../components/layout/Sidebar'
 import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
 import { useToast } from '../../components/shared/Toast'
+import { logSupabaseError } from '../../lib/supabaseError'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -109,6 +110,7 @@ export default function ClassesManagementPage({ onNavigate }: Props) {
       await loadClasses()
       setCreated(true)
     } catch (err: unknown) {
+      logSupabaseError('ClassesMgmt.create', err as any)
       toast((err as Error).message ?? 'Failed to create class', 'error')
     } finally {
       setSaving(false)

@@ -4,6 +4,7 @@ import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
 import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
+import { logSupabaseError } from '../../lib/supabaseError'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -72,6 +73,7 @@ export default function InviteUsersPage({ onNavigate }: Props) {
     const { error: dbErr } = await db.from('invitations').insert(rows)
 
     if (dbErr) {
+      logSupabaseError('InviteUsers.insert', dbErr)
       setError('Failed to save invitations. Please try again.')
       setSending(false)
       return

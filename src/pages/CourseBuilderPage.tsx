@@ -4,6 +4,7 @@ import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
 import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { logSupabaseError } from '../lib/supabaseError'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -144,7 +145,7 @@ export default function CourseBuilderPage({ onNavigate }: Props) {
       .select('id')
       .single()
 
-    if (error || !courseData) { setSaving(false); return }
+    if (error || !courseData) { logSupabaseError('CourseBuilder.insert', error); setSaving(false); return }
 
     const courseId = (courseData as { id: string }).id
 

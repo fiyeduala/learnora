@@ -4,6 +4,7 @@ import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
 import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
+import { logSupabaseError } from '../../lib/supabaseError'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -121,6 +122,7 @@ export default function BulkStudentImportPage({ onNavigate }: Props) {
       })
 
       if (profileErr) {
+        logSupabaseError('BulkImport.insertProfile', profileErr)
         res.push({ row: row.raw, email: row.email, name: row.full_name, status: 'error', message: profileErr.message })
         continue
       }
@@ -130,11 +132,12 @@ export default function BulkStudentImportPage({ onNavigate }: Props) {
         .from('profiles').select('id').eq('email', row.email).maybeSingle()
 
       if (newProfile) {
-        await supabase.from('class_enrollments').insert({
+        const { error: enrollErr } = await supabase.from('class_enrollments').insert({
           class_id:   classId,
           student_id: (newProfile as any).id,
           school_id:  profile.school_id,
         })
+        logSupabaseError('BulkImport.enroll', enrollErr)
       }
 
       res.push({ row: row.raw, email: row.email, name: row.full_name, status: 'ok', message: 'Profile created + enrolled' })

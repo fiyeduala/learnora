@@ -5,6 +5,7 @@ import { adminNav } from '../../components/layout/Sidebar'
 import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
 import { useToast } from '../../components/shared/Toast'
+import { logSupabaseError } from '../../lib/supabaseError'
 
 type Props = { onNavigate: (page: string) => void }
 type RoleFilter = 'All' | 'Student' | 'Teacher' | 'Parent'
@@ -105,7 +106,7 @@ export default function UserManagementPage({ onNavigate }: Props) {
       school_id:  schoolId!,
     }, { onConflict: 'teacher_id,class_id,subject_id' })
     setManaging(false)
-    if (error) { toast(error.message, 'error'); return }
+    if (error) { logSupabaseError('UserMgmt.teacherAssign', error); toast(error.message, 'error'); return }
     setManageDone(true)
     loadUsers()
   }
@@ -121,7 +122,7 @@ export default function UserManagementPage({ onNavigate }: Props) {
       status:     'active',
     }, { onConflict: 'student_id,class_id' })
     setManaging(false)
-    if (error) { toast(error.message, 'error'); return }
+    if (error) { logSupabaseError('UserMgmt.studentEnroll', error); toast(error.message, 'error'); return }
     setManageDone(true)
     loadUsers()
   }
@@ -136,7 +137,7 @@ export default function UserManagementPage({ onNavigate }: Props) {
       school_id:  schoolId!,
     }, { onConflict: 'parent_id,student_id' })
     setManaging(false)
-    if (error) { toast(error.message, 'error'); return }
+    if (error) { logSupabaseError('UserMgmt.parentLink', error); toast(error.message, 'error'); return }
     setManageDone(true)
   }
 

@@ -7,6 +7,7 @@ import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
 import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
+import { logSupabaseError } from '../../lib/supabaseError'
 
 type Props = { onNavigate: (page: string) => void }
 type Tab = 'structure' | 'bank' | 'paystack'
@@ -113,12 +114,13 @@ export default function AdminFeeSetupPage({ onNavigate }: Props) {
   async function saveStructure() {
     if (!profile?.school_id) return
     setSaving(true)
-    await supabase
+    const { error } = await supabase
       .from('fee_level_configs')
       .upsert(
         { school_id: profile.school_id, level: selLevel, term: selTerm, items },
         { onConflict: 'school_id,level,term' }
       )
+    logSupabaseError('AdminFeeSetup.saveStructure', error)
     setSaving(false)
     flash('structure')
   }
@@ -126,12 +128,13 @@ export default function AdminFeeSetupPage({ onNavigate }: Props) {
   async function saveBank() {
     if (!profile?.school_id) return
     setSaving(true)
-    await supabase
+    const { error } = await supabase
       .from('school_settings')
       .upsert(
         { school_id: profile.school_id, bank_name: bankName, account_number: acctNumber, account_name: acctName },
         { onConflict: 'school_id' }
       )
+    logSupabaseError('AdminFeeSetup.saveBank', error)
     setSaving(false)
     flash('bank')
   }
@@ -139,12 +142,13 @@ export default function AdminFeeSetupPage({ onNavigate }: Props) {
   async function savePaystack() {
     if (!profile?.school_id) return
     setSaving(true)
-    await supabase
+    const { error } = await supabase
       .from('school_settings')
       .upsert(
         { school_id: profile.school_id, paystack_public_key: pubKey, paystack_secret_key: secKey, paystack_subaccount_code: subAcctId },
         { onConflict: 'school_id' }
       )
+    logSupabaseError('AdminFeeSetup.savePaystack', error)
     setSaving(false)
     flash('paystack')
   }

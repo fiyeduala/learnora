@@ -7,6 +7,7 @@ import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
 import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
+import { logSupabaseError } from '../../lib/supabaseError'
 
 type Props = { onNavigate: (page: string) => void }
 type PayStatus = 'Paid' | 'Partial' | 'Unpaid' | 'Overdue'
@@ -164,12 +165,13 @@ export default function FeeCollectionPage({ onNavigate }: Props) {
     const newStatus = newPaid >= (offStudent.expected || amount) ? 'paid' : 'partial'
 
     if (offStudent.invoiceId) {
-      await supabase
+      const { error } = await supabase
         .from('invoices')
         .update({ paid_amount: newPaid, status: newStatus })
         .eq('id', offStudent.invoiceId)
+      logSupabaseError('FeeCollection.updateInvoice', error)
     } else {
-      await supabase
+      const { error } = await supabase
         .from('invoices')
         .insert({
           student_id: offStudent.id,
@@ -178,6 +180,7 @@ export default function FeeCollectionPage({ onNavigate }: Props) {
           paid_amount: amount,
           status:     newStatus,
         })
+      logSupabaseError('FeeCollection.insertInvoice', error)
     }
 
     setSaving(false)

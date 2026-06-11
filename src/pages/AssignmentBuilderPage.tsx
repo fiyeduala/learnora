@@ -4,6 +4,7 @@ import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
 import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { logSupabaseError } from '../lib/supabaseError'
 
 type Props = { onNavigate: (page: string) => void }
 type QType = 'multiple-choice' | 'short-answer' | 'essay'
@@ -115,7 +116,7 @@ export default function AssignmentBuilderPage({ onNavigate }: Props) {
       .select('id')
       .single()
 
-    if (err) { setError(err.message); setSaving(false); return }
+    if (err) { logSupabaseError('AssignmentBuilder.insert', err); setError(err.message); setSaving(false); return }
 
     // Save quiz questions to dedicated table
     if (isQuiz && !isDraft && insertData?.id && filledQuestions.length > 0) {

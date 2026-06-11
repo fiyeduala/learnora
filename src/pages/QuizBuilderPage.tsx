@@ -4,6 +4,7 @@ import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
 import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { logSupabaseError } from '../lib/supabaseError'
 
 type Props = { onNavigate: (page: string) => void }
 type QType = 'mcq' | 'truefalse' | 'short'
@@ -156,7 +157,7 @@ export default function QuizBuilderPage({ onNavigate }: Props) {
 
     const { error: insertErr } = await db.from('quiz_questions').insert(rows)
     setSaving(false)
-    if (insertErr) { setError(insertErr.message); return }
+    if (insertErr) { logSupabaseError('QuizBuilder.insert', insertErr); setError(insertErr.message); return }
     setSaved(true)
     setTimeout(() => setSaved(false), 3000)
   }

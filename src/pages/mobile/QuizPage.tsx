@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { ChevronLeft, CheckCircle2, XCircle } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
+import { logSupabaseError } from '../../lib/supabaseError'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -99,7 +100,7 @@ export default function QuizPage({ onNavigate }: Props) {
 
     const timeTaken = totalSec - timeLeft
 
-    await db.from('quiz_attempts').upsert({
+    const { error: attemptErr } = await db.from('quiz_attempts').upsert({
       student_id:   profile.id,
       school_id:    profile.school_id!,
       lesson_id:    lessonId,
@@ -108,6 +109,7 @@ export default function QuizPage({ onNavigate }: Props) {
       max_score:    max,
       completed_at: new Date().toISOString(),
     }, { onConflict: 'student_id,lesson_id' })
+    logSupabaseError('QuizPage.upsertAttempt', attemptErr)
 
     localStorage.setItem('learnora_quiz_result', JSON.stringify({
       score, max, timeTaken, lessonTitle,

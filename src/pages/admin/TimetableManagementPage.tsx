@@ -4,6 +4,7 @@ import DashboardLayout from '../../components/layout/DashboardLayout'
 import { adminNav } from '../../components/layout/Sidebar'
 import { useAuth, profileToSidebarUser } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
+import { logSupabaseError } from '../../lib/supabaseError'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -116,12 +117,14 @@ export default function TimetableManagementPage({ onNavigate }: Props) {
       })
     })
 
-    await db.from('timetable_entries')
+    const { error: delErr } = await db.from('timetable_entries')
       .delete()
       .eq('class_id', classId)
+    logSupabaseError('TimetableMgmt.delete', delErr)
 
     if (rows.length > 0) {
-      await db.from('timetable_entries').insert(rows)
+      const { error: insErr } = await db.from('timetable_entries').insert(rows)
+      logSupabaseError('TimetableMgmt.insert', insErr)
     }
 
     setSaving(false)

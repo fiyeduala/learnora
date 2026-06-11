@@ -3,6 +3,7 @@ import { ChevronRight, Eye, EyeOff, CheckCircle2, Copy, Building2 } from 'lucide
 import AuthHeroPanel from '../components/auth/AuthHeroPanel'
 import { supabase } from '../lib/supabase'
 import { generateSchoolCode } from '../lib/auth'
+import { logSupabaseError } from '../lib/supabaseError'
 
 type Props = { onNavigate: (page: string) => void }
 type Step = 'school' | 'admin' | 'done'
@@ -151,6 +152,7 @@ export default function SchoolSignUpPage({ onNavigate }: Props) {
       setSchoolCode(school.code)
       setStep('done')
     } catch (err: unknown) {
+      logSupabaseError('SchoolSignUp', err as any)
       const msg = err instanceof Error ? err.message : 'Registration failed. Please try again.'
       setError(msg)
     } finally {

@@ -4,6 +4,7 @@ import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav, adminNav, superAdminNav } from '../components/layout/Sidebar'
 import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { logSupabaseError } from '../lib/supabaseError'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -40,7 +41,7 @@ export default function ProfileSettingsPage({ onNavigate }: Props) {
       .update({ full_name, phone: phone.trim() || null })
       .eq('id', profile.id)
     setSaving(false)
-    if (err) { setError(err.message); return }
+    if (err) { logSupabaseError('ProfileSettings.save', err); setError(err.message); return }
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
   }

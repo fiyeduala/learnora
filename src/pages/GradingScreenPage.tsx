@@ -4,6 +4,7 @@ import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
 import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { logSupabaseError } from '../lib/supabaseError'
 
 type Props = { onNavigate: (page: string) => void }
 
@@ -103,7 +104,7 @@ export default function GradingScreenPage({ onNavigate }: Props) {
       max_score:     submission.maxScore,
       feedback:      feedback.trim() || null,
     })
-    if (gErr) { setError(gErr.message); setSaving(false); return }
+    if (gErr) { logSupabaseError('GradingScreen.insertGrade', gErr); setError(gErr.message); setSaving(false); return }
 
     const { error: uErr } = await supabase
       .from('assignment_submissions')
@@ -111,7 +112,7 @@ export default function GradingScreenPage({ onNavigate }: Props) {
       .eq('id', submission.id)
 
     setSaving(false)
-    if (uErr) { setError(uErr.message); return }
+    if (uErr) { logSupabaseError('GradingScreen.updateSubmission', uErr); setError(uErr.message); return }
     setDone(true)
   }
 
