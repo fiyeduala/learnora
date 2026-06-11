@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { ArrowLeft, Plus, Trash2, BookOpen, Save, CheckCircle2 } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
@@ -23,7 +23,7 @@ export default function LessonNotesPage({ onNavigate }: Props) {
   const [saved,      setSaved]      = useState(false)
   const [loading,    setLoading]    = useState(true)
 
-  const lessonId = localStorage.getItem('learnora_selected_lesson') ?? ''
+  const lessonId = sessionStorage.getItem('learnora_selected_lesson') ?? ''
 
   useEffect(() => { if (profile?.id) loadData() }, [profile?.id])
 

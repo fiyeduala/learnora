@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { ChevronLeft } from 'lucide-react'
 import MobileLayout, { parentMobileNav } from '../../components/layout/MobileLayout'
 
@@ -18,12 +18,12 @@ export default function PaymentReviewPage({ onNavigate }: Props) {
   const [dateStr,   setDateStr]   = useState('')
 
   useEffect(() => {
-    const stored = localStorage.getItem('learnora_pending_payment_amount')
-    const total  = localStorage.getItem('learnora_pending_payment_total')
+    const stored = sessionStorage.getItem('learnora_pending_payment_amount')
+    const total  = sessionStorage.getItem('learnora_pending_payment_total')
     setAmount(stored ? Number(stored) : total ? Number(total) : 0)
     const r = genRef()
     setRef(r)
-    localStorage.setItem('learnora_pending_payment_ref', r)
+    sessionStorage.setItem('learnora_pending_payment_ref', r)
     setDateStr(new Date().toLocaleString('en-NG', {
       month: 'short', day: 'numeric', year: 'numeric',
       hour: '2-digit', minute: '2-digit', hour12: true,

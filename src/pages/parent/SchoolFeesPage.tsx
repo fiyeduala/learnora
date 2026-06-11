@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import {
   ChevronLeft, Download, Copy, CheckCircle2,
   AlertCircle, CreditCard, Banknote,
@@ -45,7 +45,7 @@ export default function SchoolFeesPage({ onNavigate }: Props) {
   async function loadFees() {
     setLoading(true)
     const schoolId = profile!.school_id!
-    let childId = localStorage.getItem('learnora_selected_child')
+    let childId = sessionStorage.getItem('learnora_selected_child')
 
     if (!childId) {
       const { data: linkData } = await supabase

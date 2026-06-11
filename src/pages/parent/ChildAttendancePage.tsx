@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { CheckCircle2, XCircle, Clock, ChevronLeft, AlertCircle } from 'lucide-react'
 import MobileLayout, { parentMobileNav } from '../../components/layout/MobileLayout'
 import { useAuth } from '../../contexts/AuthContext'
@@ -31,7 +31,7 @@ export default function ChildAttendancePage({ onNavigate }: Props) {
 
   async function loadData() {
     setLoading(true)
-    const childId = localStorage.getItem('learnora_selected_child') ?? profile!.id
+    const childId = sessionStorage.getItem('learnora_selected_child') ?? profile!.id
 
     const [childRes, ceRes, arRes] = await Promise.all([
       supabase.from('profiles').select('full_name').eq('id', childId).maybeSingle(),

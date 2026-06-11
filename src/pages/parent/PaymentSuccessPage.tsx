@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { CheckCircle2, Download, ArrowLeft, Share2 } from 'lucide-react'
 import MobileLayout, { parentMobileNav } from '../../components/layout/MobileLayout'
 import { useAuth } from '../../contexts/AuthContext'
@@ -16,13 +16,13 @@ export default function PaymentSuccessPage({ onNavigate }: Props) {
   const [ref,        setRef]        = useState('')
 
   useEffect(() => {
-    setAmount(Number(localStorage.getItem('learnora_pending_payment_amount') ?? '0'))
-    setRef(localStorage.getItem('learnora_pending_payment_ref') ?? '')
+    setAmount(Number(sessionStorage.getItem('learnora_pending_payment_amount') ?? '0'))
+    setRef(sessionStorage.getItem('learnora_pending_payment_ref') ?? '')
     if (profile?.id) loadNames()
   }, [profile?.id])
 
   async function loadNames() {
-    const childId = localStorage.getItem('learnora_selected_child')
+    const childId = sessionStorage.getItem('learnora_selected_child')
     if (childId) {
       const { data } = await supabase
         .from('profiles').select('full_name').eq('id', childId).maybeSingle()

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { Bell, Sparkles, ChevronRight } from 'lucide-react'
 import MobileLayout, { studentMobileNav } from '../../components/layout/MobileLayout'
 import { useAuth } from '../../contexts/AuthContext'
@@ -220,7 +220,7 @@ export default function MobileStudentHomePage({ onNavigate }: Props) {
               <button
                 key={course.id}
                 onClick={() => {
-                  localStorage.setItem('learnora_selected_course', course.id)
+                  sessionStorage.setItem('learnora_selected_course', course.id)
                   onNavigate('m/lesson')
                 }}
                 className="shrink-0 w-40 rounded-2xl overflow-hidden border border-black/6 text-left"

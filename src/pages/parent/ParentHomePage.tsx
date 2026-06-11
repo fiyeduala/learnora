@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { Bell, Settings, ChevronRight, AlertCircle, ChevronDown } from 'lucide-react'
 import MobileLayout, { parentMobileNav } from '../../components/layout/MobileLayout'
 import { useAuth } from '../../contexts/AuthContext'
@@ -136,7 +136,7 @@ export default function ParentHomePage({ onNavigate }: Props) {
 
     setChildren(kids)
     if (kids.length > 0) {
-      localStorage.setItem('learnora_selected_child', kids[0].id)
+      sessionStorage.setItem('learnora_selected_child', kids[0].id)
     }
     setLoading(false)
   }
@@ -146,15 +146,15 @@ export default function ParentHomePage({ onNavigate }: Props) {
   function selectChild(i: number) {
     setSelectedIdx(i)
     setPickerOpen(false)
-    if (children[i]) localStorage.setItem('learnora_selected_child', children[i].id)
+    if (children[i]) sessionStorage.setItem('learnora_selected_child', children[i].id)
   }
 
   function goToProgress() {
-    if (child) localStorage.setItem('learnora_selected_child', child.id)
+    if (child) sessionStorage.setItem('learnora_selected_child', child.id)
     onNavigate('parent/progress')
   }
   function goToFees() {
-    if (child) localStorage.setItem('learnora_selected_child', child.id)
+    if (child) sessionStorage.setItem('learnora_selected_child', child.id)
     onNavigate('parent/fees')
   }
 
@@ -268,7 +268,7 @@ export default function ParentHomePage({ onNavigate }: Props) {
             <div className="grid grid-cols-4 gap-3 mb-6">
               {quickActions.map(a => (
                 <button key={a.label} onClick={() => {
-                  if (child) localStorage.setItem('learnora_selected_child', child.id)
+                  if (child) sessionStorage.setItem('learnora_selected_child', child.id)
                   onNavigate(a.page)
                 }} className="flex flex-col items-center gap-2">
                   <div className={`size-14 rounded-2xl ${a.color} flex items-center justify-center`}>

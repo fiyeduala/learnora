@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { Save, Trash2, CheckCircle2, BookOpen } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
@@ -22,7 +22,7 @@ export default function CourseSettingsPage({ onNavigate }: Props) {
 
   async function load() {
     setLoading(true)
-    const id = localStorage.getItem('learnora_selected_course')
+    const id = sessionStorage.getItem('learnora_selected_course')
     if (!id) { setLoading(false); return }
     setCourseId(id)
 

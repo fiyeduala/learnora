@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { ArrowLeft, Paperclip, Calendar, User, AlertCircle } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
@@ -40,7 +40,7 @@ export default function AnnouncementDetailsPage({ onNavigate }: Props) {
 
   async function loadAnnouncement() {
     setLoading(true)
-    let annId = localStorage.getItem('learnora_selected_announcement')
+    let annId = sessionStorage.getItem('learnora_selected_announcement')
 
     if (!annId && profile?.school_id) {
       const { data: latest } = await supabase

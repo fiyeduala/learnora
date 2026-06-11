@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { Share2, RotateCcw } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -32,7 +32,7 @@ export default function QuizResultPage({ onNavigate }: Props) {
   const [result, setResult] = useState<Result | null>(null)
 
   useEffect(() => {
-    const raw = localStorage.getItem('learnora_quiz_result')
+    const raw = sessionStorage.getItem('learnora_quiz_result')
     if (raw) {
       try {
         const r = JSON.parse(raw) as Result

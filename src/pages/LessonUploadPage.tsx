@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { Video, FileText, Headphones, File, ChevronDown, CheckCircle2, Link2, ArrowLeft } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
@@ -24,7 +24,7 @@ export default function LessonUploadPage({ onNavigate }: Props) {
 
   const [courses,     setCourses]     = useState<CourseOpt[]>([])
   const [modules,     setModules]     = useState<ModuleOpt[]>([])
-  const [courseId,    setCourseId]    = useState(localStorage.getItem('learnora_selected_course') ?? '')
+  const [courseId,    setCourseId]    = useState(sessionStorage.getItem('learnora_selected_course') ?? '')
   const [moduleId,    setModuleId]    = useState('')
   const [title,       setTitle]       = useState('')
   const [contentUrl,  setContentUrl]  = useState('')

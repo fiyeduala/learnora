@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { Search, ChevronDown, CheckCircle2, Clock, AlertCircle, Save, X } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
@@ -133,7 +133,7 @@ export default function AssignmentsPage({ onNavigate }: Props) {
   }
 
   function goToDetails(id: string) {
-    localStorage.setItem('learnora_selected_assignment', id)
+    sessionStorage.setItem('learnora_selected_assignment', id)
     onNavigate('assignment-details')
   }
 

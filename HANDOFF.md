@@ -207,15 +207,15 @@ CREATE POLICY "own_claims" ON badge_claims
 - [ ] AI essay auto-feedback — OpenAI API
 - [ ] ConnectedDevicesPage — real session list (Supabase Admin API, server-side only)
 
-### Option B — Polish & production hardening
-- [ ] Re-enable Supabase email confirmation + custom template
-- [ ] Stripe / Paystack payment webhook (FeeCollectionPage currently records manually)
-- [ ] Wire `logSupabaseError` into all write operations (currently only 3 pages)
-- [ ] RLS audit — verify every table policy before going multi-tenant
+### Option B — Polish & production hardening (in progress)
+- [ ] Re-enable Supabase email confirmation + custom template (Supabase dashboard — not code)
+- [ ] Stripe / Paystack payment webhook (server-side; FeeCollectionPage records manually for now)
+- [x] Wire `logSupabaseError` into all critical write paths (14 pages — see commit fee675e)
+- [ ] RLS audit — verify every table policy before going multi-tenant (SQL review)
 - [ ] OfflineSyncPage — real Service Worker offline queue
 - [ ] Fix localStorage coupling (Q5 — architectural, low urgency)
 - [ ] Admin tables responsive audit at narrow viewport (R4)
-- [ ] MoreVertical menu in MessagesPage header (N5)
+- [x] MoreVertical menu in MessagesPage header (N5) — already implemented (markUnread + shared-files)
 
 ### Option C — New screens / features ✅ COMPLETE
 - [x] SQL: `timetable_entries` table — run in Supabase SQL Editor (see below)
@@ -231,8 +231,12 @@ CREATE POLICY "own_claims" ON badge_claims
 - [x] ParentMessageTeacherPage — already wired
 - [x] BulkStudentImportPage `/admin/bulk-import` — CSV drag-drop → parse → preview → batch insert profiles + class_enrollments; template download; per-row result table
 
-### Option D — Mobile app
-- [ ] Wrap with Capacitor for Android/iOS PWA (zero code changes needed)
+### Option D — Mobile app ✅ COMPLETE
+- [x] Capacitor installed + configured (appId: com.learnora.app, androidScheme: https)
+- [x] vite.config.ts: base='./' for native WebView relative paths
+- [x] android/ and ios/ native project scaffolds committed
+- [x] To build Android APK: `npm run build && npx cap sync && npx cap open android`
+- [x] To build iOS (Mac only): `npm run build && npx cap sync && npx cap open ios`
 
 ---
 

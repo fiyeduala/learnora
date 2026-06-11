@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { Search, ChevronDown, Play, BookOpen } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
@@ -107,7 +107,7 @@ export default function MyCoursesPage({ onNavigate }: Props) {
   }
 
   function goToCourse(courseId: string) {
-    localStorage.setItem('learnora_selected_course', courseId)
+    sessionStorage.setItem('learnora_selected_course', courseId)
     onNavigate('course-details')
   }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { ArrowLeft, Calendar, Clock, BookOpen, Upload, CheckCircle2, X, FileText, AlertCircle, HelpCircle } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
@@ -61,7 +61,7 @@ export default function AssignmentDetailsPage({ onNavigate }: Props) {
   async function loadAssignment() {
     setLoading(true)
     const studentId  = profile!.id
-    let assignmentId = localStorage.getItem('learnora_selected_assignment')
+    let assignmentId = sessionStorage.getItem('learnora_selected_assignment')
 
     if (!assignmentId) {
       const { data: ceData } = await supabase
@@ -73,7 +73,7 @@ export default function AssignmentDetailsPage({ onNavigate }: Props) {
           .eq('is_published', true).order('due_date', { ascending: true }).limit(1).maybeSingle()
         if (aData) {
           assignmentId = (aData as { id: string }).id
-          localStorage.setItem('learnora_selected_assignment', assignmentId)
+          sessionStorage.setItem('learnora_selected_assignment', assignmentId)
         }
       }
     }

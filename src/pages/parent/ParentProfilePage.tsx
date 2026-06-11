@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, Pencil, Plus, Bell, FileText, MessageSquare, Calendar, User, Lock, Settings, Globe, HelpCircle, MessageCircle } from 'lucide-react'
 import MobileLayout, { parentMobileNav } from '../../components/layout/MobileLayout'
 import { useAuth } from '../../contexts/AuthContext'
@@ -107,7 +107,7 @@ export default function ParentProfilePage({ onNavigate }: Props) {
           ) : children.map(c => (
             <button
               key={c.id}
-              onClick={() => { localStorage.setItem('learnora_selected_child', c.id); onNavigate('parent/progress') }}
+              onClick={() => { sessionStorage.setItem('learnora_selected_child', c.id); onNavigate('parent/progress') }}
               className="bg-white border border-black/8 rounded-2xl p-3 text-left shadow-sm"
             >
               <div className="size-8 rounded-full bg-primary/15 flex items-center justify-center text-lg mb-2">👦</div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { ChevronLeft, Search, MessageSquare } from 'lucide-react'
 import MobileLayout, { studentMobileNav } from '../../components/layout/MobileLayout'
 import { useAuth } from '../../contexts/AuthContext'
@@ -131,7 +131,7 @@ export default function MobileStudentMessagesPage({ onNavigate }: Props) {
   }
 
   function openConversation(conv: ConvItem) {
-    localStorage.setItem('learnora_selected_conversation', JSON.stringify({
+    sessionStorage.setItem('learnora_selected_conversation', JSON.stringify({
       id:       conv.id,
       name:     conv.name,
       role:     conv.role,

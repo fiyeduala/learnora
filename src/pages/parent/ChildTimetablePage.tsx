@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { Clock, BookOpen } from 'lucide-react'
 import MobileLayout, { parentMobileNav } from '../../components/layout/MobileLayout'
 import { useAuth } from '../../contexts/AuthContext'
@@ -48,7 +48,7 @@ export default function ChildTimetablePage({ onNavigate }: Props) {
 
   async function loadTimetable() {
     setLoading(true)
-    const childId = localStorage.getItem('learnora_selected_child') ?? profile!.id
+    const childId = sessionStorage.getItem('learnora_selected_child') ?? profile!.id
 
     // Get child's name and class
     const [childRes, ceRes] = await Promise.all([

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { ChevronLeft, TrendingUp } from 'lucide-react'
 import MobileLayout, { parentMobileNav } from '../../components/layout/MobileLayout'
 import { supabase } from '../../lib/supabase'
@@ -41,7 +41,7 @@ export default function ParentProgressPage({ onNavigate }: Props) {
 
   async function loadProgress() {
     setLoading(true)
-    const childId = localStorage.getItem('learnora_selected_child')
+    const childId = sessionStorage.getItem('learnora_selected_child')
     if (!childId) { setNoChild(true); setLoading(false); return }
 
     // Guard: verify child belongs to this school

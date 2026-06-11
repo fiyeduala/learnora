@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { Megaphone, Search, ChevronRight } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
@@ -66,7 +66,7 @@ export default function AnnouncementsFeedPage({ onNavigate }: Props) {
   }
 
   function goToDetails(id: string) {
-    localStorage.setItem('learnora_selected_announcement', id)
+    sessionStorage.setItem('learnora_selected_announcement', id)
     onNavigate('announcement-details')
   }
 

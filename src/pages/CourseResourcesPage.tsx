@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { FileText, Video, Link2, Download, BookOpen } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
@@ -38,7 +38,7 @@ export default function CourseResourcesPage({ onNavigate }: Props) {
   async function load() {
     setLoading(true)
     const schoolId = profile!.school_id!
-    const courseId = localStorage.getItem('learnora_selected_course')
+    const courseId = sessionStorage.getItem('learnora_selected_course')
 
     if (!courseId) { setLoading(false); return }
 
@@ -119,7 +119,7 @@ export default function CourseResourcesPage({ onNavigate }: Props) {
                       <Download size={11} /> Open
                     </a>
                   ) : (
-                    <button onClick={() => { localStorage.setItem('learnora_selected_lesson', JSON.stringify({ id: r.id, title: r.title })); onNavigate('m/lesson') }}
+                    <button onClick={() => { sessionStorage.setItem('learnora_selected_lesson', JSON.stringify({ id: r.id, title: r.title })); onNavigate('m/lesson') }}
                       className="flex items-center gap-1.5 h-8 px-3 bg-primary/10 text-primary text-xs font-semibold rounded-full hover:bg-primary hover:text-white transition-colors shrink-0">
                       View
                     </button>

@@ -182,7 +182,7 @@ export default function AdminResultsPage({ onNavigate }: Props) {
             <h3 className="text-base font-bold text-foreground">Classes — Current Term</h3>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm min-w-[700px]">
               <thead>
                 <tr className="border-b border-black/6 bg-canvas/50">
                   {['Class', 'Students', 'Grades', 'Status', 'Actions'].map(h => (
@@ -260,7 +260,7 @@ export default function AdminResultsPage({ onNavigate }: Props) {
         <Modal onClose={() => setReviewing(null)} title={`Review Grades — ${reviewing.name}`}>
           <div className="p-6">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm min-w-[700px]">
                 <thead>
                   <tr className="border-b border-black/8 bg-canvas/40">
                     <th className="text-left px-4 py-3 text-xs font-semibold text-muted uppercase">Student</th>

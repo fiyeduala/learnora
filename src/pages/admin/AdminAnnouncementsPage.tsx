@@ -111,7 +111,7 @@ export default function AdminAnnouncementsPage({ onNavigate }: Props) {
   )
 
   function openAnnouncement(id: string) {
-    localStorage.setItem('learnora_selected_announcement', id)
+    sessionStorage.setItem('learnora_selected_announcement', id)
     onNavigate('announcement-details')
   }
 

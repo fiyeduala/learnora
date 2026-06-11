@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { ChevronLeft, Play, CheckCircle2, Clock, BookOpen, Users, FileText, Download, Link, Video, File } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
@@ -53,7 +53,7 @@ export default function CourseDetailsPage({ onNavigate }: Props) {
   async function loadCourse() {
     setLoading(true)
     const studentId = profile!.id
-    let courseId    = localStorage.getItem('learnora_selected_course')
+    let courseId    = sessionStorage.getItem('learnora_selected_course')
 
     if (!courseId) {
       const { data: ceData } = await supabase
@@ -64,7 +64,7 @@ export default function CourseDetailsPage({ onNavigate }: Props) {
           .from('courses').select('id').in('class_id', classIds).eq('is_published', true).limit(1).maybeSingle()
         if (cData) {
           courseId = (cData as { id: string }).id
-          localStorage.setItem('learnora_selected_course', courseId)
+          sessionStorage.setItem('learnora_selected_course', courseId)
         }
       }
     }

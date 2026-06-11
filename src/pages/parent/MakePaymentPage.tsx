@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { ChevronLeft, MoreHorizontal } from 'lucide-react'
 import MobileLayout, { parentMobileNav } from '../../components/layout/MobileLayout'
 
@@ -11,7 +11,7 @@ export default function MakePaymentPage({ onNavigate }: Props) {
   const [amount, setAmount] = useState('')
 
   useEffect(() => {
-    const stored = localStorage.getItem('learnora_pending_payment_total')
+    const stored = sessionStorage.getItem('learnora_pending_payment_total')
     setTotal(stored ? Number(stored) : 0)
   }, [])
 
@@ -21,7 +21,7 @@ export default function MakePaymentPage({ onNavigate }: Props) {
 
   function proceed() {
     const n = Number(amount) || total
-    localStorage.setItem('learnora_pending_payment_amount', String(n))
+    sessionStorage.setItem('learnora_pending_payment_amount', String(n))
     onNavigate('parent/payment-review')
   }
 

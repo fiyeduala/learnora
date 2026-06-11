@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import { Send, ChevronLeft } from 'lucide-react'
 import MobileLayout, { parentMobileNav } from '../../components/layout/MobileLayout'
 import { useAuth } from '../../contexts/AuthContext'
@@ -41,7 +41,7 @@ export default function ParentMessageTeacherPage({ onNavigate }: Props) {
   const [sending,   setSending]   = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  const childId   = localStorage.getItem('learnora_selected_child') ?? profile?.id ?? ''
+  const childId   = sessionStorage.getItem('learnora_selected_child') ?? profile?.id ?? ''
 
   useEffect(() => { if (profile?.id) loadTeachers() }, [profile?.id])
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import { ChevronLeft, CheckCircle2, XCircle } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
@@ -34,7 +34,7 @@ export default function QuizPage({ onNavigate }: Props) {
   useEffect(() => { answersRef.current = answers }, [answers])
 
   useEffect(() => {
-    const lid = localStorage.getItem('learnora_selected_lesson') ?? ''
+    const lid = sessionStorage.getItem('learnora_selected_lesson') ?? ''
     setLessonId(lid)
     if (lid) loadQuestions(lid)
     else setLoading(false)
@@ -111,7 +111,7 @@ export default function QuizPage({ onNavigate }: Props) {
     }, { onConflict: 'student_id,lesson_id' })
     logSupabaseError('QuizPage.upsertAttempt', attemptErr)
 
-    localStorage.setItem('learnora_quiz_result', JSON.stringify({
+    sessionStorage.setItem('learnora_quiz_result', JSON.stringify({
       score, max, timeTaken, lessonTitle,
       accuracy: max > 0 ? Math.round((score / max) * 100) : 0,
       studentName: profile.full_name ?? 'Student',

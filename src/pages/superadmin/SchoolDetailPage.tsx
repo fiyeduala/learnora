@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import {
   Building2, Users, ArrowLeft, Mail, Globe, Phone, MapPin,
   Calendar, AlertCircle, CheckCircle2, Activity,
@@ -208,7 +208,7 @@ export default function SchoolDetailPage({ onNavigate }: Props) {
 
   async function loadSchoolData() {
     setDbLoading(true)
-    const schoolId = localStorage.getItem('learnora_selected_school_id')
+    const schoolId = sessionStorage.getItem('learnora_selected_school_id')
     if (!schoolId) { setDbLoading(false); return }
 
     const [schRes, profRes] = await Promise.all([

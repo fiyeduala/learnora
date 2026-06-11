@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import { ChevronLeft, Send } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
@@ -31,7 +31,7 @@ export default function ChatRoomPage({ onNavigate, backPage = 'm/messages' }: Pr
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const raw = localStorage.getItem('learnora_selected_conversation')
+    const raw = sessionStorage.getItem('learnora_selected_conversation')
     if (raw) {
       try { setConvInfo(JSON.parse(raw)) } catch {}
     }

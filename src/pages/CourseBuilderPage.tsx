@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { Plus, GripVertical, Trash2, ChevronDown, BookOpen, CheckCircle2, ArrowLeft } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { teacherNav } from '../components/layout/Sidebar'
@@ -272,7 +272,7 @@ export default function CourseBuilderPage({ onNavigate }: Props) {
                   </button>
                   <button
                     onClick={() => {
-                      localStorage.setItem('learnora_selected_course', c.id)
+                      sessionStorage.setItem('learnora_selected_course', c.id)
                       onNavigate('lesson-upload')
                     }}
                     className="h-8 px-3 bg-primary/10 text-primary text-xs font-semibold rounded-full hover:bg-primary hover:text-white transition-colors"

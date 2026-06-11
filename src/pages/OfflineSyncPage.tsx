@@ -1,116 +1,179 @@
-import { useState } from 'react'
-import { WifiOff, RefreshCw, CheckCircle2, Clock, AlertCircle } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Wifi, WifiOff, RefreshCw, CheckCircle2, HardDrive, Trash2 } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
 
 type Props = { onNavigate: (page: string) => void }
 
-type SyncStatus = 'pending' | 'synced' | 'failed'
-
-interface SyncItem {
-  id:      string
-  label:   string
-  type:    string
-  status:  SyncStatus
-  size:    string
-}
-
-const MOCK_ITEMS: SyncItem[] = [
-  { id: '1', label: 'Lesson notes — Physics Term 2',     type: 'Notes',       status: 'pending', size: '12 KB'  },
-  { id: '2', label: 'Assignment submission — Chemistry', type: 'Submission',  status: 'pending', size: '340 KB' },
-  { id: '3', label: 'Forum post — Maths discussion',    type: 'Forum',       status: 'failed',  size: '2 KB'   },
-  { id: '4', label: 'Goal update — Term 2 goals',       type: 'Goals',       status: 'synced',  size: '1 KB'   },
-  { id: '5', label: 'Quiz result — Biology Chapter 4',  type: 'Assessment',  status: 'synced',  size: '4 KB'   },
-]
-
-const STATUS_META: Record<SyncStatus, { label: string; color: string; Icon: typeof CheckCircle2 }> = {
-  pending: { label: 'Pending',  color: 'text-amber-600 bg-amber-50',  Icon: Clock          },
-  synced:  { label: 'Synced',   color: 'text-green-600 bg-green-50',  Icon: CheckCircle2   },
-  failed:  { label: 'Failed',   color: 'text-red-500 bg-red-50',      Icon: AlertCircle    },
-}
+interface CacheEntry { url: string; size: string }
 
 export default function OfflineSyncPage({ onNavigate }: Props) {
   const { profile } = useAuth()
   const sidebarUser = profileToSidebarUser(profile)
 
-  const [items, setItems]     = useState<SyncItem[]>(MOCK_ITEMS)
-  const [syncing, setSyncing] = useState(false)
+  const [online,        setOnline]        = useState(navigator.onLine)
+  const [swActive,      setSwActive]      = useState(false)
+  const [cacheEntries,  setCacheEntries]  = useState<CacheEntry[]>([])
+  const [cacheBytes,    setCacheBytes]    = useState(0)
+  const [clearing,      setClearing]      = useState(false)
+  const [cleared,       setCleared]       = useState(false)
 
-  const pending = items.filter(i => i.status === 'pending').length
-  const failed  = items.filter(i => i.status === 'failed').length
+  useEffect(() => {
+    const up   = () => setOnline(true)
+    const down = () => setOnline(false)
+    window.addEventListener('online',  up)
+    window.addEventListener('offline', down)
+    return () => { window.removeEventListener('online', up); window.removeEventListener('offline', down) }
+  }, [])
 
-  function syncAll() {
-    setSyncing(true)
-    setTimeout(() => {
-      setItems(prev => prev.map(i => ({ ...i, status: 'synced' as SyncStatus })))
-      setSyncing(false)
-    }, 2000)
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return
+    navigator.serviceWorker.getRegistration('/sw.js').then(reg => {
+      setSwActive(!!reg?.active)
+    })
+    loadCacheInfo()
+  }, [])
+
+  async function loadCacheInfo() {
+    if (!('caches' in window)) return
+    try {
+      const keys  = await caches.keys()
+      const lnKey = keys.find(k => k.startsWith('learnora-'))
+      if (!lnKey) return
+      const cache   = await caches.open(lnKey)
+      const reqs    = await cache.keys()
+      let totalBytes = 0
+      const entries: CacheEntry[] = []
+      for (const req of reqs) {
+        const res = await cache.match(req)
+        if (!res) continue
+        const buf  = await res.clone().arrayBuffer()
+        totalBytes += buf.byteLength
+        entries.push({
+          url:  new URL(req.url).pathname,
+          size: buf.byteLength > 1024
+            ? `${(buf.byteLength / 1024).toFixed(1)} KB`
+            : `${buf.byteLength} B`,
+        })
+      }
+      setCacheEntries(entries)
+      setCacheBytes(totalBytes)
+    } catch { /* ignore — caches API may be restricted */ }
   }
 
-  function retryFailed() {
-    setItems(prev => prev.map(i => i.status === 'failed' ? { ...i, status: 'synced' as SyncStatus } : i))
+  async function clearCache() {
+    setClearing(true)
+    try {
+      const keys = await caches.keys()
+      await Promise.all(keys.filter(k => k.startsWith('learnora-')).map(k => caches.delete(k)))
+      setCacheEntries([])
+      setCacheBytes(0)
+      setCleared(true)
+      setTimeout(() => setCleared(false), 2500)
+    } catch { /* ignore */ }
+    setClearing(false)
   }
+
+  const cacheMB = (cacheBytes / (1024 * 1024)).toFixed(2)
 
   return (
     <DashboardLayout
       activePage="downloads"
       onNavigate={onNavigate}
-      title="Offline Sync"
-      subtitle="Items waiting to sync when you're back online"
+      title="Offline & Cache"
+      subtitle="Service Worker status and cached assets"
       user={sidebarUser}
     >
       <div className="max-w-[680px] flex flex-col gap-5">
 
-        {/* Status banner */}
-        <div className="flex items-center justify-between gap-4 p-4 bg-amber-50 border border-amber-200 rounded-card">
+        {/* Network status */}
+        <div className={`flex items-center gap-3 p-4 rounded-card border ${
+          online
+            ? 'bg-green-50 border-green-200'
+            : 'bg-amber-50 border-amber-200'
+        }`}>
+          {online
+            ? <Wifi size={18} className="text-green-600 shrink-0" />
+            : <WifiOff size={18} className="text-amber-600 shrink-0" />
+          }
+          <div>
+            <p className={`text-sm font-bold ${online ? 'text-green-800' : 'text-amber-800'}`}>
+              {online ? 'You are online' : 'You are offline'}
+            </p>
+            <p className={`text-xs mt-0.5 ${online ? 'text-green-700' : 'text-amber-700'}`}>
+              {online
+                ? 'All features available. The app shell is cached for offline use.'
+                : 'Cached pages are still accessible. Database changes will fail until reconnected.'
+              }
+            </p>
+          </div>
+        </div>
+
+        {/* SW status */}
+        <div className="bg-surface rounded-card shadow-sm p-5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <WifiOff size={18} className="text-amber-600 shrink-0" />
+            <div className={`size-9 rounded-full flex items-center justify-center shrink-0 ${swActive ? 'bg-green-50' : 'bg-canvas'}`}>
+              <RefreshCw size={16} className={swActive ? 'text-green-600' : 'text-muted'} />
+            </div>
             <div>
-              <p className="text-sm font-bold text-amber-800">Offline mode</p>
-              <p className="text-xs text-amber-700 mt-0.5">
-                {pending} pending · {failed} failed · Connect to sync
+              <p className="text-sm font-bold text-foreground">Service Worker</p>
+              <p className="text-xs text-muted mt-0.5">
+                {swActive ? 'Active — app shell is cached for offline use' : 'Not yet registered (will activate on next page load)'}
               </p>
             </div>
           </div>
-          <button onClick={syncAll} disabled={syncing || (pending === 0 && failed === 0)}
-            className="flex items-center gap-1.5 h-9 px-4 bg-amber-600 text-white text-xs font-bold rounded-pill hover:bg-amber-700 transition-colors disabled:opacity-40 shrink-0">
-            <RefreshCw size={12} className={syncing ? 'animate-spin' : ''} />
-            {syncing ? 'Syncing…' : 'Sync now'}
-          </button>
+          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full shrink-0 ${swActive ? 'bg-green-100 text-green-700' : 'bg-canvas text-muted'}`}>
+            {swActive ? 'Active' : 'Inactive'}
+          </span>
         </div>
 
-        {/* Retry failed */}
-        {failed > 0 && (
-          <div className="bg-red-50 border border-red-200 rounded-card p-3 flex items-center justify-between">
-            <p className="text-xs text-red-700 font-semibold">{failed} item{failed > 1 ? 's' : ''} failed to sync</p>
-            <button onClick={retryFailed} className="text-xs text-red-600 font-bold hover:underline">
-              Retry all
+        {/* Cache stats */}
+        <div className="bg-surface rounded-card shadow-sm p-5 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="size-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <HardDrive size={16} className="text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-foreground">Cached assets</p>
+              <p className="text-xs text-muted mt-0.5">
+                {cacheEntries.length} files · {cacheMB} MB used
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {cleared && <CheckCircle2 size={14} className="text-green-500" />}
+            <button onClick={clearCache} disabled={clearing || cacheEntries.length === 0}
+              className="flex items-center gap-1.5 h-8 px-3 border border-black/20 rounded-card text-xs font-semibold text-foreground hover:bg-canvas disabled:opacity-40 transition-colors">
+              <Trash2 size={11} className="text-red-400" />
+              {clearing ? 'Clearing…' : 'Clear cache'}
             </button>
+          </div>
+        </div>
+
+        {/* Cached file list */}
+        {cacheEntries.length > 0 && (
+          <div className="bg-surface rounded-card shadow-sm overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-black/6">
+              <p className="text-xs font-bold text-muted uppercase tracking-wider">Cached files</p>
+            </div>
+            <div className="divide-y divide-black/4 max-h-72 overflow-y-auto">
+              {cacheEntries.map((e, i) => (
+                <div key={i} className="flex items-center justify-between px-5 py-2.5 gap-4">
+                  <p className="text-xs text-foreground truncate font-mono">{e.url || '/'}</p>
+                  <span className="text-[10px] text-muted shrink-0">{e.size}</span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
-        {/* Sync queue */}
-        <div className="bg-surface rounded-card shadow-sm overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-black/6">
-            <p className="text-xs font-bold text-muted uppercase tracking-wider">Sync queue — {items.length} items</p>
+        {cacheEntries.length === 0 && (
+          <div className="bg-surface rounded-card shadow-sm p-8 text-center">
+            <p className="text-sm font-semibold text-foreground mb-1">No cached files yet</p>
+            <p className="text-xs text-muted">The Service Worker will cache assets automatically as you browse.</p>
           </div>
-          <div className="divide-y divide-black/4">
-            {items.map(item => {
-              const { label, color, Icon } = STATUS_META[item.status]
-              return (
-                <div key={item.id} className="flex items-center gap-4 px-5 py-3.5">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">{item.label}</p>
-                    <p className="text-xs text-muted mt-0.5">{item.type} · {item.size}</p>
-                  </div>
-                  <span className={`flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full shrink-0 ${color}`}>
-                    <Icon size={10} /> {label}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        </div>
+        )}
+
       </div>
     </DashboardLayout>
   )

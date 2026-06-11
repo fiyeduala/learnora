@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { Play, ArrowRight, CheckCircle2, Clock, ChevronRight, BookOpen, AlertCircle, BarChart2, CalendarClock, Medal } from 'lucide-react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { useAuth, profileToSidebarUser } from '../contexts/AuthContext'
@@ -186,12 +186,12 @@ export default function OverviewDashboardPage({ onNavigate }: Props) {
   }
 
   function goToCourse(courseId: string) {
-    localStorage.setItem('learnora_selected_course', courseId)
+    sessionStorage.setItem('learnora_selected_course', courseId)
     onNavigate('course-details')
   }
 
   function goToAssignment(assignmentId: string) {
-    localStorage.setItem('learnora_selected_assignment', assignmentId)
+    sessionStorage.setItem('learnora_selected_assignment', assignmentId)
     onNavigate('assignment-details')
   }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { ChevronLeft, BookOpen, Video, FileText } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
@@ -34,7 +34,7 @@ export default function LessonViewerPage({ onNavigate }: Props) {
 
   async function loadLessons() {
     setLoading(true)
-    const courseId = localStorage.getItem('learnora_selected_course')
+    const courseId = sessionStorage.getItem('learnora_selected_course')
     if (!courseId) { setLoading(false); return }
 
     const { data: lData } = await supabase

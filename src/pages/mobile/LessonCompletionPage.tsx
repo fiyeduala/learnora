@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { ChevronLeft } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
@@ -10,7 +10,7 @@ export default function LessonCompletionPage({ onNavigate }: Props) {
   const [lessonTitle, setLessonTitle] = useState('this lesson')
 
   useEffect(() => {
-    const raw = localStorage.getItem('learnora_selected_lesson')
+    const raw = sessionStorage.getItem('learnora_selected_lesson')
     if (raw) {
       try {
         const lesson = JSON.parse(raw)

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { Download, ChevronLeft, TrendingUp } from 'lucide-react'
 import MobileLayout, { parentMobileNav } from '../../components/layout/MobileLayout'
 import { useAuth } from '../../contexts/AuthContext'
@@ -38,7 +38,7 @@ export default function ReportCardsPage({ onNavigate }: Props) {
 
   async function loadData() {
     setLoading(true)
-    const childId = localStorage.getItem('learnora_selected_child') ?? profile!.id
+    const childId = sessionStorage.getItem('learnora_selected_child') ?? profile!.id
 
     const [childRes, ceRes, gradeRes] = await Promise.all([
       supabase.from('profiles').select('full_name').eq('id', childId).maybeSingle(),

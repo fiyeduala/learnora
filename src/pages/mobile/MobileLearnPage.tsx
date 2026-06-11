@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { Search, ChevronRight } from 'lucide-react'
 import MobileLayout, { studentMobileNav } from '../../components/layout/MobileLayout'
 import { useAuth } from '../../contexts/AuthContext'
@@ -104,7 +104,7 @@ export default function MobileLearnPage({ onNavigate }: Props) {
   const filteredSubjects = subjects.filter(s => !q || s.name.toLowerCase().includes(q))
 
   function goToCourse(id: string) {
-    localStorage.setItem('learnora_selected_course', id)
+    sessionStorage.setItem('learnora_selected_course', id)
     onNavigate('m/lesson')
   }
 

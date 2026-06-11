@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { ChevronLeft, CreditCard, Landmark, Banknote, Copy, CheckCircle2, AlertCircle } from 'lucide-react'
 import MobileLayout, { parentMobileNav } from '../../components/layout/MobileLayout'
 import { useAuth } from '../../contexts/AuthContext'
@@ -21,7 +21,7 @@ export default function SelectPaymentMethodPage({ onNavigate }: Props) {
 
   async function loadBalance() {
     setLoading(true)
-    const childId = localStorage.getItem('learnora_selected_child') ?? profile!.id
+    const childId = sessionStorage.getItem('learnora_selected_child') ?? profile!.id
 
     const { data: invData } = await supabase
       .from('invoices')
@@ -30,7 +30,7 @@ export default function SelectPaymentMethodPage({ onNavigate }: Props) {
       .neq('status', 'paid')
     const total = (invData ?? []).reduce((s: number, r: { amount: number }) => s + (r.amount ?? 0), 0)
     setBalance(total)
-    localStorage.setItem('learnora_pending_payment_total', String(total))
+    sessionStorage.setItem('learnora_pending_payment_total', String(total))
 
     if (profile?.school_id) {
       const { data: school } = await supabase
