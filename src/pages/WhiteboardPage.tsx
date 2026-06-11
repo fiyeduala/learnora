@@ -108,7 +108,6 @@ export default function WhiteboardPage({ onNavigate }: Props) {
       ctx.lineTo(pos.x, pos.y)
       ctx.stroke()
     } else if ((t === 'rect' || t === 'circle') && snapRef.current) {
-      const canvas = canvasRef.current!
       ctx.putImageData(snapRef.current, 0, 0)
       ctx.strokeStyle = colorRef.current
       ctx.lineWidth   = sizeRef.current

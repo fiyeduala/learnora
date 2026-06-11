@@ -108,10 +108,7 @@ export default function BulkStudentImportPage({ onNavigate }: Props) {
         continue
       }
 
-      // Create auth user (magic invite — no password set yet)
-      const { data: authData, error: authErr } = await supabase.auth.admin
-        ? { data: null, error: { message: 'Admin API not available on client' } }
-        : { data: null, error: { message: 'Use service role key for auth.admin' } }
+      // auth.admin requires service-role key (server-side only); skip on client
 
       // Fallback: insert into profiles directly (student must sign up themselves with this email)
       const { error: profileErr } = await supabase.from('profiles').insert({
@@ -142,7 +139,7 @@ export default function BulkStudentImportPage({ onNavigate }: Props) {
 
       res.push({ row: row.raw, email: row.email, name: row.full_name, status: 'ok', message: 'Profile created + enrolled' })
 
-      void authData // suppress unused warning
+
     }
 
     setResults(res)
